@@ -1,0 +1,12 @@
+<?php
+
+namespace App\Modules\#SCOPE#\#MODULE_PATH#\Services;
+
+use App\Modules\#SCOPE#\#MODULE_PATH#\Repositories\#MODULE_NAME#Repository;
+
+class #MODULE_NAME#Service
+{
+    public function __construct(
+        protected $repo = new #MODULE_NAME#Repository(),
+    ){}
+}

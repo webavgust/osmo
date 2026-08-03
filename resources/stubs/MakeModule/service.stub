@@ -1,0 +1,8 @@
+<?php
+
+namespace App\Modules\#SCOPE#\#MODULE_PATH#\Services;
+
+class #MODULE_NAME#Service
+{
+
+}

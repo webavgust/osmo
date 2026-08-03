@@ -1,0 +1,9 @@
+POST http://portals2.gk-rte.ru/api/?token=2af59570-38c9-4b60-95b6-dc2c10429cff&qr=sentelmes
+Content-Type: application/json
+
+{
+  "id": {{$uuid}},
+  "price": {{$randomInt}},
+  "ts": {{$timestamp}},
+  "value": "content"
+}

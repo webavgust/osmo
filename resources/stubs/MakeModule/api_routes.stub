@@ -1,0 +1,8 @@
+<?php
+use \App\Modules\#SCOPE#\#MODULE_PATH#\Controllers\#MODULE_NAME#Controller;
+
+Route::middleware(['ajax.api'])->group(function() {
+    Route::group(['prefix' => '#MODULE_PATH_ROUTE#', 'middleware' => []], function () {
+
+    });
+});

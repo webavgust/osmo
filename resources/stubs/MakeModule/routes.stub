@@ -1,0 +1,13 @@
+<?php
+use \App\Modules\#SCOPE#\#MODULE_PATH#\Controllers\#MODULE_NAME#Controller;
+
+Route::group(['prefix' => '#MODULE_PATH_ROUTE#', 'middleware' => []], function () {
+    Route::get('/', [#MODULE_NAME#Controller::class, 'index'])->name('#MODULE_PATH_ROUTE#.index');
+
+    // boxes
+    Route::group(['prefix' => 'box'], function() {   });
+
+    // components
+    Route::group(['prefix' => 'components'], function() {   });
+});
+

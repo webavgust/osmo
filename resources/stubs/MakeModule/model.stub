@@ -1,0 +1,17 @@
+<?php
+
+namespace App\Modules\#SCOPE#\#MODULE_PATH#\Models;
+
+use App\Models\ModuleModel;
+
+class #MODULE_NAME# extends ModuleModel
+{
+    protected $fillable = [];
+    protected $casts = [];
+    protected $hidden = [];
+    public $timestamps = true;
+
+    # RELATIONS
+
+    # ATTRIBUTES
+}

@@ -1,0 +1,24 @@
+<div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasRight" aria-labelledby="offcanvasRightLabel">
+    <div class="offcanvas-header border-bottom">
+        <h4 class="offcanvas-title" id="offcanvasExampleLabel">
+            @hasSection('title')
+                @yield('title')
+            @else
+                {{ $title }}
+            @endif
+        </h4>
+        <button
+            type="button"
+            class="btn-close text-reset"
+            data-bs-dismiss="offcanvas"
+            aria-label="Close"
+        ></button>
+    </div>
+    <div class="offcanvas-body">
+        @yield('body')
+    </div>
+</div>
+
+@hasSection('modal')
+    @yield('modal')
+@endif

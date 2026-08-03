@@ -1,0 +1,1343 @@
+@extends('layouts.layout')
+
+@section('content')
+    @php
+        $columns = 50;
+        $rows = 50;
+    @endphp
+    <link
+        rel="stylesheet"
+        type="text/css"
+        href="/assets/libs/ckeditor/samples/toolbarconfigurator/lib/codemirror/neo.css"
+    />
+    <style>
+        .cke_editable {
+            padding: 5px!important;
+        }
+        /*#table_data[count='1'] .scenario_delete {*/
+        /*    display: none!important;*/
+        /*}*/
+        #table_data[column='1'] .column_delete {
+            display: none!important;
+        }
+        #table_data[column='1'] .main_selector {
+            display: none!important;
+        }
+
+        #table_data:not([column='1']) .column_hl {
+            background: #735fec1a!important;
+        }
+        .scenario_selector span.select2,
+        .work_selector span.select2,
+        .soft_selector span.select2
+        {
+            width: 100%!important;
+        }
+
+
+        td:not(:has(input[type='checkbox']:checked)) .cell-active
+        {
+            visibility: hidden;
+        }
+        tr.scenario.once:not(.scenario_selected) .cell {
+            visibility: hidden;
+        }
+
+        .ui-sortable-helper {
+            /*display: none!important;*/
+            background: yellow!important;
+        }
+        .ui-sortable-placeholder {
+            display: none;
+        }
+
+
+        table[count='0'] tr.discount,
+        table[count='0'] tr.partner,
+        table[count='0'] tr.total,
+        table[count='0'] .subtotal .init_clear {
+            display: none;
+        }
+
+        table[work_count='0'] .work_discount,
+        table[work_count='0'] .work_partner,
+        table[work_count='0'] .work_total,
+        table[work_count='0'] .work_subtotal .init_clear {
+            display: none;
+        }
+
+        table[soft_count='0'] .soft_discount,
+        table[soft_count='0'] .soft_partner,
+        table[soft_count='0'] .soft_total,
+        table[soft_count='0'] .soft_subtotal .init_clear {
+            display: none;
+        }
+
+        table[count='0'][work_count='0'][soft_count='0'] .proposal_total {
+            display: none;
+        }
+
+
+        table[count='0'][work_count='0'][soft_count='0'] th[column],
+        table[count='0'][work_count='0'][soft_count='0'] td[column],
+        table[count='0'][work_count='0'][soft_count='0'] tr:not(.header) th:last-of-type,
+        table[count='0'][work_count='0'][soft_count='0'] tr:not(.header) td:last-of-type
+        {
+            display: none;
+        }
+
+
+        .select2_works_container,
+        .select2_softs_container {
+            height: 0!important;
+            overflow: hidden;
+        }
+
+        /* SCENARIOS */
+        tr.scenario_header {
+            /*border-right: 3px solid #fc4b6c57;*/
+            border-left: 10px solid #fc4b6c57;
+            /*border-top: 3px solid #fc4b6c57;*/
+        }
+        tbody#scenarios {
+            border-left: 10px solid #fc4b6c57;
+            /*border-right: 3px solid #fc4b6c57;*/
+            /*border-bottom: 3px solid #fc4b6c57;*/
+        }
+
+        /* SOFT */
+        tr.soft_header {
+            /*border-right: 3px solid #7460ee69;*/
+            border-left: 10px solid #7460ee69;
+        }
+        tbody#softs {
+            border-left: 10px solid #7460ee69;
+            /*border-right: 3px solid #7460ee69;*/
+            /*border-bottom: 3px solid #7460ee69;*/
+        }
+
+        /* WORK */
+        tr.work_header {
+            /*border-right: 3px solid #ffb22b99;*/
+            border-left: 10px solid #ffb22b99;
+        }
+        tbody#works {
+            border-left: 10px solid #ffb22b99;
+            /*border-right: 3px solid #ffb22b99;*/
+            /*border-bottom: 3px solid #ffb22b99;*/
+        }
+    </style>
+
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <form id="form_create">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-4">
+                                    <label for="tb-fname" class="text-end control-label col-form-label">Название <span class="text-danger">*</span></label>
+                                    <input required name="name" type="text" class="form-control " id="tb-fname"
+                                           placeholder="" value="{{ old('name') }}">
+                                </div>
+                                <div class="col-2">
+                                    <label for="tb-fname" class="text-end control-label col-form-label">Дата КП <span class="text-danger">*</span></label>
+                                    <input required name="date" type="date" class="form-control w-100" id="tb-fname"
+                                           placeholder="" value="{{ old('date') }}" style="width: 140px">
+                                </div>
+                                <div class="col-4">
+                                    <label for="tb-fname" class="text-end control-label col-form-label">Менеджер <span class="text-danger">*</span></label>
+                                    <x-ui.select.single :items="$users" id="id" value-name="full-name" required name="manager"></x-ui.select.single>
+                                </div>
+                                <div class="col-2">
+                                    <label for="tb-fname" class="text-end control-label col-form-label">Номер КП <span class="text-danger">*</span></label>
+                                    <input required name="number" type="text" class="form-control " id="tb-fname"
+                                           placeholder="" value="{{ old('date') }}" style="width: 140px">
+                                </div>
+                            </div>
+
+                            <div class="mb-5 row">
+                                <div class="col-3">
+                                    <label for="tb-fname" class="col-sm-4 control-label col-form-label">Компания <span class="text-danger">*</span></label>
+                                    <x-ui.select.single  class="select2" name="company" required :items="$companies" id="key" value-name="label"></x-ui.select.single>
+                                </div>
+                                <div class="col-3">
+                                    <label for="tb-fname" class="col-sm-4 control-label col-form-label">Партнёр <span class="text-danger">*</span></label>
+                                    <x-ui.select.single class="select2" name="partner" required :items="$partners" id="key" value-name="label"></x-ui.select.single>
+                                </div>
+                            </div>
+
+
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class=" m-t-40 table-responsive" style="clear: both">
+                                        <table border="1" class="table table-hover border-light-secondary" id="table_data" count="0" work_count="0" soft_count="0" column="1" style="width: auto; min-width: 100%">
+
+
+
+
+
+
+
+                                            <tr class="soft_header bg-light-primary header">
+                                                <th style="min-width: 35vw" class="p-1 px-2 border-bottom" colspan="100">
+                                                    <h4 class="m-0 ms-1 text-primary d-flex align-items-center" style="height: 32px">
+                                                        <x-ui.icon.regular icon="fa-circle-1" class="me-2"/>
+                                                        ПО
+                                                    </h4>
+                                                </th>
+                                            </tr>
+
+                                            <tbody id="softs">
+                                            @for($i = 1; $i <= $rows; $i++)
+                                                <tr @class(["soft once", "d-none" => $i >= 1])>
+                                                    <td style="width: 20px" class="p-1 px-2 pt-2">
+                                                        <x-ui.icon.solid icon="fa-xmark" @class(["soft_delete text-danger ms-2 cursor-pointer"]) onclick="javascript:soft_delete($(this))"/>
+                                                        <div class="mt-2 text-end">
+                                                            <a href="javascript:void(0);" onclick="javascript:$(this).parents('tr').find('.select2_softs').select2('open');">
+                                                                <x-ui.icon.solid icon="fa-bolt-lightning"/>
+                                                            </a>
+                                                        </div>
+                                                    </td>
+                                                    <td style="width: 20px" class="p-1 px-2 text-center pt-2"><span class="num">{{ $i }}</span>.</td>
+                                                    <td class="p-1 px-2 soft_selector">
+                                                        <div class="d-flex">
+                                                            <div class="w-50">
+                                                                <div class="select2_softs_container">
+                                                                    <x-ui.select.single class="select2_softs" :items="$softs" id="id" valueName="name"></x-ui.select.single>
+                                                                </div>
+                                                                <h6>Описание</h6>
+                                                                <textarea name="soft[{{ $i }}][extended]" class="soft_extended" id="{{ \Illuminate\Support\Str::uuid() }}"></textarea>
+                                                            </div>
+                                                            <div class="w-50">
+                                                                <h6>Примечание</h6>
+                                                                <textarea name="soft[{{ $i }}][notice]" class="soft_notice" id="{{ \Illuminate\Support\Str::uuid() }}"></textarea>
+                                                            </div>
+                                                        </div>
+
+                                                    </td>
+                                                    @for($j = 1; $j <= $columns; $j++)
+                                                        <td column="{{ $j }}" @class(["border-start p-1", "column_hl" => $j == 1, "d-none" => $j > 1])>
+                                                            <div class="cell soft_cell">
+
+                                                                <div class="form-check d-flex justify-content-between align-items-start flex-grow-0 m-1">
+                                                                    <input name="soft_cell[{{ $i }}][{{ $j }}][active]" class="active form-check-input mt-3 me-1" type="checkbox" value="1" id="flexCheckDefault" checked value="1">
+
+                                                                    <div class="cell-active">
+                                                                        <div class="d-flex justify-content-between fs-1">
+                                                                            <span class="text-nowrap">Стоимость</span>
+                                                                            <span class="text-nowrap">Кол-во</span>
+                                                                        </div>
+                                                                        <div class="input-group">
+                                                                            <input name="soft_cell[{{ $i }}][{{ $j }}][cost]" type="number" min="1" max="999999" value="0" class="cost form-control p-1 fs-2 text-end">
+                                                                            <input name="soft_cell[{{ $i }}][{{ $j }}][count]" type="number" min="0" max="9999" value="0" class="count form-control p-1 fs-2 text-end" >
+                                                                        </div>
+
+                                                                        <div class="fs-2 d-flex align-items-center mt-2 justify-content-end">
+                                                                            <input name="soft_cell[{{ $i }}][{{ $j }}][partner]" class="active form-check-input secondary me-1 cb_partner" type="checkbox" id="soft_partner_{{ $i }}_{{ $j }}" value="1">
+                                                                            <label class="form-check-label fs-1 fw-normal m-0 ms-1" for="soft_partner_{{ $i }}_{{ $j }}">Учитывать скидку партнёра</label>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+
+                                                                <div class="text-end cell-active">
+                                                                        <span class="text-start fs-2 text-secondary">
+                                                                           <span class="soft_cost_total">0</span> ₽
+                                                                           <span class="fw-bold text-nowrap discount_pad d-none">
+                                                                               <x-ui.icon.regular icon="fa-arrow-right" class="mx-1"/>
+                                                                               <span class="soft_cost_total_with_discount">0</span> ₽
+                                                                           </span>
+                                                                        </span>
+                                                                </div>
+
+
+
+                                                            </div>
+                                                        </td>
+                                                    @endfor
+                                                    <td class=" border-start"/>
+                                                </tr>
+                                            @endfor
+
+
+                                            <tr class="soft_subtotal">
+                                                <td colspan="3" class="text-end border-bottom-0 py-2">
+                                                    <div class="d-flex justify-content-between">
+                                                        <a href="javascript:void(0);" onclick="javascript:soft_add();">
+                                                            <x-ui.icon.regular icon="fa-plus"/>
+                                                            Добавить ПО
+                                                        </a>
+
+                                                        <div class="init_clear">Итого без скидки</div>
+                                                    </div>
+                                                </td>
+                                                @for($i = 1; $i <= $columns; $i++)
+                                                    <td column="{{ $i }}" @class(["init_clear border-start border-bottom flex-grow-0 border-bottom-0 py-2", "d-none" => $i > 1, "column_hl" => $i == 1])  style="width: 140px!important">
+                                                        <div class="text-end text-nowrap">
+                                                            <span class="column_subtotal fs-3">0</span> ₽
+                                                        </div>
+                                                    </td>
+                                                @endfor
+                                                <td class="p-0 border-bottom text-center border-start border-bottom-0"/>
+                                            </tr>
+
+
+
+                                            {{-- ИТОГО --}}
+                                            <tr class="soft_total">
+                                                <td colspan="3" class="text-end py-2">
+                                                    <sup class="me-2 text-primary" >ПО</sup><span class="fw-bold fs-4">ИТОГО</span>
+                                                </td>
+                                                @for($i = 1; $i <= $columns; $i++)
+                                                    <td column="{{ $i }}" @class(["border-start border-bottom flex-grow-0 py-2", "d-none" => $i > 1, "column_hl" => $i == 1])  style="width: 140px!important">
+                                                        <div class="text-end fs-4 fw-bold text-nowrap">
+                                                            <span class="column_soft_subtotal">0</span> ₽
+                                                        </div>
+                                                    </td>
+                                                @endfor
+                                                <td class="p-0 border-bottom text-center border-start"/>
+                                            </tr>
+
+
+                                            </tbody>
+                                            {{-- ПОДИТОГ --}}
+
+
+                                            <tr class="scenario_header bg-light-danger">
+                                                <th style="min-width: 35vw" class="p-1 px-2 border-bottom sort_star" colspan="3">
+                                                    <h4 class="m-0 ms-1 text-danger d-flex align-items-center" style="height: 32px">
+                                                        <x-ui.icon.regular icon="fa-circle-2" class="me-2"/>
+                                                        Сценарии
+                                                    </h4>
+                                                </th>
+                                                @for($i = 1; $i <= $columns; $i++)
+                                                    <th column="{{ $i }}" @class(["p-1 px-2 border-start border-bottom flex-grow-0", "d-none" => $i > 1, "column_hl" => $i == 1]) style="width: 180px!important">
+                                                        <div class="d-flex align-items-center">
+                                                            {{--                                                            <x-ui.icon.regular icon="fa-ellipsis-stroke-vertical" class="me-2 fs-3 handler"/>--}}
+
+                                                            <div class="input-group">
+                                                                <input type="checkbox" name="period_active[{{ $i }}]" @class(["d-none period_active"]) @checked($i == 1) value="1">
+                                                                <select name="period[{{ $i }}]" class="form-select period p-1 fs-3 flex-grow-1">
+                                                                    <option value="pilot">Пилот</option>
+                                                                    <option value="year" selected>Годовая</option>
+                                                                    <option value="unlimited">Безлимит</option>
+                                                                </select>
+                                                                <input name="period_value[{{ $i }}]" maxlength="2" type="text"  class="form-control p-1 fs-3 flex-grow-0 text-center count" style="width: 30px" value="1">
+                                                                <div class="pt-1 column_delete">
+                                                                    <x-ui.icon.regular icon="fa-xmark" class="text-danger ms-2 cursor-pointer" onclick="javascript:column_delete($(this))"/>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </th>
+                                                @endfor
+                                                <th width="30" class="p-0 border-bottom text-center border-start sort_end" valign="top" align="center" id="column_add">
+                                                    <div class="pt-2">
+                                                        <a href="javascript:column_add();">
+                                                            <x-ui.icon.regular icon="fa-circle-plus"/>
+                                                        </a>
+                                                    </div>
+                                                </th>
+                                            </tr>
+
+                                            <tbody id="scenarios">
+                                            @for($i = 1; $i <= $rows; $i++)
+                                                <tr @class(["scenario once", "d-none" => $i >= 1])>
+                                                    <td style="width: 20px" class="p-1 px-2 pt-2">
+                                                        <x-ui.icon.regular icon="fa-xmark" @class(["scenario_delete text-danger ms-2 cursor-pointer"]) onclick="javascript:scenario_delete($(this))"/>
+                                                    </td>
+                                                    <td style="width: 20px" class="p-1 px-2 text-center pt-2"><span class="num">{{ $i }}</span>.</td>
+                                                    <td class="p-1 px-2 scenario_selector">
+                                                        <x-ui.select.single name="scenario[{{ $i }}]" class="select2" :items="$scenarios" id="id" valueName="name"></x-ui.select.single>
+                                                    </td>
+                                                    @for($j = 1; $j <= $columns; $j++)
+                                                        <td column="{{ $j }}" @class(["border-start p-1", "column_hl" => $j == 1, "d-none" => $j > 1])>
+                                                            <div class="cell">
+                                                                <div class="form-check d-flex justify-content-between align-items-center">
+                                                                    <input name="cell[{{ $i }}][{{ $j }}][active]" class="active form-check-input mt-3 me-1" type="checkbox" id="flexCheckDefault" checked value="1">
+
+                                                                    <div class="cell-active">
+                                                                        <div class="d-flex justify-content-between fs-1">
+                                                                            <span class="text-nowrap">Кол-во</span>
+                                                                            <span class="text-nowrap">Скидка (%)</span>
+                                                                        </div>
+                                                                        <div class="input-group">
+                                                                            <input name="cell[{{ $i }}][{{ $j }}][count]" type="number" min="1" max="999999" value="1" class="count form-control p-1 fs-2 text-end" aria-label="Text input with checkbox">
+                                                                            <input name="cell[{{ $i }}][{{ $j }}][discount]" type="number" min="0" max="99" value="0" class="discount form-control p-1 fs-2 text-end" aria-label="Text input with checkbox">
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="text-end cell-active">
+                                                                        <span class="text-start fs-2 text-secondary">
+                                                                           <input type="hidden" name="cost[{{ $i }}][{{ $j }}]" value="0" class="fs-1 p-0 inp_cost_cell">
+                                                                           <a class="cost_cell" href="javascript:void(0);" onclick="javascript:change_cost($(this));">0</a> ₽
+                                                                           <span class="fw-bold text-nowrap">
+                                                                               <x-ui.icon.regular icon="fa-arrow-right" class="mx-1"/>
+                                                                               <span class="cost_cell_total">0</span> ₽
+                                                                           </span>
+                                                                        </span>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                    @endfor
+                                                    <td class=" border-start"/>
+                                                </tr>
+                                            @endfor
+                                            {{-- ПОДИТОГ --}}
+                                            <tr class="subtotal">
+                                                <td colspan="3" class="text-end border-bottom-0 py-2">
+                                                    <div class="d-flex justify-content-between">
+                                                        <a href="javascript:void(0);" onclick="javascript:scenario_add();">
+                                                            <x-ui.icon.regular icon="fa-plus"/>
+                                                            Добавить сценарий
+                                                        </a>
+
+                                                        <div class="init_clear">Итого без скидки</div>
+                                                    </div>
+                                                </td>
+                                                @for($i = 1; $i <= $columns; $i++)
+                                                    <td column="{{ $i }}" @class(["init_clear border-start border-bottom flex-grow-0 border-bottom-0 py-2", "d-none" => $i > 1, "column_hl" => $i == 1])  style="width: 140px!important">
+                                                        <div class="text-end text-nowrap">
+                                                            <span class="column_subtotal fs-3">0</span> ₽
+                                                        </div>
+                                                    </td>
+                                                @endfor
+                                                <td class="p-0 border-bottom text-center border-start border-bottom-0"/>
+                                            </tr>
+
+                                            {{-- СКИДКА ЗАКАЗЧИКУ --}}
+                                            <tr class="discount">
+                                                <td colspan="3" class="text-end border-bottom-0 py-2">
+                                                    <div>Итого со скидкой</div>
+                                                </td>
+                                                @for($i = 1; $i <= $columns; $i++)
+                                                    <td column="{{ $i }}" @class(["border-start border-bottom flex-grow-0 border-bottom-0 py-2", "d-none" => $i > 1, "column_hl" => $i == 1])  style="width: 140px!important">
+                                                        <div class="text-end text-nowrap">
+                                                            <span class="column_subtotal fs-3">0</span> ₽
+                                                        </div>
+                                                    </td>
+                                                @endfor
+                                                <td class="p-0 border-bottom text-center border-start border-bottom-0"/>
+                                            </tr>
+
+                                            {{-- ИТОГО --}}
+                                            <tr class="total">
+                                                <td colspan="3" class="text-end py-2">
+                                                    <sup class="me-2 text-danger" >СЦЕНАРИИ</sup><span class="fw-bold fs-4">ИТОГО</span>
+                                                </td>
+                                                @for($i = 1; $i <= $columns; $i++)
+                                                    <td column="{{ $i }}" @class(["border-start border-bottom flex-grow-0 py-2", "d-none" => $i > 1, "column_hl" => $i == 1])  style="width: 140px!important">
+                                                        <div class="text-end fs-4 fw-bold text-nowrap">
+                                                            <span class="column_subtotal">0</span> ₽
+                                                        </div>
+                                                    </td>
+                                                @endfor
+                                                <td class="p-0 border-bottom text-center border-start"/>
+                                            </tr>
+                                            </tbody>
+
+
+                                            <tr class="work_header bg-light-warning header">
+                                                <th style="min-width: 35vw" class="p-1 px-2 border-bottom" colspan="100">
+                                                    <h4 class="m-0 ms-1 text-warning d-flex align-items-center" style="height: 32px">
+                                                        <x-ui.icon.regular icon="fa-circle-3" class="me-2"/>
+                                                        Работы
+                                                    </h4>
+                                                </th>
+                                            </tr>
+
+                                            <tbody id="works">
+                                            @for($i = 1; $i <= $rows; $i++)
+                                                <tr @class(["work once", "d-none" => $i >= 1])>
+                                                    <td style="width: 20px" class="p-1 px-2 pt-2">
+                                                        <x-ui.icon.solid icon="fa-xmark" @class(["work_delete text-danger ms-2 cursor-pointer"]) onclick="javascript:work_delete($(this))"/>
+                                                        <div class="mt-2 text-end">
+                                                            <a href="javascript:void(0);" onclick="javascript:$(this).parents('tr').find('.select2_works').select2('open');">
+                                                                <x-ui.icon.solid icon="fa-bolt-lightning"/>
+                                                            </a>
+                                                        </div>
+                                                    </td>
+                                                    <td style="width: 20px" class="p-1 px-2 text-center pt-2"><span class="num">{{ $i }}</span>.</td>
+                                                    <td class="p-1 px-2 work_selector">
+                                                        <div class="d-flex">
+                                                            <div class="w-50">
+                                                                <div class="select2_works_container">
+                                                                    <x-ui.select.single class="select2_works" :items="$works" id="id" valueName="name"></x-ui.select.single>
+                                                                </div>
+                                                                <h6>Описание</h6>
+                                                                <textarea name="work[{{ $i }}][extended]" class="work_extended" id="{{ \Illuminate\Support\Str::uuid() }}"></textarea>
+                                                            </div>
+                                                            <div class="w-50">
+                                                                <h6>Примечание</h6>
+                                                                <textarea name="work[{{ $i }}][notice]" class="work_notice" id="{{ \Illuminate\Support\Str::uuid() }}"></textarea>
+                                                            </div>
+                                                        </div>
+
+                                                    </td>
+                                                    @for($j = 1; $j <= $columns; $j++)
+                                                        <td column="{{ $j }}" @class(["border-start p-1", "column_hl" => $j == 1, "d-none" => $j > 1])>
+                                                            <div class="cell work_cell">
+
+                                                                <div class="form-check d-flex justify-content-between align-items-start flex-grow-0 m-1">
+                                                                    <input name="work_cell[{{ $i }}][{{ $j }}][active]" class="active form-check-input mt-3 me-1" type="checkbox" value="1" id="flexCheckDefault" checked value="1">
+
+                                                                    <div class="cell-active">
+                                                                        <div class="d-flex justify-content-between fs-1">
+                                                                            <span class="text-nowrap">Стоимость</span>
+                                                                            <span class="text-nowrap">Часов</span>
+                                                                        </div>
+                                                                        <div class="input-group">
+                                                                            <input name="work_cell[{{ $i }}][{{ $j }}][cost]" type="number" min="1" max="999999" value="6000" class="cost form-control p-1 fs-2 text-end">
+                                                                            <input name="work_cell[{{ $i }}][{{ $j }}][count]" type="number" min="0" max="9999" value="0" class="count form-control p-1 fs-2 text-end" >
+                                                                        </div>
+
+                                                                        <div class="fs-2 d-flex align-items-center mt-2 justify-content-end">
+                                                                            <input name="work_cell[{{ $i }}][{{ $j }}][partner]" class="active form-check-input secondary me-1 cb_partner" type="checkbox" id="work_partner_{{ $i }}_{{ $j }}" value="1">
+                                                                            <label class="form-check-label fs-1 fw-normal m-0 ms-1" for="work_partner_{{ $i }}_{{ $j }}">Учитывать скидку партнёра</label>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+
+                                                                <div class="text-end cell-active">
+                                                                        <span class="text-start fs-2 text-secondary">
+                                                                           <span class="work_cost_total">0</span> ₽
+                                                                           <span class="fw-bold text-nowrap discount_pad d-none">
+                                                                               <x-ui.icon.regular icon="fa-arrow-right" class="mx-1"/>
+                                                                               <span class="work_cost_total_with_discount">0</span> ₽
+                                                                           </span>
+                                                                        </span>
+                                                                </div>
+
+
+
+                                                            </div>
+                                                        </td>
+                                                    @endfor
+                                                    <td class=" border-start"/>
+                                                </tr>
+                                            @endfor
+
+                                                <tr class="work_subtotal">
+                                                    <td colspan="3" class="text-end border-bottom-0 py-2">
+                                                        <div class="d-flex justify-content-between">
+                                                            <a href="javascript:void(0);" onclick="javascript:work_add();">
+                                                                <x-ui.icon.regular icon="fa-plus"/>
+                                                                Добавить работу
+                                                            </a>
+
+                                                            <div class="init_clear">Итого без скидки</div>
+                                                        </div>
+                                                    </td>
+                                                    @for($i = 1; $i <= $columns; $i++)
+                                                        <td column="{{ $i }}" @class(["init_clear border-start border-bottom flex-grow-0 border-bottom-0 py-2", "d-none" => $i > 1, "column_hl" => $i == 1])  style="width: 140px!important">
+                                                            <div class="text-end text-nowrap">
+                                                                <span class="column_subtotal fs-3">0</span> ₽
+                                                            </div>
+                                                        </td>
+                                                    @endfor
+                                                    <td class="p-0 border-bottom text-center border-start border-bottom-0"/>
+                                                </tr>
+
+
+
+                                                {{-- ИТОГО --}}
+                                                <tr class="work_total">
+                                                    <td colspan="3" class="text-end py-2">
+                                                        <sup class="me-2 text-warning" >РАБОТЫ</sup><span class="fw-bold fs-4">ИТОГО</span>
+                                                    </td>
+                                                    @for($i = 1; $i <= $columns; $i++)
+                                                        <td column="{{ $i }}" @class(["border-start border-bottom flex-grow-0 py-2", "d-none" => $i > 1, "column_hl" => $i == 1])  style="width: 140px!important">
+                                                            <div class="text-end fs-4 fw-bold text-nowrap">
+                                                                <span class="column_work_subtotal">0</span> ₽
+                                                            </div>
+                                                        </td>
+                                                    @endfor
+                                                    <td class="p-0 border-bottom text-center border-start"/>
+                                                </tr>
+
+                                            </tbody>
+                                            {{-- ПОДИТОГ --}}
+
+
+                                            {{-- ОСНОВНОЙ --}}
+                                            <tr class="main_selector">
+                                                <td colspan="3" class="text-end py-2"/>
+                                                @for($i = 1; $i <= $columns; $i++)
+                                                    <td column="{{ $i }}" @class(["border-start border-bottom flex-grow-0 border-bottom-0 p-0 py-2", "d-none" => $i > 1, "column_hl" => $i == 1])  style="width: 140px!important">
+                                                        <div class="d-flex justify-content-center">
+                                                            <input type="radio" class="btn-check" id="btn-main-{{ $i }}"  @checked($i == 1) name="period_main" value="{{ $i }}">
+                                                            <label @class(["btn rounded-pill font-weight-medium py-1 px-3 fs-2 m-0", " btn-outline-light-secondary" => $i > 1, "btn-outline-primary" => $i== 1]) for="btn-main-{{ $i }}">Основной</label>
+                                                        </div>
+                                                    </td>
+                                                @endfor
+                                                <td class="p-0 border-bottom text-center border-start border-bottom-0 border-end"/>
+                                            </tr>
+
+
+
+
+
+                                            {{-- СКИДКА ЗАКАЗЧИКУ --}}
+                                            <tr class="partner">
+                                                <td colspan="3" class="text-end border-bottom-0 py-2">
+                                                    <div><sup class="me-1"><i class="fa-solid fa-percent"></i></sup> Скидка партнёру</div>
+                                                </td>
+                                                @for($i = 1; $i <= $columns; $i++)
+                                                    <td column="{{ $i }}" @class(["border-start border-bottom flex-grow-0 border-bottom-0 py-2", "d-none" => $i > 1, "column_hl" => $i == 1])  style="width: 140px!important">
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <input name="partner_discount[{{ $i }}]" type="number" min="0" max="99" value="0" class="partner form-control p-1 fs-2 text-end" style="width: 42px">
+
+                                                            <div class="text-end flex-grow-1 text-nowrap ms-2">
+                                                                <span class="column_subtotal fs-3">0</span> ₽
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                @endfor
+                                                <td class="p-0 border-bottom text-center border-start border-bottom-0"/>
+                                            </tr>
+
+                                            {{-- ИТОГО --}}
+                                            <tr class="proposal_total">
+                                                <td colspan="3" class="text-end py-2 border-top">
+                                                    <span class="fw-bold fs-5">ИТОГО</span>
+                                                </td>
+                                                @for($i = 1; $i <= $columns; $i++)
+                                                    <td column="{{ $i }}" @class(["border-start border-top border-bottom flex-grow-0 py-2", "d-none" => $i > 1, "column_hl" => $i == 1])  style="width: 140px!important">
+                                                        <div class="text-end fs-6 fw-bold text-nowrap">
+                                                            <span class="total">0</span> ₽
+                                                        </div>
+                                                    </td>
+                                                @endfor
+                                                <td class="p-0 border-bottom border-top text-center border-start"/>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div class="col-md-12 mt-4">
+                                    <div class="text-end">
+                                        <button type="button" id="submit" class=" btn btn-info font-weight-medium rounded-pill px-4 disabled" onclick="javascript:sbm();">
+                                            <div class="d-flex align-items-center">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                                     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                                     stroke-linecap="round" stroke-linejoin="round"
+                                                     class="feather feather-send feather-sm fill-white me-2">
+                                                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                                                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                                </svg>
+                                                @lang('button.create')
+                                            </div>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="col-12">
+                <div class="d-md-flex align-items-center mt-3">
+                    <div class="ms-auto mt-3 mt-md-0">
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+@endsection
+
+@section('js')
+    @parent
+
+    <script src="/assets/libs/ckeditor/ckeditor.js"></script>
+    <script>
+        var users = @json($users);
+        var company_partner = @json($companies->pluck('partner_id', 'id'));
+        var costs = @json($costs);
+        var softs = @json($softs);
+        var works = @json($works);
+        var mode = 'year';
+        var cost_total = 0;
+        var scenario_count = 0;
+        var soft_count = 0;
+        var work_count = 0;
+        var columns = 1;
+
+        function scenario_delete(obj) {
+            if(!confirm("Удалить строку? Все данные в этой строке потеряются...")) return;
+            scenario_count--;
+            $("#table_data").attr("count", scenario_count);
+            obj.parents("tr").remove();
+
+            // пересчитаем
+            $("#table_data tr.scenario.once").each(function(index, tr) {
+                $(this).find(".num").html(index + 1);
+            });
+
+            table_data_recalc();
+        }
+
+        function scenario_add() {
+            scenario_count++;
+            $("#table_data tr.scenario.once.d-none:first").removeClass("d-none").find("select").select2();
+            $("#table_data").attr("count", scenario_count);
+            table_data_recalc();
+        }
+
+
+        function soft_delete(obj) {
+            if(!confirm("Удалить строку? Все данные в этой строке потеряются...")) return;
+            soft_count--;
+            $("#table_data").attr("soft_count", soft_count);
+            obj.parents("tr").remove();
+
+            // пересчитаем
+            $("#table_data tr.soft.once").each(function(index, tr) {
+                $(this).find(".num").html(index + 1);
+            });
+
+            table_data_recalc();
+        }
+
+        function soft_add () {
+            soft_count++;
+            $("#table_data").attr("soft_count", soft_count);
+
+            row = $("#table_data tr.soft.once.d-none:first");
+            row.removeClass("d-none");
+            row.find("select").select2();
+
+            id = row.find("textarea.soft_extended").attr("id");
+            CKEDITOR.replace(id, {
+                height: 150,
+                toolbar: [
+                    {
+                        name: 'basicstyles',
+                        items: ['Bold', 'Italic', 'Underline', 'TextColor', 'BGColor']
+                    },
+                    {
+                        name: 'paragraph',
+                        items: ['NumberedList', 'BulletedList']
+                    },
+                    {
+                        name: 'styles',
+                        items: ['Styles']
+                    }
+                ]
+            });
+            var editor = CKEDITOR.instances[id];
+            editor.on('change', function() {
+                delayedCheck();
+            });
+
+
+            id = row.find("textarea.soft_notice").attr("id");
+            CKEDITOR.replace(id, {
+                height: 150,
+                toolbar: [
+                    {
+                        name: 'basicstyles',
+                        items: ['Bold', 'Italic', 'Underline', 'TextColor', 'BGColor']
+                    },
+                    {
+                        name: 'paragraph',
+                        items: ['NumberedList', 'BulletedList']
+                    },
+                    {
+                        name: 'styles',
+                        items: ['Styles']
+                    }
+                ]
+            });
+            var editor = CKEDITOR.instances[id];
+            editor.on('change', function() {
+                delayedCheck();
+            });
+
+            table_data_recalc();
+        }
+
+
+        function work_delete(obj) {
+            if(!confirm("Удалить строку? Все данные в этой строке потеряются...")) return;
+            work_count--;
+            $("#table_data").attr("work_count", work_count);
+            obj.parents("tr").remove();
+
+            // пересчитаем
+            $("#table_data tr.work.once").each(function(index, tr) {
+                $(this).find(".num").html(index + 1);
+            });
+
+            table_data_recalc();
+        }
+
+        function work_add () {
+            work_count++;
+            $("#table_data").attr("work_count", work_count);
+
+            row = $("#table_data tr.work.once.d-none:first");
+            row.removeClass("d-none");
+            row.find("select").select2();
+
+            id = row.find("textarea.work_extended").attr("id");
+            CKEDITOR.replace(id, {
+                height: 150,
+                toolbar: [
+                    {
+                        name: 'basicstyles',
+                        items: ['Bold', 'Italic', 'Underline', 'TextColor', 'BGColor']
+                    },
+                    {
+                        name: 'paragraph',
+                        items: ['NumberedList', 'BulletedList']
+                    },
+                    {
+                        name: 'styles',
+                        items: ['Styles']
+                    }
+                ]
+            });
+            var editor = CKEDITOR.instances[id];
+            editor.on('change', function() {
+                delayedCheck();
+            });
+
+            id = row.find("textarea.work_notice").attr("id");
+            CKEDITOR.replace(id, {
+                height: 150,
+                toolbar: [
+                    {
+                        name: 'basicstyles',
+                        items: ['Bold', 'Italic', 'Underline', 'TextColor', 'BGColor']
+                    },
+                    {
+                        name: 'paragraph',
+                        items: ['NumberedList', 'BulletedList']
+                    },
+                    {
+                        name: 'styles',
+                        items: ['Styles']
+                    }
+                ]
+            });
+            var editor = CKEDITOR.instances[id];
+            editor.on('change', function() {
+                delayedCheck();
+            });
+
+
+            table_data_recalc();
+        }
+
+        function column_delete(obj) {
+            if(!confirm("Удалить столбец? Все данные в этом столбце потеряются...")) return;
+            columns--;
+            $("#table_data").attr("column", columns);
+
+            column_p = obj.parents("th[column]").attr("column");
+            $("th[column='" + column_p + "'],td[column='" + column_p + "']").remove();
+            table_data_recalc();
+        }
+
+        function change_cost(obj) {
+            price = prompt('Введите новую стоимость для этого сценария (для пилота указывается цена за месяц)');
+            if(!(price - 0 > 0)) return;
+
+                scenarion_id = obj.parents('tr.scenario.once').find(".select2").val();
+                column = obj.parents('td[column]').attr("column");
+                mode = $("th[column='" + column + "'] .period").val();
+
+                if(mode == 'pilot') {
+                    mode = 'year';
+                    price *= 12;
+                }
+
+                costs[mode][scenarion_id] = price;
+
+            table_data_recalc();
+        }
+
+        function column_add() {
+            columns++;
+            $("#table_data th[column='" + columns + "'] .period_active").prop("checked", true);
+            $("#table_data th[column='" + columns + "'], #table_data td[column='" + columns + "']").removeClass("d-none");
+            $("#table_data").attr("column", columns);
+
+            if(columns == {{ $columns }}) {
+                $("#column_add").addClass("d-none");
+            }
+            table_data_recalc();
+        }
+
+        $(document).ready(function() {
+
+            $("input.partner").on("keyup change", function() {
+                discount = $(this).val();
+                column = $(this).parents("td[column]").attr("column") - 0;
+
+                $("td[column='" + column + "'] input.partner").val(discount);
+            });
+
+            $("select[name='manager']").on("change", function() {
+                ret = users[$(this).val()]['initials'] + '{{ $max_number }}';
+                $("input[name='number']").val(ret);
+            });
+
+            $("input[name='period_main']").on("change", function() {
+                var main_column = $(this).val();
+
+                $("tr.main_selector label").removeClass("btn-outline-primary").addClass("btn-outline-light-secondary");
+                $("tr.main_selector td[column='" + main_column + "'] label").removeClass("btn-outline-light-secondary").addClass("btn-outline-primary");
+
+                $("#table_data th.column_hl, #table_data td.column_hl").removeClass("column_hl");
+                $("#table_data th[column='" + main_column + "'], #table_data td[column='" + main_column + "']").addClass("column_hl");
+            });
+            var sortable_target = 0;
+
+            $("input[required],select[required]").on("keyup change", function() {
+                form_check();
+            }) ;
+
+            $(".period").on("change", function() {
+                if($(this).val() == 'unlimited') {
+                    $(this).next('input').addClass("d-none");
+                } else {
+                    $(this).next('input').removeClass("d-none");
+                }
+            });
+
+            $('input[ name="period"]').on("change", function() {
+                mode = $(this).val();
+                if(mode !== 'pilot') {
+                    $("#period_month").addClass("d-none");
+                } else {
+                    $("#period_month").removeClass("d-none");
+                }
+                if(mode !== 'year') {
+                    $("#year_count").addClass("d-none");
+                } else {
+                    $("#year_count").removeClass("d-none");
+                }
+                table_data_recalc();
+            });
+            $("#period_month").on("keyup change", function() {
+                if($(this).val() - 0 > 11) $(this).val(11);
+                if($(this).val() - 0 < 1) $(this).val(1);
+                table_data_recalc();
+            });
+            $("#year_count").on("keyup change", function() {
+                if($(this).val() - 0 > 4) $(this).val(4);
+                if($(this).val() - 0 < 1) $(this).val(1);
+                table_data_recalc();
+            });
+            $("#discount").on("keyup change", function() {
+                if($(this).val() - 0 > 9999999) $(this).val(9999999);
+                if($(this).val() - 0 < 0) $(this).val(0);
+                table_data_recalc();
+            });
+
+            $(".select2").select2().on('change', function() {
+                // Получаем значение выбранного пункта
+                var selectedValue = $(this).val();
+
+                // Находим родительский tr
+                var parentTr = $(this).closest('tr');
+
+                // Проверяем, есть ли родительский tr и выбран ли пункт с value > 0
+                if (parentTr.length) {
+                    if (selectedValue > 0) {
+                        parentTr.addClass('scenario_selected'); // Добавляем класс
+                    } else {
+                        parentTr.removeClass('scenario_selected'); // Убираем класс
+                    }
+                    table_data_recalc();
+                }
+            });
+
+            $(".select2_softs").select2().on('change', function() {
+                if($(this).val()) {
+                    // exteded
+                    text = `<p>` + softs[$(this).val()]['name'] + `</p>` + (softs[$(this).val()]['extended'] ?? '');
+                    $(this).parents(".soft_selector").find("textarea.soft_extended").val(text);     // надо обновить прикрепленный ckeditor
+                    var editorInstance = CKEDITOR.instances[$(this).parents(".soft_selector").find("textarea.soft_extended").attr("id")];
+                    if (editorInstance) {
+                        editorInstance.setData(text); // Устанавливаем новое значение
+                    }
+
+                    // notice
+                    text = softs[$(this).val()]['notice'];
+                    $(this).parents(".soft_selector").find("textarea.soft_notice").val(text);     // надо обновить прикрепленный ckeditor
+                    var editorInstance = CKEDITOR.instances[$(this).parents(".soft_selector").find("textarea.soft_notice").attr("id")];
+                    if (editorInstance) {
+                        editorInstance.setData(text); // Устанавливаем новое значение
+                    }
+
+
+
+                    $(this).parents("tr").find(".count").val(softs[$(this).val()]['count'] ?? 0);
+                    $(this).val(0).trigger('change'); // очистить значение
+
+                    table_data_recalc();
+                }
+            });
+
+            $(".select2_works").select2().on('change', function() {
+                if($(this).val()) {
+                    // exteded
+                    text = `<p>` + works[$(this).val()]['name'] + `</p>` + (works[$(this).val()]['extended'] ?? '');
+                    $(this).parents(".work_selector").find("textarea.work_extended").val(text);     // надо обновить прикрепленный ckeditor
+                    var editorInstance = CKEDITOR.instances[$(this).parents(".work_selector").find("textarea.work_extended").attr("id")];
+                    if (editorInstance) {
+                        editorInstance.setData(text); // Устанавливаем новое значение
+                    }
+
+                    // notice
+                    text = works[$(this).val()]['notice'];
+                    $(this).parents(".work_selector").find("textarea.work_notice").val(text);     // надо обновить прикрепленный ckeditor
+                    var editorInstance = CKEDITOR.instances[$(this).parents(".work_selector").find("textarea.work_notice").attr("id")];
+                    if (editorInstance) {
+                        editorInstance.setData(text); // Устанавливаем новое значение
+                    }
+
+
+
+                    $(this).parents("tr").find(".count").val(works[$(this).val()]['count'] ?? 0);
+                    $(this).val(0).trigger('change'); // очистить значение
+
+                    table_data_recalc();
+                }
+            });
+
+
+            $("select[name='company']").on("change", function() {
+               partner_id = company_partner[$(this).val()];
+                $("select[name='partner']").val(partner_id).trigger('change');
+            });
+
+            $("#table_data input, #table_data select").on("keyup change", function() {
+                table_data_recalc();
+            });
+        });
+
+        function table_data_recalc() {
+            $("th[column]:not(.d-none)").each(function() {
+                column_th = $(this);
+                column_i = column_th.attr("column") - 0;
+                period_mode = column_th.find(".period").val() ?? 'year'
+                period_count = column_th.find(".count").val() ?? 1;
+
+                cost_total = 0;
+                discount_total = 0
+                partner_total = 0;
+                column_total = 0;
+
+                // NEURO
+                $("#table_data tr.scenario.once").each(function() {
+                     scenario_id = $(this).find("select").val();
+
+                    cell = $(this).find("td[column='" + column_i + "']");
+                    if(!cell.find('input.active').prop("checked")) return;
+
+                    count = cell.find(".count").val() ?? 1;
+                    discount = cell.find(".discount").val() ?? 0;
+
+                    if(period_mode == 'pilot') {
+                        cost_manual = costs['year'][scenario_id] ?? 0;
+                        cost_year = costs['year'][scenario_id] ?? 0;
+                        cost = Math.round(cost_year / 12 * period_count);
+                    } else if (period_mode == 'year') {
+                        cost_manual = costs['year'][scenario_id] ?? 0;
+                        cost_year = costs['year'][scenario_id] ?? 0;
+                        cost = Math.round(cost_year * period_count);
+                    } else {
+                        cost_manual = costs[period_mode][scenario_id] ?? 0;
+                        cost = costs[period_mode][scenario_id] ?? 0;
+                    }
+
+
+                    // стоимость
+                    cost_cell = Math.round(cost * count);
+                    cost_total += cost_cell;
+
+                    // скидка
+                    cost_discount = Math.round(cost_cell * (discount / 100));
+                    discount_total += cost_discount;
+
+
+                    // итого
+                    cell.find(".inp_cost_cell").val(cost_manual);
+                    cell.find(".cost_cell").html(cost_normalize(cost));
+                    cell.find(".cost_cell_total").html(cost_normalize(cost_cell - cost_discount));
+                });
+
+                $("tr.subtotal td[column='" + column_i + "'] .column_subtotal").html(cost_normalize(cost_total));
+                $("tr.discount td[column='" + column_i + "'] .column_subtotal").html(cost_normalize(cost_total - discount_total));
+
+                // скидка партнёра
+                partner_percent = $("tr.partner td[column='" + column_i + "'] input.partner").val()-0 ?? 0;
+                partner_total += Math.round((cost_total - discount_total) * (partner_percent / 100));
+                $("tr.partner td[column='" + column_i + "'] .column_subtotal").html(cost_normalize(partner_total));
+
+                // итого
+                scenario_total = cost_total - discount_total - partner_total;
+                $("tr.total td[column='" + column_i + "'] .column_subtotal").html(cost_normalize(scenario_total));
+
+
+                // SOFT
+                soft_subtotal = soft_discount = 0;
+                $("#table_data tr.soft.once:not(.d-none)").each(function() {
+                    cell = $(this).find("td[column='" + column_i + "']");
+                    if(!cell.find('input.active').prop("checked")) return;
+
+                    count = cell.find('.count').val() - 0;
+                    cost = cell.find('.cost').val() - 0;
+                    total = cost * count;
+
+                    cell.find(".soft_cost_total").html(cost_normalize(total));
+
+                    // проверим скидку партнёра
+                    if(cell.find('input.cb_partner').prop("checked")) {
+                        soft_partner_discount = (total / 100 * partner_percent);
+                        soft_discount += soft_partner_discount;
+
+                        cell.find('.discount_pad').removeClass("d-none");
+                        cell.find('.soft_cost_total_with_discount').html(total - soft_partner_discount);
+                    } else {
+                        soft_partner_discount = 0;
+                        cell.find('.discount_pad').addClass("d-none");
+                    }
+
+
+                    soft_subtotal += total;
+
+                });
+                $("tr.soft_subtotal td[column='" + column_i + "'] .column_subtotal").html(cost_normalize(soft_subtotal));
+
+                // partner
+                $("tr.soft_partner td[column='" + column_i + "'] .column_soft_discount").html(cost_normalize(soft_discount));
+
+                soft_total = soft_subtotal - soft_discount;
+                $("tr.soft_total td[column='" + column_i + "'] .column_soft_subtotal").html(cost_normalize(soft_total));
+
+
+
+
+                // WORK
+                work_subtotal = work_discount = 0;
+                $("#table_data tr.work.once:not(.d-none)").each(function() {
+                    cell = $(this).find("td[column='" + column_i + "']");
+                    if(!cell.find('input.active').prop("checked")) return;
+
+                    count = cell.find('.count').val() - 0;
+                    cost = cell.find('.cost').val() - 0;
+                    total = cost * count;
+
+                    cell.find(".work_cost_total").html(cost_normalize(total));
+
+                    // проверим скидку партнёра
+                    if(cell.find('input.cb_partner').prop("checked")) {
+                        work_partner_discount = (total / 100 * partner_percent);
+                        work_discount += work_partner_discount;
+
+                        cell.find('.discount_pad').removeClass("d-none");
+                        cell.find('.work_cost_total_with_discount').html(total - work_partner_discount);
+                    } else {
+                        work_partner_discount = 0;
+                        cell.find('.discount_pad').addClass("d-none");
+                    }
+
+
+                    work_subtotal += total;
+
+                });
+                $("tr.work_subtotal td[column='" + column_i + "'] .column_subtotal").html(cost_normalize(work_subtotal));
+
+                // partner
+                $("tr.work_partner td[column='" + column_i + "'] .column_work_discount").html(cost_normalize(work_discount));
+
+                work_total = work_subtotal - work_discount;
+                $("tr.work_total td[column='" + column_i + "'] .column_work_subtotal").html(cost_normalize(work_total));
+
+
+
+
+                // TOTAL
+                $("tr.proposal_total td[column='" + column_i + "'] .total").html(cost_normalize(scenario_total + work_total + soft_total));
+            });
+
+            discount = $("#discount").val()-0;
+            cost_total -= discount;
+            $(".cost_total").html(cost_normalize(cost_total));
+
+            form_check();
+        }
+
+
+        function delayedCheck() {
+            // Clear any existing timeout
+            clearTimeout(window.to_check);
+
+            // Set a new timeout
+            window.to_check = setTimeout(function() {
+                form_check(); // Call the form_check function after 1000 ms
+            }, 1000);
+        }
+
+        function form_check() {
+
+            var err = 0;
+            $("input[required],select[required]").each(function() {
+               if($(this).attr("type") == "checkbox") {
+                   if(!$(this).prop("checked")) err++;
+               } else if(!$(this).val()) err++;
+            });
+
+
+
+            block_good = 0;
+
+            // SCENARIOS
+            $("th[column]:not(.d-none)").each(function() {
+                column_th = $(this);
+                column_i = column_th.attr("column") - 0;
+                if($("#table_data tbody#scenarios tr.once:not(.d-none)").length > 0) {
+                    block_good++;
+                    has_active_cells = false;
+                    $("#table_data tbody#scenarios tr.once:not(.d-none)").each(function () {
+                        if ($(this).hasClass("scenario_selected")) {
+                            scenario_id = $(this).find("select").val();
+                            if (scenario_id) {
+                                cell = $(this).find("td[column='" + column_i + "']");
+                                if (cell.find('input.active').prop("checked")) {
+                                    has_active_cells = true;
+                                    return;
+                                }
+                            }
+                        } else {
+                            err++;
+                        }
+
+
+                        // ПРОВЕРИМ, ЕСТЬ ЛИ ВЫБРАННЫЕ ЯЧЕЙКИ
+                        active_cell = 0;
+                        $(this).find('td:not(.d-none)').each(function() {
+                            if($(this).find("input.active").prop("checked")) active_cell++;
+                        });
+                        if(!active_cell) err++;
+
+                    });
+                    if (!has_active_cells) err++;
+                }
+            });
+
+            // WORKS
+            if($("#table_data tbody#works tr.once:not(.d-none)").length > 0) {
+                block_good++;
+                $("#table_data tbody#works tr.once:not(.d-none)").each(function() {
+                    // ПРОВЕРИМ TEXTAREA
+                    check_ta = false;
+                    $(this).find("textarea").each(function() {
+                        var editorInstance = CKEDITOR.instances[$(this).attr("id")];
+                        if (editorInstance)
+                            if(stripTags(editorInstance.getData()).length > 0) check_ta = true;
+                    });
+                    if(!check_ta) err++;
+
+
+                    // ПРОВЕРИМ, ЕСТЬ ЛИ ВЫБРАННЫЕ ЯЧЕЙКИ
+                    active_cell = 0;
+                    $(this).find('td:not(.d-none)').each(function() {
+                       if($(this).find("input.active").prop("checked")) active_cell++;
+                    });
+                    if(!active_cell) err++;
+                });
+            }
+
+            // SOFT
+            if($("#table_data tbody#softs tr.once:not(.d-none)").length > 0) {
+                block_good++;
+                $("#table_data tbody#softs tr.once:not(.d-none)").each(function() {
+                    // ПРОВЕРИМ TEXTAREA
+                    check_ta = false;
+                    $(this).find("textarea").each(function() {
+                        var editorInstance = CKEDITOR.instances[$(this).attr("id")];
+                        if (editorInstance)
+                            if(stripTags(editorInstance.getData()).length > 0) check_ta = true;
+                    });
+                    if(!check_ta) err++;
+
+
+                    // ПРОВЕРИМ, ЕСТЬ ЛИ ВЫБРАННЫЕ ЯЧЕЙКИ
+                    active_cell = 0;
+                    $(this).find('td:not(.d-none)').each(function() {
+                       if($(this).find("input.active").prop("checked")) active_cell++;
+                    });
+                    if(!active_cell) err++;
+                });
+            }
+
+            if(!block_good) err++;
+
+
+            if(err) {
+                $("#submit").addClass("disabled");
+            } else {
+                $("#submit").removeClass("disabled");
+            }
+
+            return err == 0;
+        }
+
+
+        function sbm() {
+            if(!form_check) return;
+            if(!confirm("Вы действительно хотите это сделать?")) return;
+
+
+            $("body").block(block_default);
+
+            // удалим лишнее
+            $(".once.d-none").remove();
+
+            // прокинем textarea
+
+            for (var id in CKEDITOR.instances) {
+                if (CKEDITOR.instances.hasOwnProperty(id)) {
+                    var instance = CKEDITOR.instances[id];
+                    $("textarea#" + id).val(instance.getData());
+                }
+            }
+
+            $.ajax({
+                url: "{{ route('api.proposal.store', ['_token' => _token() ]) }}",
+                type: "PUT",
+                dataType: "json",
+                data: $("form#form_create").serialize(),
+                success: function (response) {
+                    if (response.result == 'success') {
+                        location.replace(response.url);
+                    } else {
+                        toastr.error("Не получилось сохранить данные", "Это провал!", {
+                            progressBar: true,
+                            "timeOut": 3000,
+                        });
+                        $("body").unblock();
+                    }
+                },
+                error: function () {
+                    toastr.error("Не получилось сохранить данные", "Это провал!", {
+                        progressBar: true,
+                        "timeOut": 3000,
+                    });
+                    $("body").unblock();
+                }
+            });
+        }
+
+
+    </script>
+
+@endsection

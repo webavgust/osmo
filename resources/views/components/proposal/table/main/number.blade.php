@@ -1,0 +1,3 @@
+<div>
+    {{ $row->number }}
+</div>

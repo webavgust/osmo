@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            background: #fff;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            user-select: none;
+            touch-action: none; /* упрощаем обработку тача */
+        }
+
+        .hearts-grid {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            contain: layout paint size;
+        }
+
+        .heart {
+            position: absolute;
+            width: var(--heart-size, 10px);
+            height: var(--heart-size, 10px);
+            transform-origin: 50% 50%;
+            will-change: transform;
+        }
+
+        .heart svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .heart path {
+            /* обводка всегда полупрозрачная серая */
+            stroke: rgba(120,120,120,0.5);
+            stroke-width: var(--stroke, 1);
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            vector-effect: non-scaling-stroke;
+            /* заливку меняем из JS */
+            fill: #ffffff;
+        }
+
+        .hint {
+            position: fixed;
+            right: 12px;
+            bottom: 10px;
+            color: #777;
+            font: 12px/1.2 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+            opacity: 0.8;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <img src="/images/valentine/1.png">
+    </div>
+
+<div class="hearts-grid" id="hearts"></div>
+
+<script>
+    (function () {
+        // ===================== НАСТРОЙКИ =====================
+        const CONFIG = {
+            // Геометрия/паттерн
+            SIZE: 13,             // размер сердца (px)
+            SPACING: 1.5,         // разряженность (шаг = SIZE * SPACING)
+            STROKE: 1,          // толщина обводки (px)
+            JITTER: 0.5,         // относительное случайное отклонение (доля от SIZE)
+
+            // Цвет/масштаб от расстояния
+            NEAR_PX: 10,          // ближняя граница: <= — красный и максимальный масштаб
+            FAR_PX: 150,          // дальняя граница: >= — белый и минимальный масштаб
+            SCALE_NEAR: 2,      // масштаб при NEAR_PX и ближе
+            SCALE_FAR: 1,       // масштаб при FAR_PX и дальше
+            COLOR_NEAR: [255, 100, 100],   // #FF0000
+            COLOR_FAR:  [255, 255, 255], // #FFFFFF
+
+            // Магнитное отталкивание
+            REPEL_RADIUS: 240,    // радиус действия отталкивания (px)
+            REPEL_STRENGTH: 1000, // сила отталкивания (px/s^2 при единичной близости)
+            REPEL_POWER: 1.5,     // степень убывания силы с расстоянием (1 — линейно)
+            SPEED_FOR_MAX_REPEL: 800, // скорость курсора (px/s) для максимальной силы
+            MAX_DISP: 18,          // ограничение максимального смещения от базы (px)
+
+            // Возврат (пружина) — задаёт затухающие колебания
+            MASS: 2.0,            // масса «сердца»
+            SPRING_K: 60.0,       // жёсткость пружины
+            DAMPING: 4.0,         // вязкое трение (критич. ~ 2*sqrt(K*M)); меньше — больше колебаний
+
+            // Вспомогательные тайминги
+            MOVE_RECENT_MS: 120   // считаем, что указатель «двигается», если событие свежее
+        };
+        // =====================================================
+
+        // CSS-переменные
+        document.documentElement.style.setProperty('--heart-size', CONFIG.SIZE + 'px');
+        document.documentElement.style.setProperty('--stroke', String(CONFIG.STROKE));
+
+        // Производные
+        const GRID_STEP = CONFIG.SIZE * CONFIG.SPACING;
+        const HALF_STEP = GRID_STEP / 2;
+        const JITTER_PX = CONFIG.SIZE * CONFIG.JITTER;
+        const FAR2 = CONFIG.FAR_PX * CONFIG.FAR_PX;
+        const REPEL_R2 = CONFIG.REPEL_RADIUS * CONFIG.REPEL_RADIUS;
+
+        const grid = document.getElementById('hearts');
+
+        let hearts = [];
+        let cols = 0, rows = 0;
+        let lastRAF = performance.now();
+
+        // Курсор/тач
+        let pointerActive = false;
+        let lastMove = 0;
+        let cursorX = -1e6, cursorY = -1e6;
+        let lastCX = -1e6, lastCY = -1e6, lastCT = 0;
+        let pointerSpeed = 0; // px/s
+
+        function makeHeartEl() {
+            const el = document.createElement('div');
+            el.className = 'heart';
+            el.innerHTML = `
+          <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+            <path d="M10 17.5
+                     C5.5 13, 2.5 10.5, 2.5 7
+                     C2.5 4.6, 4.2 2.8, 6.4 2.8
+                     C7.9 2.8, 9.1 3.7, 10 5
+                     C10.9 3.7, 12.1 2.8, 13.6 2.8
+                     C15.8 2.8, 17.5 4.6, 17.5 7
+                     C17.5 10.5, 14.5 13, 10 17.5Z"/>
+          </svg>`;
+            return el;
+        }
+
+        function buildGrid() {
+            grid.innerHTML = '';
+            hearts = [];
+
+            const W = window.innerWidth;
+            const H = window.innerHeight;
+
+            cols = Math.ceil(W / GRID_STEP) + 2;
+            rows = Math.ceil(H / GRID_STEP) + 2;
+
+            for (let r = 0; r < rows; r++) {
+                const offsetX = (r % 2) ? HALF_STEP : 0; // лёгкая «шахматность»
+                for (let c = 0; c < cols; c++) {
+                    const baseX = c * GRID_STEP + offsetX;
+                    const baseY = r * GRID_STEP;
+
+                    const jx = (Math.random() * 2 - 1) * JITTER_PX;
+                    const jy = (Math.random() * 2 - 1) * JITTER_PX;
+
+                    const x = baseX + jx;
+                    const y = baseY + jy;
+
+                    const el = makeHeartEl();
+                    const path = el.querySelector('path');
+
+                    // База и текущие смещения/скорости для пружины
+                    const heart = {
+                        el,
+                        path,
+                        tx: x, ty: y,          // базовая позиция
+                        ox: 0, oy: 0,          // текущее смещение от базы
+                        vx: 0, vy: 0,          // скорость смещения
+                        cx: x + CONFIG.SIZE / 2, // базовый центр (без смещения)
+                        cy: y + CONFIG.SIZE / 2
+                    };
+
+                    // Начальная трансформация
+                    el.style.transform = `translate3d(${x}px, ${y}px, 0) scale(1)`;
+                    grid.appendChild(el);
+
+                    hearts.push(heart);
+                }
+            }
+        }
+
+        function setCursor(x, y) {
+            const now = performance.now();
+            // скорость указателя (px/s)
+            if (lastCT > 0) {
+                const dt = Math.max((now - lastCT) / 1000, 1e-3);
+                const dx = x - lastCX;
+                const dy = y - lastCY;
+                const inst = Math.hypot(dx, dy) / dt;
+                // лёгкое сглаживание
+                pointerSpeed = pointerSpeed * 0.5 + inst * 0.5;
+            }
+            lastCX = x; lastCY = y; lastCT = now;
+
+            cursorX = x;
+            cursorY = y;
+            lastMove = now;
+            pointerActive = true;
+        }
+
+        // Указатель/мышь
+        window.addEventListener('pointermove', (e) => setCursor(e.clientX, e.clientY), { passive: true });
+        window.addEventListener('pointerdown', (e) => setCursor(e.clientX, e.clientY), { passive: true });
+        window.addEventListener('pointerleave', () => { pointerActive = false; }, { passive: true });
+
+        // Тач
+        window.addEventListener('touchstart', (e) => {
+            const t = e.touches[0];
+            if (t) setCursor(t.clientX, t.clientY);
+        }, { passive: true });
+
+        window.addEventListener('touchmove', (e) => {
+            const t = e.touches[0];
+            if (t) setCursor(t.clientX, t.clientY);
+        }, { passive: true });
+
+        window.addEventListener('touchend', () => { pointerActive = false; }, { passive: true });
+        window.addEventListener('touchcancel', () => { pointerActive = false; }, { passive: true });
+
+        // ================= ФУНКЦИЯ АНИМАЦИИ СЕРДЦА =================
+        function applyHeartAnimation(h, env) {
+            const { dt, moving, cursorX, cursorY } = env;
+
+            // Текущая позиция сердца (с учётом смещения)
+            const px = h.tx + h.ox;
+            const py = h.ty + h.oy;
+
+            // Центр для вычислений расстояния
+            const hx = px + CONFIG.SIZE / 2;
+            const hy = py + CONFIG.SIZE / 2;
+
+            const dx = hx - cursorX;
+            const dy = hy - cursorY;
+            const d2 = dx*dx + dy*dy;
+            const d = Math.sqrt(d2);
+
+            // 1) Масштаб и заливка по близости
+            // t=0 (близко) → красный и SCALE_NEAR; t=1 (далеко) → белый и SCALE_FAR
+            let tNearFar = 1;
+            if (d2 <= FAR2) {
+                tNearFar = Math.max(0, Math.min(1, (d - CONFIG.NEAR_PX) / (CONFIG.FAR_PX - CONFIG.NEAR_PX)));
+            }
+            const scale = CONFIG.SCALE_NEAR + (CONFIG.SCALE_FAR - CONFIG.SCALE_NEAR) * tNearFar;
+
+            // Цвет от белого к красному
+            const r = Math.round(CONFIG.COLOR_NEAR[0] * (1 - tNearFar) + CONFIG.COLOR_FAR[0] * tNearFar);
+            const g = Math.round(CONFIG.COLOR_NEAR[1] * (1 - tNearFar) + CONFIG.COLOR_FAR[1] * tNearFar);
+            const b = Math.round(CONFIG.COLOR_NEAR[2] * (1 - tNearFar) + CONFIG.COLOR_FAR[2] * tNearFar);
+            h.path.style.fill = `rgb(${r}, ${g}, ${b})`;
+
+            // 2) Силы: отталкивание (если рядом и есть движение) + пружина + демпфер
+            let fx = 0, fy = 0;
+
+            // Отталкивание как у «магнита»
+            if (moving && d2 > 0 && d2 <= REPEL_R2) {
+                const dirx = dx / d;
+                const diry = dy / d;
+                // близость 0..1 (1 — у курсора, 0 — на краю радиуса)
+                const closeness = Math.max(0, 1 - d / CONFIG.REPEL_RADIUS);
+                const falloff = Math.pow(closeness, CONFIG.REPEL_POWER);
+
+                // Модулируем силой скорости указателя: 0..1
+                const spdK = Math.max(0, Math.min(1, pointerSpeed / CONFIG.SPEED_FOR_MAX_REPEL));
+
+                const F = CONFIG.REPEL_STRENGTH * falloff * spdK;
+                fx += dirx * F;
+                fy += diry * F;
+            }
+
+            // Пружина к базовой позиции (tx, ty)
+            const sx = h.ox; // смещение от базы
+            const sy = h.oy;
+            fx += -CONFIG.SPRING_K * sx;
+            fy += -CONFIG.SPRING_K * sy;
+
+            // Демпфирование (вязкое трение)
+            fx += -CONFIG.DAMPING * h.vx;
+            fy += -CONFIG.DAMPING * h.vy;
+
+            // Интеграция (semi-implicit Euler)
+            const ax = fx / CONFIG.MASS;
+            const ay = fy / CONFIG.MASS;
+
+            h.vx += ax * dt;
+            h.vy += ay * dt;
+
+            h.ox += h.vx * dt;
+            h.oy += h.vy * dt;
+
+            // Ограничение максимального смещения от базы
+            const disp = Math.hypot(h.ox, h.oy);
+            if (disp > CONFIG.MAX_DISP && disp > 0) {
+                const k = CONFIG.MAX_DISP / disp;
+                h.ox *= k; h.oy *= k;
+                // при жёстком клипе — немного гасят скорость
+                h.vx *= 0.8; h.vy *= 0.8;
+            }
+
+            // Малые значения — в ноль (стабилизация)
+            if (Math.abs(h.ox) < 0.001) h.ox = 0;
+            if (Math.abs(h.oy) < 0.001) h.oy = 0;
+            if (Math.abs(h.vx) < 0.001) h.vx = 0;
+            if (Math.abs(h.vy) < 0.001) h.vy = 0;
+
+            // 3) Применяем трансформацию
+            h.el.style.transform = `translate3d(${h.tx + h.ox}px, ${h.ty + h.oy}px, 0) scale(${scale})`;
+        }
+        // ======================================================
+
+        function animate(now) {
+            const dt = Math.min((now - lastRAF) / 1000, 0.05);
+            lastRAF = now;
+
+            const moving = pointerActive && (now - lastMove < CONFIG.MOVE_RECENT_MS);
+            const env = { dt, moving, cursorX, cursorY };
+
+            for (let i = 0; i < hearts.length; i++) {
+                applyHeartAnimation(hearts[i], env);
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // Инициализация
+        buildGrid();
+        window.addEventListener('resize', buildGrid, { passive: true });
+
+        requestAnimationFrame((t) => {
+            lastRAF = t;
+            requestAnimationFrame(animate);
+        });
+    })();
+</script>
+</body>
+</html>

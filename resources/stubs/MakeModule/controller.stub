@@ -1,0 +1,21 @@
+<?php
+
+namespace App\Modules\#SCOPE#\#MODULE_PATH#\Controllers;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+#USE#
+
+class #MODULE_NAME#Controller extends Controller
+{
+    public function __construct(
+#CONSTRUCT#
+    ) { }
+
+    public function index()
+    {
+        return view('#SCOPE_LOWERCASE#.#MODULE_PATH_ROUTE_DOTS#.index', [
+            'breadcrumbs' => $this->breadcrumb,
+        ]);
+    }
+}
