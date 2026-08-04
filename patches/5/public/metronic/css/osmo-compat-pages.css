@@ -1,0 +1,102 @@
+/*
+ |--------------------------------------------------------------------------
+ | Дополнения слоя совместимости (v5)
+ |--------------------------------------------------------------------------
+ |
+ | Подключается ПОСЛЕ osmo-compat.css. Здесь то, что понадобилось при переводе
+ | страниц, доступных через меню: обёртки .container-fluid внутри контента,
+ | двухпанельные экраны (.email-app), плотные таблицы отчётов.
+ |
+ */
+
+/* Страницы обёрнуты в .container-fluid, а контент уже лежит в контейнере —
+   гасим двойные отступы. */
+#kt_app_content_container > .container-fluid,
+#kt_app_content_container .container-fluid { padding-left: 0; padding-right: 0; }
+
+/* Карточки страниц — вид Metronic */
+#kt_app_content_container > .container-fluid > .row > [class^="col"] > .card,
+#kt_app_content_container > .card { border: 0; }
+
+/* ---------------------------------------------- Двухпанельные экраны */
+/* сценарии, нейросервисы: слева группы, справа таблица */
+
+.email-app.todo-box-container {
+    display: flex;
+    background: var(--bs-body-bg);
+    border-radius: .625rem;
+    border: 1px solid var(--bs-gray-200);
+    overflow: hidden;
+}
+.email-app .left-part {
+    width: 320px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--bs-gray-200);
+    background: var(--bs-body-bg);
+}
+.email-app .right-part {
+    flex: 1 1 auto;
+    min-width: 0;
+    background: var(--bs-body-bg) !important;
+}
+.email-app .divider { border-top: 1px solid var(--bs-gray-200); }
+
+@media (max-width: 991.98px) {
+    .email-app.todo-box-container { flex-direction: column; }
+    .email-app .left-part { width: 100%; border-right: 0; border-bottom: 1px solid var(--bs-gray-200); }
+}
+
+/* Пункты списка групп */
+.todo-link {
+    border-radius: .475rem;
+    color: var(--bs-gray-700);
+}
+.todo-link:hover { background: var(--bs-gray-100); color: var(--bs-gray-900); }
+.todo-link.active {
+    background: var(--bs-primary-light);
+    color: var(--bs-primary);
+    font-weight: 600;
+}
+.todo-item { border-color: var(--bs-gray-200) !important; }
+
+/* Поисковая строка над таблицей */
+.searchbar .form-control:focus { box-shadow: none; }
+.searchbar .input-group-text { background: var(--bs-gray-100); border-color: var(--bs-gray-300); }
+
+/* ------------------------------------------------------ Таблицы отчётов */
+
+/* Отчёты и логи — много колонок, нужна плотность */
+.table-report .table > :not(caption) > * > *,
+#kt_app_content .table.table-sm > :not(caption) > * > * { padding: .35rem .5rem; }
+
+/* Липкая шапка широких таблиц */
+.table-sticky thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--bs-gray-100);
+}
+
+/* Строки-разделители в отчётах */
+tr.bg-odd { background: var(--bs-gray-100) !important; }
+tr.unactive td { background: var(--bs-gray-100); color: var(--bs-gray-500); }
+
+/* ------------------------------------------------------------- Календарь */
+
+.fc .fc-toolbar-title { font-size: 1.25rem; font-weight: 600; }
+.fc .fc-button-primary {
+    background-color: var(--bs-gray-100);
+    border-color: var(--bs-gray-300);
+    color: var(--bs-gray-700);
+}
+.fc .fc-button-primary:not(:disabled).fc-button-active,
+.fc .fc-button-primary:hover {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+    color: #fff;
+}
+
+/* ------------------------------------------------------------ jsTree (меню) */
+
+.jstree-default .jstree-clicked { background: var(--bs-primary-light); box-shadow: none; }
+.jstree-default .jstree-hovered { background: var(--bs-gray-100); box-shadow: none; }
