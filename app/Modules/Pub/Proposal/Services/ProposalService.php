@@ -155,6 +155,7 @@ class ProposalService
                 'name' => view('components.proposal.table.main.name', ['row' => $row])->render(),
                 'cost' => view('components.proposal.table.main.cost', ['row' => $row])->render(),
                 'date' => view('components.proposal.table.main.date', ['row' => $row])->render(),
+                'status' => view('components.proposal.table.main.status', ['row' => $row])->render(),
                 'updated_at' => view('components.proposal.table.main.updated_at', ['row' => $row])->render(),
                 'actions' => view('components.proposal.table.main.actions', ['row' => $row])->render(),
             ];
