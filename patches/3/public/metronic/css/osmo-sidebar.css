@@ -1,0 +1,304 @@
+/*
+ |--------------------------------------------------------------------------
+ | Левое меню (app-sidebar)
+ |--------------------------------------------------------------------------
+ |
+ | В бандле demo48 меню находится в шапке, поэтому стилей app-sidebar в
+ | style.bundle.css нет. Этот файл добавляет светлое левое меню Metronic —
+ | по структуре как в MaterialPro: логотип, панель действий, профиль,
+ | разделы с аккордеонами. Верхний бар не используется: все действия
+ | перенесены в заголовок меню.
+ |
+ */
+
+:root {
+    --osmo-sidebar-width: 330px;          /* ~1.5× от прежних 265px */
+    --osmo-sidebar-width-min: 88px;
+    --osmo-sidebar-gap: 16px;             /* отступ вокруг меню — сверху и снизу одинаковый */
+
+    --osmo-sidebar-bg: #ffffff;
+    --osmo-sidebar-border: #e9ecf2;
+    --osmo-sidebar-text: #4b5675;
+    --osmo-sidebar-text-hover: #1b1b29;
+    --osmo-sidebar-hover-bg: #f4f6fa;
+    --osmo-sidebar-heading: #99a1b7;
+
+    --osmo-sidebar-font: 1.0625rem;       /* пункты меню */
+    --osmo-sidebar-font-sub: 1rem;        /* вложенные пункты */
+    --osmo-sidebar-font-heading: .8125rem;/* подписи групп */
+}
+
+/* ------------------------------------------------------------------ Каркас */
+
+/*
+ * Гасим собственную геометрию Metronic: в бандле есть правила для
+ * app-wrapper / app-main / app-header, рассчитанные на его переменные ширины
+ * сайдбара. Без этого отступы складываются и контент уезжает вправо.
+ */
+.app-wrapper,
+.app-header,
+.app-container {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+.app-wrapper { padding-top: 0 !important; padding-left: 0 !important; }
+.app-main { max-width: 100%; overflow-x: hidden; }
+#kt_app_content_container { min-width: 0; max-width: 100%; }
+
+.app-sidebar {
+    background-color: var(--osmo-sidebar-bg);
+    border: 1px solid var(--osmo-sidebar-border);
+    border-radius: .75rem;
+    box-shadow: 0 2px 12px rgba(16, 24, 40, .04);
+    width: var(--osmo-sidebar-width);
+    position: fixed;
+    top: var(--osmo-sidebar-gap);
+    bottom: var(--osmo-sidebar-gap);
+    left: var(--osmo-sidebar-gap);
+    z-index: 101;
+    display: flex;
+    overflow: hidden;
+    transition: width .3s ease, left .3s ease;
+}
+
+.app-main { min-width: 0; } /* широкие таблицы не растягивают разметку */
+
+/* Мобильная полоса с бургером */
+.app-header-mobile {
+    height: 56px;
+    background: var(--bs-app-bg-color, #fff);
+    border-bottom: 1px solid var(--bs-gray-200);
+    position: sticky;
+    top: 0;
+    z-index: 99;
+}
+
+@media (min-width: 992px) {
+    .app-main {
+        margin-left: calc(var(--osmo-sidebar-width) + var(--osmo-sidebar-gap) * 2) !important;
+        padding-right: var(--osmo-sidebar-gap);
+    }
+
+    body[data-kt-app-sidebar-minimize="on"] .app-sidebar { width: var(--osmo-sidebar-width-min); }
+    body[data-kt-app-sidebar-minimize="on"] .app-main {
+        margin-left: calc(var(--osmo-sidebar-width-min) + var(--osmo-sidebar-gap) * 2) !important;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .app-sidebar {
+        top: 0;
+        bottom: 0;
+        left: calc(-1 * (var(--osmo-sidebar-width) + var(--osmo-sidebar-gap) * 2));
+        border-radius: 0;
+        border-left: 0;
+        border-top: 0;
+        border-bottom: 0;
+    }
+    .app-sidebar.drawer-on { left: 0; }
+}
+
+/* --------------------------------------------------- Отступы главной области */
+
+.app-content { padding-top: .25rem; padding-bottom: 1.5rem; }
+.app-content > .app-container,
+.app-toolbar > .app-container,
+.app-footer > .app-container { padding-left: 0 !important; padding-right: 0 !important; }
+
+@media (max-width: 991.98px) {
+    .app-content > .app-container,
+    .app-toolbar > .app-container,
+    .app-footer > .app-container { padding-left: 1rem !important; padding-right: 1rem !important; }
+}
+
+/* --------------------------------------------------------------- Логотип */
+
+.app-sidebar-logo {
+    height: 68px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--osmo-sidebar-border);
+}
+.app-sidebar-logo-minimize { display: none; }
+
+.app-sidebar-toggle {
+    background-color: var(--osmo-sidebar-hover-bg);
+    color: var(--osmo-sidebar-text);
+    border-radius: 8px;
+}
+.app-sidebar-toggle:hover { background-color: var(--bs-primary-light); color: var(--bs-primary); }
+.app-sidebar-toggle i { transition: transform .3s ease; }
+body[data-kt-app-sidebar-minimize="on"] .app-sidebar-toggle i { transform: rotate(180deg); }
+
+@media (max-width: 991.98px) {
+    .app-sidebar-toggle { display: none; }
+}
+
+/* ------------------------------------------- Панель действий (бывший бар) */
+
+.app-sidebar-navbar {
+    display: flex;
+    align-items: center;
+    gap: .25rem;
+    padding-top: .75rem;
+    padding-bottom: .75rem;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--osmo-sidebar-border);
+    flex-wrap: nowrap;
+}
+.btn.btn-sidebar-action {
+    width: 38px;
+    height: 38px;
+    color: var(--osmo-sidebar-text);
+    background-color: transparent;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+.btn.btn-sidebar-action:hover,
+.btn.btn-sidebar-action.show {
+    color: var(--bs-primary);
+    background-color: var(--bs-primary-light);
+}
+
+/* Переключатель оформления приходит из общего компонента */
+.app-sidebar-navbar .app-navbar-item { margin: 0 !important; }
+.app-sidebar-navbar .app-navbar-item > a.btn {
+    width: 38px !important;
+    height: 38px !important;
+    color: var(--osmo-sidebar-text);
+    background-color: transparent;
+    border-radius: 8px;
+}
+.app-sidebar-navbar .app-navbar-item > a.btn:hover {
+    color: var(--bs-primary);
+    background-color: var(--bs-primary-light);
+}
+
+/* --------------------------------------------------------------- Профиль */
+
+.app-sidebar-user {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--osmo-sidebar-border);
+}
+.app-sidebar-user-name { color: var(--osmo-sidebar-text-hover); font-size: 1rem; }
+.app-sidebar-user-email { color: var(--osmo-sidebar-heading); }
+.app-sidebar-user-caret { color: var(--osmo-sidebar-heading); }
+.app-sidebar-user:hover .app-sidebar-user-name { color: var(--bs-primary); }
+
+/* --------------------------------------------------------------- Пункты */
+
+.app-sidebar .menu-item .menu-link {
+    color: var(--osmo-sidebar-text);
+    font-size: var(--osmo-sidebar-font);
+    padding: .7rem .85rem;
+    border-radius: .5rem;
+}
+.app-sidebar .menu-item .menu-link .menu-title { color: inherit; font-size: inherit; }
+.app-sidebar .menu-item .menu-link .menu-icon i { color: var(--osmo-sidebar-heading); font-size: 1.15rem; }
+
+.app-sidebar .menu-item .menu-link:hover:not(.disabled):not(.active),
+.app-sidebar .menu-item.show > .menu-link {
+    color: var(--osmo-sidebar-text-hover);
+    background-color: var(--osmo-sidebar-hover-bg);
+    transition: none;
+}
+.app-sidebar .menu-item .menu-link:hover .menu-title,
+.app-sidebar .menu-item.show > .menu-link .menu-title { color: var(--osmo-sidebar-text-hover); }
+.app-sidebar .menu-item .menu-link:hover .menu-icon i,
+.app-sidebar .menu-item.show > .menu-link .menu-icon i { color: var(--osmo-sidebar-text-hover); }
+
+/* Активный пункт: фон + ОБЯЗАТЕЛЬНО видимый текст */
+.app-sidebar .menu-item .menu-link.active,
+.app-sidebar .menu-item .menu-link.active:hover {
+    color: var(--bs-primary) !important;
+    background-color: var(--bs-primary-light) !important;
+    font-weight: 600;
+}
+.app-sidebar .menu-item .menu-link.active .menu-title,
+.app-sidebar .menu-item .menu-link.active:hover .menu-title { color: var(--bs-primary) !important; }
+.app-sidebar .menu-item .menu-link.active .menu-icon i,
+.app-sidebar .menu-item .menu-link.active:hover .menu-icon i { color: var(--bs-primary) !important; }
+.app-sidebar .menu-item .menu-link.active .bullet { background-color: var(--bs-primary) !important; }
+
+.app-sidebar .menu-icon { width: 2rem; justify-content: flex-start; }
+.app-sidebar .menu-arrow:after { opacity: .6; }
+
+/* Подпись группы разделов (nav-small-cap в MaterialPro) */
+.app-sidebar .menu-content .menu-heading {
+    color: var(--osmo-sidebar-heading);
+    font-size: var(--osmo-sidebar-font-heading);
+    letter-spacing: .6px;
+    padding: .5rem .85rem;
+    display: block;
+}
+.app-sidebar .menu-heading-icon { opacity: .6; }
+
+/* Вложенность */
+.app-sidebar .menu-sub-accordion .menu-link {
+    padding-left: 2.25rem;
+    font-size: var(--osmo-sidebar-font-sub);
+}
+.app-sidebar .menu-sub-accordion .menu-sub-accordion .menu-link { padding-left: 3rem; }
+.app-sidebar .bullet { background-color: #c4cada; }
+
+/* Скролл меню */
+.app-sidebar-menu { min-height: 0; }
+.app-sidebar-wrapper { overflow-y: auto; padding-bottom: .75rem; }
+.app-sidebar-wrapper::-webkit-scrollbar { width: 5px; }
+.app-sidebar-wrapper::-webkit-scrollbar-thumb { background: #dfe3ec; border-radius: 4px; }
+
+/* ------------------------------------------------- Свёрнутое состояние */
+
+@media (min-width: 992px) {
+    body[data-kt-app-sidebar-minimize="on"] .app-sidebar-logo { justify-content: center; }
+    body[data-kt-app-sidebar-minimize="on"] .app-sidebar-logo-default { display: none; }
+    body[data-kt-app-sidebar-minimize="on"] .app-sidebar-logo-minimize { display: inline-block; }
+
+    body[data-kt-app-sidebar-minimize="on"] .app-sidebar-navbar {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    body[data-kt-app-sidebar-minimize="on"] .app-sidebar-navbar .ms-auto { margin-left: 0 !important; }
+
+    body[data-kt-app-sidebar-minimize="on"] .app-sidebar-user { justify-content: center; }
+    body[data-kt-app-sidebar-minimize="on"] .app-sidebar-user .symbol { margin-right: 0 !important; }
+    body[data-kt-app-sidebar-minimize="on"] .app-sidebar-user-info,
+    body[data-kt-app-sidebar-minimize="on"] .app-sidebar-user-caret { display: none; }
+    body[data-kt-app-sidebar-minimize="on"] .app-sidebar-user > div { justify-content: center; }
+
+    body[data-kt-app-sidebar-minimize="on"] .app-sidebar .menu-title,
+    body[data-kt-app-sidebar-minimize="on"] .app-sidebar .menu-arrow,
+    body[data-kt-app-sidebar-minimize="on"] .app-sidebar .menu-content { display: none; }
+
+    body[data-kt-app-sidebar-minimize="on"] .app-sidebar .menu-link { justify-content: center; padding-left: 0; padding-right: 0; }
+    body[data-kt-app-sidebar-minimize="on"] .app-sidebar .menu-icon { width: auto; justify-content: center; }
+    body[data-kt-app-sidebar-minimize="on"] .app-sidebar .menu-sub-accordion { display: none; }
+}
+
+/* ----------------------------------------------------------- Тёмная тема */
+
+[data-bs-theme="dark"] {
+    --osmo-sidebar-bg: #1e1e2d;
+    --osmo-sidebar-border: #2b2b40;
+    --osmo-sidebar-text: #b5b7c8;
+    --osmo-sidebar-text-hover: #ffffff;
+    --osmo-sidebar-hover-bg: #2b2b40;
+    --osmo-sidebar-heading: #6d6f85;
+}
+[data-bs-theme="dark"] .app-sidebar { box-shadow: none; }
+[data-bs-theme="dark"] .app-sidebar-wrapper::-webkit-scrollbar-thumb { background: #35354f; }
+[data-bs-theme="dark"] .app-header-mobile {
+    background-color: var(--bs-app-bg-color, #1e1e2d);
+    border-bottom-color: #2b2b40;
+}
+
+/* --------------------------------------------------------------- Печать */
+
+@media print {
+    .app-sidebar, .app-header-mobile, .app-toolbar, .app-footer { display: none !important; }
+    .app-main { margin-left: 0 !important; padding-right: 0 !important; }
+}
