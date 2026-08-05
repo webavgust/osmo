@@ -4,6 +4,7 @@ namespace App\Modules\Bitrix\Dashboard\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Bitrix\CrmDeal\Models\CrmDeal;
+use App\Modules\Bitrix\CrmDeal\Repositories\CrmDealRepository;
 use App\Modules\Bitrix\Dashboard\Services\DashboardDataService;
 use App\Modules\Bitrix\Dashboard\Services\DashboardFilterService;
 use App\Modules\Bitrix\Sync\Services\SyncService;
@@ -36,12 +37,10 @@ class DashboardBoxController extends Controller
 
     public function filter()
     {
-        return View::make('bitrix.dashboard.box.filter', [
+        return View::make('bitrix.dashboard.box.filter', array_merge([
             'title' => 'Фильтр',
             'filter' => DashboardFilterService::getFilter(),
-            'assigned_by' => CrmDeal::pluck('assigned_by')->unique()->sort()->values(),
-            'stage_name' => CrmDeal::pluck('stage_name')->unique()->sort()->values(),
-        ]);
+        ], CrmDealRepository::getFilterOptions()));
     }
 
     public function table(string $mode)

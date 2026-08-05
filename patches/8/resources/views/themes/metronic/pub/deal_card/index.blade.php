@@ -1,0 +1,351 @@
+@extends('layouts.layout')
+
+@section('content')
+    <div class="d-flex flex-column gap-6">
+
+        {{-- Шапка --}}
+        <div class="card">
+            <div class="card-header min-h-auto py-5 border-bottom">
+                <div class="card-title flex-column align-items-start">
+                    <h2 class="fw-bold mb-2">{{ $proposal->name }}</h2>
+                    <div class="d-flex align-items-center flex-wrap gap-2">
+                        <x-proposal.status :proposal="$proposal" editable="1"/>
+                        <x-proposal.deal :proposal="$proposal"/>
+                        @if($proposal->number)
+                            <span class="badge badge-light">№ {{ $proposal->number }}</span>
+                        @endif
+                    </div>
+                </div>
+
+                <div class="card-toolbar">
+                    <a href="{{ route('proposal.detail', [$proposal, $proposal->iteration]) }}" class="btn btn-sm btn-light-primary">
+                        <i class="fa-light fa-file-invoice fs-5 me-2"></i>Открыть КП
+                    </a>
+                </div>
+            </div>
+
+            <div class="card-body py-5">
+                <div class="row g-5">
+                    <div class="col-6 col-lg-3">
+                        <div class="text-muted fs-8 text-uppercase mb-1">Компания</div>
+                        <div class="fw-semibold">{{ $proposal->company?->name ?: '—' }}</div>
+                    </div>
+                    <div class="col-6 col-lg-3">
+                        <div class="text-muted fs-8 text-uppercase mb-1">Партнёр</div>
+                        <div class="fw-semibold">{{ $proposal->partner?->name ?: '—' }}</div>
+                    </div>
+                    <div class="col-6 col-lg-3">
+                        <div class="text-muted fs-8 text-uppercase mb-1">Менеджер</div>
+                        <div class="fw-semibold">{{ $proposal->manager?->name ?: '—' }}</div>
+                    </div>
+                    <div class="col-6 col-lg-3">
+                        <div class="text-muted fs-8 text-uppercase mb-1">Отправлено</div>
+                        <div class="fw-semibold">{{ $proposal->sended_at?->format('d.m.Y') ?: '—' }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Где встала сделка --}}
+        @if($bottleneck)
+            <div class="alert alert-{{ $bottleneck['state'] === 'empty' ? 'danger' : 'warning' }} d-flex align-items-center mb-0">
+                <i class="fa-light {{ $bottleneck['icon'] }} fs-2 me-4"></i>
+                <div>
+                    <div class="fw-bold">Остановилось на шаге «{{ $bottleneck['title'] }}»</div>
+                    <div class="fs-7">{{ $bottleneck['hint'] }}</div>
+                </div>
+            </div>
+        @else
+            <div class="alert alert-success d-flex align-items-center mb-0">
+                <i class="fa-light fa-circle-check fs-2 me-4"></i>
+                <div class="fw-bold">Цепочка пройдена полностью: от КП до выданных лицензий</div>
+            </div>
+        @endif
+
+        {{-- Цепочка --}}
+        <div class="row g-4">
+            @foreach($steps as $index => $step)
+                @php
+                    $color = match($step['state']) {
+                        'ok' => 'success',
+                        'warn' => 'warning',
+                        default => 'gray-400',
+                    };
+                    $bg = match($step['state']) {
+                        'ok' => 'bg-light-success',
+                        'warn' => 'bg-light-warning',
+                        default => 'bg-light',
+                    };
+                @endphp
+
+                <div class="col-6 col-lg-4 col-xxl-2">
+                    <div class="card h-100 border-0 {{ $bg }}">
+                        <div class="card-body p-4 d-flex flex-column">
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <i class="fa-light {{ $step['icon'] }} fs-2 text-{{ $color }}"></i>
+                                <span class="badge badge-circle badge-light fs-9">{{ $index + 1 }}</span>
+                            </div>
+
+                            <div class="fs-8 text-uppercase text-muted mb-1">{{ $step['title'] }}</div>
+
+                            <div class="fw-bold text-gray-900 mb-2" style="word-break: break-word;">
+                                @if($step['url'])
+                                    <a href="{{ $step['url'] }}" class="text-gray-900">{{ $step['value'] }}</a>
+                                @else
+                                    {{ $step['value'] }}
+                                @endif
+                            </div>
+
+                            <div class="fs-8 text-muted mt-auto">{{ $step['hint'] }}</div>
+                        </div>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+
+        {{-- Деньги --}}
+        <div class="card">
+            <div class="card-header min-h-auto py-5 border-bottom">
+                <div class="card-title flex-column align-items-start">
+                    <h4 class="fw-bold mb-0">Деньги по сделке</h4>
+                </div>
+            </div>
+
+            <div class="card-body py-5">
+                <div class="row g-5 mb-5">
+                    <div class="col-6 col-lg-3">
+                        <div class="text-muted fs-8 text-uppercase mb-1">Сумма спецификаций</div>
+                        <div class="fs-3 fw-bold">{{ tools()->cost_normalize(round($money['spec'])) }}</div>
+                    </div>
+                    <div class="col-6 col-lg-3">
+                        <div class="text-muted fs-8 text-uppercase mb-1">План платежей</div>
+                        <div class="fs-3 fw-bold">{{ tools()->cost_normalize(round($money['plan'])) }}</div>
+                    </div>
+                    <div class="col-6 col-lg-3">
+                        <div class="text-muted fs-8 text-uppercase mb-1">Поступило</div>
+                        <div class="fs-3 fw-bold text-success">{{ tools()->cost_normalize(round($money['fact'])) }}</div>
+                    </div>
+                    <div class="col-6 col-lg-3">
+                        <div class="text-muted fs-8 text-uppercase mb-1">Осталось получить</div>
+                        <div class="fs-3 fw-bold text-{{ $money['left'] > 0 ? 'warning' : 'muted' }}">
+                            {{ tools()->cost_normalize(round($money['left'])) }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-3">
+                    <div class="progress h-8px flex-grow-1 bg-light">
+                        <div class="progress-bar bg-success" style="width: {{ $money['progress'] }}%"></div>
+                    </div>
+                    <span class="fw-bold">{{ $money['progress'] }}%</span>
+                </div>
+
+                @if($money['mismatch'])
+                    <div class="alert alert-warning d-flex align-items-center mt-5 mb-0">
+                        <i class="fa-light fa-scale-unbalanced fs-2 me-4"></i>
+                        <div class="fs-7">
+                            Сумма спецификаций и план платежей расходятся на
+                            <b>{{ tools()->cost_normalize(round(abs($money['spec'] - $money['plan']))) }}</b> —
+                            стоит проверить график платежей.
+                        </div>
+                    </div>
+                @endif
+            </div>
+        </div>
+
+        {{-- Договоры и спецификации --}}
+        <div class="card">
+            <div class="card-header min-h-auto py-5 border-bottom">
+                <div class="card-title flex-column align-items-start">
+                    <h4 class="fw-bold mb-0">Договоры и спецификации</h4>
+                </div>
+            </div>
+
+            <div class="card-body p-0">
+                @if($contracts->isEmpty())
+                    <div class="text-center text-muted py-10">По этому КП договоров нет</div>
+                @else
+                    @foreach($contracts as $contract)
+                        <div class="border-bottom p-5">
+                            <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+                                <span class="fw-bold fs-5">
+                                    Договор {{ $contract->number ?: '№ не указан' }}
+                                </span>
+                                <span class="badge badge-light-{{ $contract->cb_signed ? 'success' : 'warning' }}">
+                                    {{ $contract->cb_signed ? 'подписан' : 'не подписан' }}
+                                </span>
+                                @if($contract->date)
+                                    <span class="text-muted fs-7">от {{ $contract->date->format('d.m.Y') }}</span>
+                                @endif
+                                @if($contract->old)
+                                    <span class="badge badge-light">архивный</span>
+                                @endif
+                            </div>
+
+                            @php $contract_specs = $specifications->where('contract_id', $contract->id); @endphp
+
+                            @if($contract_specs->isEmpty())
+                                <div class="text-muted fs-7">Спецификаций по договору нет</div>
+                            @else
+                                <div class="table-responsive">
+                                    <table class="table table-row-dashed table-row-gray-300 align-middle mb-0">
+                                        <thead>
+                                        <tr class="fw-bold text-muted bg-light">
+                                            <th class="ps-3">Спецификация</th>
+                                            <th width="120">Статус</th>
+                                            <th class="text-end" width="150">Сумма</th>
+                                            <th class="text-end" width="200">Платежи</th>
+                                            <th class="text-end pe-3" width="120">Лицензии</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        @foreach($contract_specs as $spec)
+                                            @php
+                                                $spec_payments = $payments->where('contract_specification_id', $spec->id);
+                                                $spec_keys = $license_keys->where('contract_specification_id', $spec->id);
+                                            @endphp
+                                            <tr>
+                                                <td class="ps-3">
+                                                    <div class="fw-semibold">{{ $spec->name ?: 'без названия' }}</div>
+                                                    @if($spec->closed_at)
+                                                        <div class="fs-8 text-muted">закрыта {{ $spec->closed_at->format('d.m.Y') }}</div>
+                                                    @endif
+                                                </td>
+
+                                                <td>
+                                                    <span class="badge badge-light-{{ $spec->is_signed ? 'success' : 'warning' }}">
+                                                        {{ $spec->is_signed ? 'подписана' : 'не подписана' }}
+                                                    </span>
+                                                </td>
+
+                                                <td class="text-end text-nowrap">
+                                                    <span class="fw-bold">{{ tools()->cost_normalize(round((float) $spec->amount)) }}</span>
+                                                    <span class="text-muted fs-8 ms-1">{{ $spec->currency_slug }}</span>
+                                                </td>
+
+                                                <td class="text-end">
+                                                    @if($spec_payments->isEmpty())
+                                                        <span class="badge badge-light-danger">нет платежей</span>
+                                                    @else
+                                                        <div class="d-flex flex-wrap justify-content-end gap-1">
+                                                            @foreach($spec_payments as $payment)
+                                                                @php
+                                                                    $color = match($payment->state) {
+                                                                        'paid' => 'success',
+                                                                        'overdue' => 'danger',
+                                                                        'unknown' => 'secondary',
+                                                                        default => 'info',
+                                                                    };
+                                                                @endphp
+                                                                <span class="badge badge-light-{{ $color }} fs-9"
+                                                                      title="{{ $payment->state === 'paid'
+                                                                            ? 'Оплачен ' . $payment->date_fact?->format('d.m.Y')
+                                                                            : 'План ' . ($payment->date_plan?->format('d.m.Y') ?: 'без даты') }}">
+                                                                    {{ tools()->cost_normalize(round((float) ($payment->date_fact ? $payment->amount_fact : $payment->amount_plan))) }}
+                                                                </span>
+                                                            @endforeach
+                                                        </div>
+                                                    @endif
+                                                </td>
+
+                                                <td class="text-end pe-3">
+                                                    @if($spec_keys->isEmpty())
+                                                        <span class="text-muted">—</span>
+                                                    @else
+                                                        @foreach($spec_keys as $key)
+                                                            <div class="fs-8 text-nowrap">
+                                                                <span class="badge badge-light-{{ $key->days_left < 0 ? 'dark' : ($key->days_left <= 30 ? 'danger' : 'info') }} fs-9">
+                                                                    до {{ $key->active_to?->format('d.m.Y') }}
+                                                                </span>
+                                                            </div>
+                                                        @endforeach
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            @endif
+                        </div>
+                    @endforeach
+                @endif
+            </div>
+        </div>
+
+        {{-- Сделка Битрикса --}}
+        @if($deal)
+            <div class="card">
+                <div class="card-header min-h-auto py-5 border-bottom">
+                    <div class="card-title flex-column align-items-start">
+                        <h4 class="fw-bold mb-1">Сделка Битрикс24</h4>
+                        <span class="text-muted fs-7">#{{ $deal->id }} — {{ $deal->title }}</span>
+                    </div>
+                </div>
+
+                <div class="card-body py-5">
+                    <div class="row g-5">
+                        <div class="col-6 col-lg-3">
+                            <div class="text-muted fs-8 text-uppercase mb-1">Стадия</div>
+                            <div class="fw-semibold">{{ $deal->stage_name ?: '—' }}</div>
+                        </div>
+                        <div class="col-6 col-lg-3">
+                            <div class="text-muted fs-8 text-uppercase mb-1">Ответственный</div>
+                            <div class="fw-semibold">{{ $deal->manager ?: ($deal->assigned_by ?: '—') }}</div>
+                        </div>
+                        <div class="col-6 col-lg-3">
+                            <div class="text-muted fs-8 text-uppercase mb-1">Сумма сделки</div>
+                            <div class="fw-semibold">
+                                {{ $deal->opportunity ? tools()->cost_normalize(round($deal->opportunity)) . ' ' . $deal->currency_id : '—' }}
+                            </div>
+                        </div>
+                        <div class="col-6 col-lg-3">
+                            <div class="text-muted fs-8 text-uppercase mb-1">Компания в CRM</div>
+                            <div class="fw-semibold">{{ $deal->company_name ?: '—' }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        {{-- Итерации КП --}}
+        @if($iterations->count() > 1)
+            <div class="card">
+                <div class="card-header min-h-auto py-5 border-bottom">
+                    <div class="card-title flex-column align-items-start">
+                        <h4 class="fw-bold mb-0">Редакции КП</h4>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-row-dashed table-row-gray-300 align-middle mb-0">
+                            <thead>
+                            <tr class="fw-bold text-muted bg-light">
+                                <th class="ps-5" width="100">Редакция</th>
+                                <th>Название</th>
+                                <th width="140">Отправлено</th>
+                                <th class="text-end pe-5">Сумма</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            @foreach($iterations as $item)
+                                <tr>
+                                    <td class="ps-5">
+                                        <a href="{{ route('proposal.detail', [$item, $item->iteration]) }}" class="fw-bold">
+                                            #{{ $item->iteration }}
+                                        </a>
+                                    </td>
+                                    <td>{{ $item->name }}</td>
+                                    <td>{{ $item->sended_at?->format('d.m.Y') ?: '—' }}</td>
+                                    <td class="text-end pe-5">{{ tools()->cost_normalize(round($item->cost_total)) }}</td>
+                                </tr>
+                            @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        @endif
+
+    </div>
+@endsection

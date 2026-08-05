@@ -1,0 +1,370 @@
+/*
+ |--------------------------------------------------------------------------
+ | OSMO × Metronic 8.2.1 — слой совместимости
+ |--------------------------------------------------------------------------
+ |
+ | Подключается ПОСЛЕ style.bundle.css, osmo-sidebar.css и /css/app.css.
+ | Здесь всё, что нужно, чтобы страницы, свёрстанные под MaterialPro,
+ | корректно выглядели внутри каркаса Metronic. По мере перевода страниц
+ | на нативные классы Metronic правила отсюда можно удалять.
+ |
+ */
+
+/* ------------------------------------------------- Индикатор уведомлений */
+
+#notifies { position: relative; }
+#notifies .notify { position: absolute; top: 6px; right: 6px; pointer-events: none; }
+#notifies .notify .point,
+#notifies .notify .heartbit {
+    display: block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #f1416c;
+}
+#notifies .notify .heartbit {
+    position: absolute;
+    top: 0;
+    left: 0;
+    animation: osmo-heartbit 1.6s ease-out infinite;
+    opacity: .6;
+}
+@keyframes osmo-heartbit {
+    0%   { transform: scale(1);   opacity: .6; }
+    100% { transform: scale(2.6); opacity: 0; }
+}
+
+/* Тосты (раньше стиль лежал в layout_short) */
+#toasts {
+    z-index: 1090;
+    position: fixed;
+    right: 12px;
+    bottom: 16px;
+}
+#toasts .toast + .toast { margin-top: 10px; }
+
+/* ------------------------------------------------- Остатки MaterialPro */
+
+/* Волны и прочие декораторы старой темы — обезвреживаем */
+.waves-effect,
+.waves-light,
+.waves-dark { position: relative; }
+.waves-ripple { display: none !important; }
+
+/* Заголовки страниц старого шаблона (в Metronic это toolbar) */
+.page-titles {
+    padding: 0 0 12px;
+    background: transparent;
+    box-shadow: none;
+}
+.text-themecolor { color: var(--bs-gray-900) !important; }
+
+/* Старый футер */
+.footer {
+    background: transparent;
+    border: 0;
+    padding: 12px 0;
+    color: var(--bs-gray-600);
+}
+
+/* Списки уведомлений в дропдауне шапки */
+.mailbox .loader { padding: 12px 0; }
+.mailbox .message-item {
+    display: block;
+    padding: 10px 16px;
+    color: var(--bs-gray-800);
+    border-bottom: 1px solid var(--bs-gray-200);
+}
+.mailbox .message-item:hover { background: var(--bs-gray-100); }
+
+/* Иконки feather из старой темы */
+.feather-sm { width: 18px; height: 18px; vertical-align: -3px; }
+
+/* Двухпанельные экраны старой темы (todo/email-app), пока не переведены */
+.email-app .left-part {
+    width: 300px;
+    border-right: 1px solid var(--bs-gray-200);
+    background: var(--bs-body-bg);
+}
+.email-app .right-part { background: var(--bs-body-bg) !important; }
+.email-app { display: flex; background: var(--bs-body-bg); border-radius: .625rem; overflow: hidden; }
+@media (max-width: 767.98px) {
+    .email-app { flex-direction: column; }
+    .email-app .left-part { width: 100%; border-right: 0; border-bottom: 1px solid var(--bs-gray-200); }
+}
+.todo-item { border-color: var(--bs-gray-200) !important; }
+.todo-link.active { background: var(--bs-primary-light); color: var(--bs-primary); }
+
+/* --------------------------------------------------------------- Формы */
+
+/* app.css задаёт размеры select2 под MaterialPro — возвращаем размеры Metronic */
+.select2-container .select2-selection--single {
+    height: calc(1.5em + 1.1rem + 2px) !important;
+    border-color: var(--bs-gray-300) !important;
+    border-radius: .475rem;
+}
+.select2-container--default .select2-selection--single .select2-selection__rendered,
+.select2-selection__rendered {
+    line-height: calc(1.5em + 1.1rem) !important;
+    color: var(--bs-gray-700) !important;
+    padding-left: 1rem;
+}
+.select2-container--default .select2-selection--single .select2-selection__arrow,
+.select2-selection__arrow {
+    height: calc(1.5em + 1.1rem) !important;
+}
+.input-group .select2-container--default .select2-selection--single {
+    border-radius: 0;
+    border: 1px solid var(--bs-gray-300);
+    height: calc(1.5em + 1.1rem + 2px);
+}
+.select2-container--default .select2-selection--multiple {
+    border-color: var(--bs-gray-300) !important;
+    border-radius: .475rem;
+    min-height: calc(1.5em + 1.1rem + 2px);
+}
+.select2.error .select2-selection--single {
+    background: var(--bs-danger-light) !important;
+    border-color: var(--bs-danger) !important;
+}
+.select2-container { z-index: 1056; } /* поверх модалок Bootstrap */
+
+/* Чекбоксы старой темы */
+.checkbox.checkbox-info input[type="checkbox"] { margin-right: .5rem; }
+
+/* --------------------------------------------------------------- Таблицы */
+
+.bootstrap-table .table > thead > tr > th {
+    background-color: var(--bs-gray-100) !important;
+    border-left: 0 !important;
+    color: var(--bs-gray-700);
+    font-weight: 600;
+}
+.bootstrap-table tr.finished td:first-of-type { border-left: 10px solid var(--bs-gray-600); }
+.bootstrap-table tr.archived td:first-of-type { border-left: 10px solid var(--bs-danger); }
+
+.table-responsive { overflow-y: visible !important; }
+
+/* Плотные таблицы портала — компактнее дефолта Metronic */
+.card .table > :not(caption) > * > * { padding: .55rem .75rem; }
+
+/* --------------------------------------------------------- Карточки/блоки */
+
+.card .card-body-title {
+    border-top: 1px solid var(--bs-primary-light);
+    padding: 1rem 1rem .75rem;
+    background: var(--bs-primary-light);
+}
+.card .card-body-title .card-title { font-size: 16px; color: var(--bs-primary); }
+
+.card .card-table .th,
+.card .card-table .td { background: transparent; }
+
+/* Шапка блоков старой темы */
+.invoice-header { border-color: var(--bs-gray-200) !important; }
+.invoice-header h3 { font-size: 1.075rem; color: var(--bs-gray-800); }
+
+/* Старые «light» фоны MaterialPro -> палитра Metronic */
+.bg-light-info      { background-color: var(--bs-info-light) !important; }
+.bg-light-success   { background-color: var(--bs-success-light) !important; }
+.bg-light-warning   { background-color: var(--bs-warning-light) !important; }
+.bg-light-danger    { background-color: var(--bs-danger-light) !important; }
+.bg-light-primary   { background-color: var(--bs-primary-light) !important; }
+.bg-light-secondary { background-color: var(--bs-secondary-light) !important; }
+
+/* --------------------------------------------------------------- Модалки */
+
+/* box()/sidebar() вставляют разметку в #box/#offcanvas */
+#box .modal { background: rgba(0, 0, 0, .35); }
+body.modal-open #offcanvas .offcanvas { z-index: 1040 !important; }
+
+/* ----------------------------------------------------------- Тёмная тема */
+
+[data-bs-theme="dark"] .bootstrap-table .table > thead > tr > th {
+    background-color: var(--bs-gray-200) !important;
+}
+[data-bs-theme="dark"] .card .card-table .th,
+[data-bs-theme="dark"] .card .card-table .td { background: transparent; }
+[data-bs-theme="dark"] .select2-container--default .select2-selection--single,
+[data-bs-theme="dark"] .select2-container--default .select2-selection--multiple {
+    background-color: var(--bs-gray-100);
+    border-color: var(--bs-gray-300) !important;
+}
+[data-bs-theme="dark"] .select2-dropdown {
+    background-color: var(--bs-gray-100);
+    border-color: var(--bs-gray-300);
+}
+[data-bs-theme="dark"] tr[trashed] td { background: var(--bs-danger-light) !important; }
+
+/* --------------------------------------------------------------- Печать */
+
+@media print {
+    .app-toolbar, .app-footer, .d-print-none { display: none !important; }
+}
+
+/* ============================================================ ФИКСЫ v7 */
+
+/* ------------------------------------------- Читаемость «secondary» */
+
+/* В Metronic --bs-secondary почти сливается со светлым фоном:
+   текст бейджей и подписей был нечитаемым. */
+:root,
+[data-bs-theme="light"] {
+    --bs-text-secondary: #AAAAAA;
+    --bs-secondary-color: #AAAAAA;
+}
+
+/* Бейджу нужен контраст с --bs-secondary-light, поэтому у него
+   собственный, более тёмный цвет текста. */
+.badge.badge-light-secondary,
+.badge-light-secondary {
+    color: var(--bs-gray-700) !important;
+    background-color: var(--bs-secondary-light);
+}
+.badge.badge-secondary { color: var(--bs-gray-800) !important; }
+
+/* Ссылка-бейдж не должна терять цвет при наведении */
+a.badge.badge-light-secondary:hover { color: var(--bs-gray-900) !important; }
+
+/* Подписи text-secondary на белом фоне — чуть темнее, чем #AAA,
+   иначе не проходят по контрасту */
+.text-secondary { color: var(--bs-gray-600) !important; }
+
+/* --------------------------------- Конфликты цвета текста у кнопок */
+
+/* btn-light-* при наведении заливается насыщенным цветом и делает
+   текст белым, но утилита text-* перебивала это и текст сливался с фоном.
+   Возвращаем инверсный цвет во всех активных состояниях. */
+.btn.btn-light-primary:hover,   .btn.btn-light-primary:focus,   .btn.btn-light-primary:active,   .btn.btn-light-primary.active,   .btn.btn-light-primary.show,
+.btn.btn-light-secondary:hover, .btn.btn-light-secondary:focus, .btn.btn-light-secondary:active, .btn.btn-light-secondary.active, .btn.btn-light-secondary.show,
+.btn.btn-light-success:hover,   .btn.btn-light-success:focus,   .btn.btn-light-success:active,   .btn.btn-light-success.active,   .btn.btn-light-success.show,
+.btn.btn-light-danger:hover,    .btn.btn-light-danger:focus,    .btn.btn-light-danger:active,    .btn.btn-light-danger.active,    .btn.btn-light-danger.show,
+.btn.btn-light-warning:hover,   .btn.btn-light-warning:focus,   .btn.btn-light-warning:active,   .btn.btn-light-warning.active,   .btn.btn-light-warning.show,
+.btn.btn-light-info:hover,      .btn.btn-light-info:focus,      .btn.btn-light-info:active,      .btn.btn-light-info.active,      .btn.btn-light-info.show,
+.btn.btn-light-dark:hover,      .btn.btn-light-dark:focus,      .btn.btn-light-dark:active,      .btn.btn-light-dark.active,      .btn.btn-light-dark.show {
+    color: var(--bs-light) !important;
+}
+.btn.btn-light-primary:hover i,   .btn.btn-light-primary:active i,
+.btn.btn-light-secondary:hover i, .btn.btn-light-secondary:active i,
+.btn.btn-light-success:hover i,   .btn.btn-light-success:active i,
+.btn.btn-light-danger:hover i,    .btn.btn-light-danger:active i,
+.btn.btn-light-warning:hover i,   .btn.btn-light-warning:active i,
+.btn.btn-light-info:hover i,      .btn.btn-light-info:active i,
+.btn.btn-light-dark:hover i,      .btn.btn-light-dark:active i {
+    color: inherit !important;
+}
+
+/* То же для btn-active-light-* и btn-bg-light */
+.btn.btn-active-light-primary:hover,  .btn.btn-active-light-primary.active,
+.btn.btn-active-light-danger:hover,   .btn.btn-active-light-danger.active,
+.btn.btn-active-light-success:hover,  .btn.btn-active-light-success.active {
+    color: inherit;
+}
+
+/* Кнопка-крестик в шапке попапа */
+.modal-header .btn-close { --bs-btn-close-white-filter: none; }
+
+/* ------------------------------------------------- Шапки карточек */
+
+/* MaterialPro-класс без паддинга в Metronic — страховка для шаблонов,
+   которые ещё не переведены на card-header. */
+.card > .title-part-padding,
+.card > .border-bottom.title-part-padding {
+    padding: 1.25rem 2.25rem;
+}
+
+/* card-header по умолчанию 70px — для компактных шапок портала многовато */
+.card > .card-header.min-h-auto { min-height: auto; }
+
+/* Шапка с заголовком и кнопками в одну строку */
+.card > .card-header > .card-title { margin: 0; }
+.card > .card-header > .card-title h3,
+.card > .card-header > .card-title h4 { margin: 0; }
+
+/* Шапка-плашка (руководители / подчинённые) */
+.card > .card-header.bg-light-secondary { border-bottom: 0; }
+
+/* Мобильные: заголовок и кнопки переносятся, а не сжимаются */
+@media (max-width: 767.98px) {
+    .card > .card-header { flex-wrap: wrap; row-gap: .75rem; }
+}
+
+
+/* ======================================================= ФИКСЫ v8 */
+
+/* --------------------------------------- Шкала размеров шрифта */
+
+/*
+ * Конфликт двух шкал. MaterialPro (/css/app.css) объявляет .fs-1…fs-9
+ * своими значениями (.fs-3 = 0.875rem), Metronic — своими
+ * (.fs-3 = 1.35rem на десктопе). app.css грузится последним, поэтому
+ * в новой теме шкала Metronic ломалась: иконки и подписи ехали.
+ *
+ * Решение: шкала Metronic включается только на страницах, переведённых
+ * на новую вёрстку — у них body получает класс theme-metronic
+ * (см. UiThemeServiceProvider). Непереведённые страницы остаются на
+ * шкале MaterialPro, поэтому их вёрстка не меняется.
+ */
+
+body.theme-metronic .fs-1 { font-size: 1.5rem !important; }
+body.theme-metronic .fs-2 { font-size: 1.35rem !important; }
+body.theme-metronic .fs-3 { font-size: 1.25rem !important; }
+body.theme-metronic .fs-4 { font-size: 1.15rem !important; }
+body.theme-metronic .fs-5 { font-size: 1.1rem !important; }
+body.theme-metronic .fs-6 { font-size: 1.05rem !important; }
+body.theme-metronic .fs-7 { font-size: 0.95rem !important; }
+body.theme-metronic .fs-8 { font-size: 0.85rem !important; }
+body.theme-metronic .fs-9 { font-size: 0.75rem !important; }
+body.theme-metronic .fs-10 { font-size: 0.7rem !important; }
+
+body.theme-metronic .fs-2x { font-size: 2rem !important; }
+body.theme-metronic .fs-2qx { font-size: 2.25rem !important; }
+body.theme-metronic .fs-2hx { font-size: 2.5rem !important; }
+body.theme-metronic .fs-2tx { font-size: 2.75rem !important; }
+body.theme-metronic .fs-3x { font-size: 3rem !important; }
+body.theme-metronic .fs-4x { font-size: 4rem !important; }
+
+@media (min-width: 1200px) {
+    body.theme-metronic .fs-lg-1, body.theme-metronic .fs-1 { font-size: 1.75rem !important; }
+    body.theme-metronic .fs-2 { font-size: 1.5rem !important; }
+    body.theme-metronic .fs-3 { font-size: 1.35rem !important; }
+    body.theme-metronic .fs-4 { font-size: 1.25rem !important; }
+    body.theme-metronic .fs-5 { font-size: 1.15rem !important; }
+    body.theme-metronic .fs-6 { font-size: 1.075rem !important; }
+}
+
+/* Заголовки внутри переведённых страниц тоже должны быть в шкале Metronic */
+body.theme-metronic h1 { font-size: 1.75rem; }
+body.theme-metronic h2 { font-size: 1.5rem; }
+body.theme-metronic h3 { font-size: 1.35rem; }
+body.theme-metronic h4 { font-size: 1.25rem; }
+body.theme-metronic h5 { font-size: 1.15rem; }
+body.theme-metronic h6 { font-size: 1.075rem; }
+
+/* ------------------------------- Активное состояние «secondary» */
+
+/* btn-active-light-secondary в активном состоянии красил текст в
+   --bs-secondary на фоне --bs-secondary-light: не читалось. */
+.btn.btn-active-light-secondary.active,
+.btn.btn-active-light-secondary:active,
+.btn.btn-outline.btn-active-light-secondary.active {
+    color: var(--bs-gray-800) !important;
+    border-color: var(--bs-gray-400) !important;
+}
+.btn.btn-active-light-secondary.active i,
+.btn.btn-outline.btn-active-light-secondary.active i {
+    color: var(--bs-gray-700) !important;
+}
+
+/* Активная плитка выбора (статус КП, причина) — видимая рамка */
+.btn.btn-outline.btn-outline-dashed.active {
+    border-style: solid !important;
+    box-shadow: 0 0 0 1px var(--bs-gray-300) inset;
+}
+
+/* ------------------------------------------- Прогресс и плитки */
+
+body.theme-metronic .progress.h-8px { height: 8px; }
+body.theme-metronic .card.bg-light-danger,
+body.theme-metronic .card.bg-light-warning,
+body.theme-metronic .card.bg-light-success { box-shadow: none; }
