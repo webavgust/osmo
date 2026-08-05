@@ -22,9 +22,16 @@
         </span>
     @endif
 
-    @if($row->crm_deal_id)
-        <span class="fs-8 text-muted" title="Привязана сделка Битрикс24">
-            <i class="fa-light fa-link fs-8 me-1"></i>#{{ $row->crm_deal_id }}
-        </span>
-    @endif
+    <div class="d-flex align-items-center gap-2">
+        @if($row->crm_deal_id)
+            <span class="fs-8 text-muted" title="Привязана сделка Битрикс24">
+                <i class="fa-light fa-link fs-8 me-1"></i>#{{ $row->crm_deal_id }}
+            </span>
+        @endif
+
+        <a href="{{ route('deal_card.index', $row) }}" class="fs-8 text-muted"
+           title="Сквозная карточка сделки: договор, спецификации, платежи, лицензии">
+            <i class="fa-light fa-diagram-project fs-7"></i>
+        </a>
+    </div>
 </div>

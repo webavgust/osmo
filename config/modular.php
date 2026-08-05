@@ -34,6 +34,8 @@ return [
         'Admin' => [
         ],
         'Pub' => [
+            'DealCard',
+            'PaymentCalendar',
             'ProposalVariantExtraPay',
             'LicenseKey',
             'ContractSpecificationScenario',

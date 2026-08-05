@@ -49,7 +49,7 @@
 <body id="kt_app_body"
       data-kt-app-toolbar-enabled="true"
       @if($sidebar_mode === 'mini') data-kt-app-sidebar-minimize="on" @endif
-      class="app-default">
+      class="app-default @if(!empty($ui_theme_native)) theme-metronic @endif">
 
 <script>
     var defaultThemeMode = "light"; var themeMode;

@@ -78,6 +78,7 @@ class ApiProposalStatusController
             'company' => $request->input('company'),
             'only_free' => $request->boolean('only_free', true),
             'proposal_group' => $proposal->group,
+            'exclude' => $proposal->crm_deal_id,
         ]);
 
         return [

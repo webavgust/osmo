@@ -7,11 +7,16 @@
         {{-- Выбор статуса --}}
         <div class="d-flex flex-wrap gap-2 mb-5">
             @foreach($statuses as $code => $status)
-                <label class="btn btn-outline btn-outline-dashed btn-active-light-{{ $status['color'] }} d-flex align-items-center p-3 status-option @if(($proposal->status ?? 'in_work') === $code) active @endif"
+                @php
+                    // secondary в Metronic почти сливается со светлым фоном —
+                    // для иконки и активного состояния берём тёмный тон
+                    $tone = $status['color'] === 'secondary' ? 'dark' : $status['color'];
+                @endphp
+                <label class="btn btn-outline btn-outline-dashed btn-active-light-{{ $tone }} d-flex align-items-center p-3 status-option @if(($proposal->status ?? 'in_work') === $code) active @endif"
                        data-status="{{ $code }}"
                        data-need-reason="{{ !empty($status['need_reason']) ? 1 : 0 }}">
-                    <i class="fa-light {{ $status['icon'] }} fs-3 me-3 text-{{ $status['color'] }}"></i>
-                    <span class="fw-semibold">{{ $status['label'] }}</span>
+                    <i class="fa-light {{ $status['icon'] }} fs-3 me-3 text-{{ $tone }}"></i>
+                    <span class="fw-semibold text-gray-800">{{ $status['label'] }}</span>
                 </label>
             @endforeach
         </div>

@@ -41,7 +41,7 @@
 
     {{-- Поиск --}}
     <div class="row g-2 mb-3">
-        <div class="col-12 col-lg-5">
+        <div class="col-12 col-lg-6">
             <div class="position-relative">
                 <i class="fa-light fa-magnifying-glass fs-4 position-absolute top-50 translate-middle-y ms-4 text-gray-500"></i>
                 <input type="text" id="deal_q" class="form-control form-control-solid ps-12"
@@ -71,17 +71,19 @@
             </select>
         </div>
 
-        <div class="col-12 col-lg-1 d-flex align-items-center">
-            <label class="form-check form-check-custom form-check-solid" title="Скрыть сделки, уже привязанные к другим КП">
-                <input class="form-check-input" type="checkbox" id="deal_only_free"
-                       @checked($params['only_free']) />
-                <span class="form-check-label fs-8">Свободные</span>
-            </label>
-        </div>
     </div>
 
-    <div class="text-muted fs-8 mb-2" id="deal_hint">
-        Поиск подставил название компании из КП. Связь 1:1 — одна сделка может быть привязана только к одному КП.
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+        <label class="form-check form-check-custom form-check-solid flex-shrink-0"
+               title="Скрыть сделки, уже привязанные к другим КП">
+            <input class="form-check-input" type="checkbox" id="deal_only_free"
+                   @checked($params['only_free']) />
+            <span class="form-check-label fs-7 text-nowrap">Только свободные сделки</span>
+        </label>
+
+        <div class="text-muted fs-8 text-end" id="deal_hint">
+            Поиск подставил название компании из КП. Связь 1:1 — одна сделка может быть привязана только к одному КП.
+        </div>
     </div>
 
     {{-- Результаты --}}

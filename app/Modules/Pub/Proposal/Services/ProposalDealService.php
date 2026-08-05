@@ -28,6 +28,8 @@ class ProposalDealService
      *     'stage' => stage_name,
      *     'only_free' => bool — только непривязанные сделки,
      *     'proposal_group' => текущая группа КП (её привязка не считается занятой),
+     *     'exclude' => int|null — ID сделки, которую не показывать
+     *                  (уже привязанная к этому КП — она видна отдельным блоком),
      * ]
      * @return \Illuminate\Support\Collection
      */
@@ -81,6 +83,11 @@ class ProposalDealService
                     });
                 }
             }
+        }
+
+        // --- уже привязанная сделка в выдаче не нужна ------------------------
+        if (!empty($params['exclude'])) {
+            $builder->where('crm_deal.id', '!=', (int) $params['exclude']);
         }
 
         // --- фильтры --------------------------------------------------------
