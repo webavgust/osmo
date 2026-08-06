@@ -34,6 +34,7 @@ return [
         'Admin' => [
         ],
         'Pub' => [
+            'ProposalTools',
             'DealCard',
             'PaymentCalendar',
             'ProposalVariantExtraPay',
