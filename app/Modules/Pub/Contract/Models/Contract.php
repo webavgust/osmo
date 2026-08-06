@@ -62,13 +62,13 @@ class Contract extends ModuleModel
 
     public function companyAmountByCurrencies()
     {
+        $ret = [];
         foreach(CompanyRepository::getByID($this->contract_specifications->pluck('company_id')) as $company) {
             $specs = $this->contract_specifications()->where('status', '!=', 'canceled')
                 ->whereHas('company', function ($query) use ($company) {
                     $query->where('id', $company->id);
                 })->get();
 
-            $ret = [];
             foreach($specs as $spec) {
                 if(empty($ret[$spec->currency->slug]))
                     $ret[$spec->currency->slug] = [

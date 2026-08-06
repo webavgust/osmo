@@ -34,6 +34,7 @@ return [
         'Admin' => [
         ],
         'Pub' => [
+            'CrmMonitor',
             'ProposalTools',
             'DealCard',
             'PaymentCalendar',

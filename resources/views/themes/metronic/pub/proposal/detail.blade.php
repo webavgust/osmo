@@ -11,9 +11,9 @@
     <style>
         @if($proposal->isForeignCurrency)
             #proposal[currency='RUB'] span[currency='{{ $proposal->currency->slug }}'],
-            #proposal[currency='{{ $proposal->currency->slug }}'] span[currency='RUB'] {
-                display: none;
-            }
+        #proposal[currency='{{ $proposal->currency->slug }}'] span[currency='RUB'] {
+            display: none;
+        }
         @endif
 
         table#table-summary .textarea
@@ -78,7 +78,7 @@
                         @if($iteration->id == $proposal->id)
                             <div class="d-flex justify-content-end w-100">
                                 <button type="button"
-                                        class="w-100 btn btn-primary text-nowrap position-relative cursor p-0 fs-2"
+                                        class="w-100 btn waves-effect waves-light btn-primary text-nowrap position-relative cursor p-0 fs-2"
                                         href="{{ route('proposal.detail', $iteration) }}">
                                     <div class="d-flex justify-content-between m-1">
                                         <span class="ms-1">{{ $iteration->iteration }}</span>
@@ -97,11 +97,11 @@
                                     @endif
                                 </button>
 
-{{--                                <a type="button"--}}
-{{--                                   class="btn border-start-0 btn-outline-light-secondary text-nowrap px-1 py-3 align-items-center"--}}
-{{--                                   href="{{ route('proposal.edit', [$iteration, $iteration->iteration]) }}">--}}
-{{--                                    <x-ui.icon.regular icon="fa-edit"/>--}}
-{{--                                </a>--}}
+                                {{--                                <a type="button"--}}
+                                {{--                                   class="btn border-start-0 btn-outline-light-secondary text-nowrap px-1 py-3 align-items-center"--}}
+                                {{--                                   href="{{ route('proposal.edit', [$iteration, $iteration->iteration]) }}">--}}
+                                {{--                                    <x-ui.icon.regular icon="fa-edit"/>--}}
+                                {{--                                </a>--}}
                             </div>
 
 
@@ -117,15 +117,15 @@
                                     >
 
 
-                                              <div class="user-img position-relative d-inline-block m-1">
-                                                  <button
-                                                      class="btn bg-white text-black btn-circle fw-bold fs-1" style="width: 16px; height: 16px; line-height: 6px">
-                                                        {{ $loop->iteration }}
-                                                  </button>
-                                              </div>
-                                                <div @class(["m-1 text-truncate text-dark"]) style="font-size: 11px">
-                                                    {!! cost_out($variant->cost_total, $proposal) !!}
-                                                </div>
+                                        <div class="user-img position-relative d-inline-block m-1">
+                                            <button
+                                                class="btn bg-white text-black btn-circle fw-bold fs-1" style="width: 16px; height: 16px; line-height: 6px">
+                                                {{ $loop->iteration }}
+                                            </button>
+                                        </div>
+                                        <div @class(["m-1 text-truncate text-dark"]) style="font-size: 11px">
+                                            {!! cost_out($variant->cost_total, $proposal) !!}
+                                        </div>
                                     </a>
                                 @endforeach
                             </div>
@@ -133,7 +133,7 @@
 
                             <a class="d-flex justify-content-end w-100" href="{{ route('proposal.detail', [$iteration, $iteration->iteration]) }}">
                                 <button type="button"
-                                        class="w-100 btn btn-light-secondary text-nowrap position-relative cursor p-0 fs-2"
+                                        class="w-100 btn waves-effect waves-light btn-light-secondary text-nowrap position-relative cursor p-0 fs-2"
                                         href="{{ route('proposal.detail', $iteration) }}">
                                     <div class="fs-3 m-1 d-flex justify-content-between">
                                         <span class="ms-1">{{ $iteration->iteration }}</span>
@@ -165,7 +165,7 @@
             </div>
             <div class="col-11">
                 <div class="d-flex align-items-top justify-content-between mb-2">
-                    <div>
+                    <div class="d-flex align-items-center flex-wrap gap-3">
                         <h2 class="m-0">
                             {{ $proposal->name }}
                             @if(!empty($proposal->name_alt))
@@ -173,16 +173,14 @@
                             @endif
                         </h2>
 
-                        {{-- Статус КП и привязка к сделке Битрикса --}}
-                        <div class="d-flex align-items-center flex-wrap gap-2 mt-2">
-                            <x-proposal.status :proposal="$proposal" editable="1"/>
-                            <x-proposal.deal :proposal="$proposal"/>
-                        </div>
+                        {{-- КП, сделки Битрикса, договоры, спецификации, платежи и лицензии на одном экране --}}
+                        <x-proposal.summary :proposal="$proposal"/>
                     </div>
 
 
                     <div class="d-flex align-items-center fs-4">
                         <div>
+
                             {{ $proposal->partner->name }}
                         </div>
 
@@ -205,13 +203,13 @@
                     </x-ui.notification.light>
                 @else
                     <div class="card">
-                    <div class="card-body p-0">
-                                <div class="invoice-inner-part w-100 border-light-secondary border-start">
-                                    @foreach($proposal->variants as $variant)
-                                        <div style="display: none;"
-                                             @class(["border-4 border-danger tab"])
-                                            id="tab_{{ $variant->id }}"
-                                        >
+                        <div class="card-body p-0">
+                            <div class="invoice-inner-part w-100 border-light-secondary border-start">
+                                @foreach($proposal->variants as $variant)
+                                    <div style="display: none;"
+                                         @class(["border-4 border-danger tab"])
+                                         id="tab_{{ $variant->id }}"
+                                    >
                                         <div class="card card-body p-0">
                                             <div class="
                                                   invoice-header
@@ -222,7 +220,7 @@
                                                 " style="padding-bottom: 12px!important">
 
                                                 <div class="d-flex align-items-center align-items-center">
-                                                    <h3 class="fw-semibold text-uppercase m-0">
+                                                    <h3 class="font-weight-medium text-uppercase m-0">
                                                         Коммерческое предложение
                                                     </h3>
 
@@ -246,12 +244,12 @@
 
                                                                 <div class="dropdown-divider"></div>
 
-                                                                <x-ui.a.box class="dropdown-item" href="{{ route('proposal.box_status', [$proposal, $proposal->iteration]) }}">
-                                                                    <i class="fa-light fa-flag text-success me-2"></i> Изменить статус
-                                                                </x-ui.a.box>
+                                                                <a class="dropdown-item" href="{{ route('proposal_tools.price_history', $proposal) }}">
+                                                                    <i class="fas fa-chart-line text-info me-2"></i> История изменения цен
+                                                                </a>
 
-                                                                <x-ui.a.box class="dropdown-item" href="{{ route('proposal.box_deal', [$proposal, $proposal->iteration]) }}">
-                                                                    <i class="fa-light fa-link text-info me-2"></i> Сделка Битрикс24
+                                                                <x-ui.a.box class="dropdown-item" href="{{ route('proposal_tools.box_clone', [$proposal, $proposal->iteration]) }}">
+                                                                    <i class="fas fa-clone text-success me-2"></i> Клонировать КП
                                                                 </x-ui.a.box>
                                                             </div>
                                                         </div>
@@ -497,7 +495,7 @@
                                                             <td class="text-center fw-normal p-1">Партнёр</td>
                                                         </tr>
                                                         @foreach($variant->proposal_scenarios as $scenario)
-                                                                @continue(!$scenario->count)
+                                                            @continue(!$scenario->count)
                                                             <tr @class(["bg-light-warning text-warning" => !$scenario->cb_process])>
                                                                 <td class="text-center">{{ $loop->iteration }}</td>
                                                                 <td class="text-wrap">
@@ -593,15 +591,15 @@
 
 
                                                     @if($variant->proposal_works->where('count', '>', 0)->isNotEmpty())
-                                                    @php
-                                                        $groups = collect();
-                                                        foreach($variant->proposal_works as $pw) {
-                                                            $group = $pw->proposal_work->group ?? 'Без группы';
+                                                        @php
+                                                            $groups = collect();
+                                                            foreach($variant->proposal_works as $pw) {
+                                                                $group = $pw->proposal_work->group ?? 'Без группы';
 
-                                                            if(empty($groups[$group])) $groups[$group] = collect();
-                                                            $groups[$group]->push($pw);
-                                                        }
-                                                    @endphp
+                                                                if(empty($groups[$group])) $groups[$group] = collect();
+                                                                $groups[$group]->push($pw);
+                                                            }
+                                                        @endphp
 
                                                         <tr class="subcaption">
                                                             <td rowspan="2"></td>
@@ -618,103 +616,103 @@
                                                             <td class="text-center fw-normal p-1">Партнёр</td>
                                                         </tr>
 
-                                                            @foreach($groups as $group_name => $works)
-                                                                @php
-                                                                    $group_discount_customer = $group_discount_total = $group_cost_total = $group_nds_total = 0;
-                                                                @endphp
-                                                                    @if($groups->count() > 1)
-                                                                        <tr class="bg-light-primary">
-                                                                            <td colspan="9" class="fw-bold fs-h3">{{ $group_name }}</td>
-                                                                        </tr>
-                                                                   @endif
+                                                        @foreach($groups as $group_name => $works)
+                                                            @php
+                                                                $group_discount_customer = $group_discount_total = $group_cost_total = $group_nds_total = 0;
+                                                            @endphp
+                                                            @if($groups->count() > 1)
+                                                                <tr class="bg-light-primary">
+                                                                    <td colspan="9" class="fw-bold fs-h3">{{ $group_name }}</td>
+                                                                </tr>
+                                                            @endif
 
-                                                                    @foreach($works as $work)
-                                                                        @continue(!$work->count)
-                                                                        <tr @class(["bg-light-warning text-warning" => !$work->proposal_work->cb_process])>
-                                                                            <td class="text-center align-center">{{ $loop->iteration }}</td>
-                                                                            <td class="align-center fs-3 textarea">{!! $work->proposal_work->description !!} </td>
-                                                                            <td class="align-center text-center">
-                                                                                <div><nobr>{!! cost_out($work->cost, $proposal) !!}</nobr></div>
-                                                                            </td>
-                                                                            <td class="text-center">
-                                                                                @php
-                                                                                    $discount_customer = $work->discount_customer > 0 ? round($work->cost / 100 * $work->discount_customer, 0) : 0;
-                                                                                    $discount_total['customer']['work'] += $discount_customer * $work->count;
-                                                                                    $group_discount_customer += $discount_customer * $work->count;
-                                                                                @endphp
-                                                                                @if($discount_customer > 0)
-                                                                                    <div class="text-danger text-nowrap">
-                                                                                        - {!! cost_out($discount_customer, $proposal) !!}
-                                                                                    </div>
-                                                                                @endif
-                                                                            </td>
-                                                                            <td class="text-center">
-                                                                                @php
-                                                                                    $discount_partner = $work->discount_partner ? ($work->cost - $discount_customer) / 100 * $work->discount_partner : 0;
-                                                                                    $discount_total['partner']['work'] += $discount_partner * $work->count;
-                                                                                    $group_discount_total+= $discount_partner * $work->count;
-                                                                                    $group_nds_total += $work->nds;
-                                                                                @endphp
-                                                                                @if($discount_partner > 0)
-                                                                                    <div class="text-danger text-nowrap">
-                                                                                        - {!! cost_out($discount_partner, $proposal) !!}
-                                                                                    </div>
-                                                                                @endif
-                                                                            </td>
-                                                                            <td class="text-center text-nowrap">
-                                                                                = {!! cost_out($work->cost - $discount_customer - $discount_partner, $proposal) !!}
-                                                                            </td>
-                                                                            <td class="align-center text-center"><nobr>{{ tools()->cost_normalize($work->count) }}</nobr></td>
-                                                                            <td class="align-center text-center">
-                                                                                @php
-                                                                                    $group_cost_total += $work->total;
-                                                                                @endphp
-                                                                                <div><nobr>
-                                                                                        {!! cost_out($work->total, $proposal) !!}
-                                                                                    </nobr></div>
-                                                                            </td>
-                                                                            <td class="align-center fs-3 text-center textarea">
-                                                                                @if($work->discount_customer)
-                                                                                    <div>С учётом скидки {{ $work->discount_customer }}% для заказчика</div>
-                                                                                @endif
-                                                                                {!! $work->proposal_work->notice !!}
-                                                                            </td>
-                                                                        </tr>
-                                                                    @endforeach
+                                                            @foreach($works as $work)
+                                                                @continue(!$work->count)
+                                                                <tr @class(["bg-light-warning text-warning" => !$work->proposal_work->cb_process])>
+                                                                    <td class="text-center align-center">{{ $loop->iteration }}</td>
+                                                                    <td class="align-center fs-3 textarea">{!! $work->proposal_work->description !!} </td>
+                                                                    <td class="align-center text-center">
+                                                                        <div><nobr>{!! cost_out($work->cost, $proposal) !!}</nobr></div>
+                                                                    </td>
+                                                                    <td class="text-center">
+                                                                        @php
+                                                                            $discount_customer = $work->discount_customer > 0 ? round($work->cost / 100 * $work->discount_customer, 0) : 0;
+                                                                            $discount_total['customer']['work'] += $discount_customer * $work->count;
+                                                                            $group_discount_customer += $discount_customer * $work->count;
+                                                                        @endphp
+                                                                        @if($discount_customer > 0)
+                                                                            <div class="text-danger text-nowrap">
+                                                                                - {!! cost_out($discount_customer, $proposal) !!}
+                                                                            </div>
+                                                                        @endif
+                                                                    </td>
+                                                                    <td class="text-center">
+                                                                        @php
+                                                                            $discount_partner = $work->discount_partner ? ($work->cost - $discount_customer) / 100 * $work->discount_partner : 0;
+                                                                            $discount_total['partner']['work'] += $discount_partner * $work->count;
+                                                                            $group_discount_total+= $discount_partner * $work->count;
+                                                                            $group_nds_total += $work->nds;
+                                                                        @endphp
+                                                                        @if($discount_partner > 0)
+                                                                            <div class="text-danger text-nowrap">
+                                                                                - {!! cost_out($discount_partner, $proposal) !!}
+                                                                            </div>
+                                                                        @endif
+                                                                    </td>
+                                                                    <td class="text-center text-nowrap">
+                                                                        = {!! cost_out($work->cost - $discount_customer - $discount_partner, $proposal) !!}
+                                                                    </td>
+                                                                    <td class="align-center text-center"><nobr>{{ tools()->cost_normalize($work->count) }}</nobr></td>
+                                                                    <td class="align-center text-center">
+                                                                        @php
+                                                                            $group_cost_total += $work->total;
+                                                                        @endphp
+                                                                        <div><nobr>
+                                                                                {!! cost_out($work->total, $proposal) !!}
+                                                                            </nobr></div>
+                                                                    </td>
+                                                                    <td class="align-center fs-3 text-center textarea">
+                                                                        @if($work->discount_customer)
+                                                                            <div>С учётом скидки {{ $work->discount_customer }}% для заказчика</div>
+                                                                        @endif
+                                                                        {!! $work->proposal_work->notice !!}
+                                                                    </td>
+                                                                </tr>
+                                                            @endforeach
 
-                                                                    @if($groups->count() > 1)
-                                                                        <tr>
-                                                                            <td colspan="3" class="py-1 fs-2"></td>
-                                                                            <td class="text-center text-nowrap py-1 fs-2">
-                                                                                @if($group_discount_customer > 0)
-                                                                                    <span class="fw-bold text-nowrap">=
+                                                            @if($groups->count() > 1)
+                                                                <tr>
+                                                                    <td colspan="3" class="py-1 fs-2"></td>
+                                                                    <td class="text-center text-nowrap py-1 fs-2">
+                                                                        @if($group_discount_customer > 0)
+                                                                            <span class="fw-bold text-nowrap">=
                                                                                         {!! cost_out($group_discount_customer, $proposal) !!}
                                                                                     </span>
-                                                                                @endif
-                                                                            </td>
-                                                                            <td class="text-center text-nowrap py-1 fs-2">
-                                                                                @if($group_discount_total > 0)
-                                                                                    <span class="fw-bold text-nowrap">=
+                                                                        @endif
+                                                                    </td>
+                                                                    <td class="text-center text-nowrap py-1 fs-2">
+                                                                        @if($group_discount_total > 0)
+                                                                            <span class="fw-bold text-nowrap">=
                                                                                         {!! cost_out($group_discount_total, $proposal) !!}
                                                                                     </span>
-                                                                                @endif
-                                                                            </td>
-                                                                            <td colspan="2" class="py-1 fs-2"/>
-                                                                            <td class="text-center text-nowrap py-1 fs-2">
+                                                                        @endif
+                                                                    </td>
+                                                                    <td colspan="2" class="py-1 fs-2"/>
+                                                                    <td class="text-center text-nowrap py-1 fs-2">
                                                                                 <span class="fw-bold text-nowrap">=
                                                                                     {!! cost_out($group_cost_total, $proposal) !!}
                                                                                 </span>
-                                                                                @if($variant->work_nds_cost_total > 0)
-                                                                                    <div class="text-info fs-1 font-weight-normal">
-                                                                                        НДС =
-                                                                                        {!! cost_out(round($group_nds_total, 2), $proposal) !!}
-                                                                                    </div>
-                                                                                @endif
-                                                                            </td>
-                                                                            <td class="py-1 fs-2"></td>
-                                                                        </tr>
-                                                                    @endif
-                                                            @endforeach
+                                                                        @if($variant->work_nds_cost_total > 0)
+                                                                            <div class="text-info fs-1 font-weight-normal">
+                                                                                НДС =
+                                                                                {!! cost_out(round($group_nds_total, 2), $proposal) !!}
+                                                                            </div>
+                                                                        @endif
+                                                                    </td>
+                                                                    <td class="py-1 fs-2"></td>
+                                                                </tr>
+                                                            @endif
+                                                        @endforeach
                                                         <tr style="border-top: 2px solid #AAA">
                                                             <td colspan="3"></td>
                                                             <td class="text-center text-nowrap">
@@ -747,7 +745,7 @@
                                                         </tr>
                                                     @endif
 
-                                                        <tr style="border-top: 4px solid #AAA">
+                                                    <tr style="border-top: 4px solid #AAA">
                                                         <td colspan="3"/>
                                                         <td class="text-center">
                                                             <div class="fw-bold fs-5">
@@ -771,7 +769,7 @@
                                                             @if($variant->nds_cost_total)
                                                                 <div class="fs-2 text-nowrap">(в том числе НДС:<br/>
                                                                     {!! cost_out(round($variant->nds_cost_total, 2), $proposal) !!}
-                                                                )</div>
+                                                                    )</div>
                                                             @endif
                                                         </td>
                                                         <td>
@@ -797,13 +795,13 @@
 
                                     </div>
 
-                                    @endforeach
+                                @endforeach
 
-                                    <x-proposal.log-table :proposal="$proposal" />
+                                <x-proposal.log-table :proposal="$proposal" />
 
-                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
                 @endif
             </div>
         </div>
@@ -870,7 +868,7 @@
             });
         }
         @if(!empty($proposal->variants[0]->id))
-            tab({{ $proposal->variants[0]->id }});
+        tab({{ $proposal->variants[0]->id }});
         @endif
     </script>
 @endsection
