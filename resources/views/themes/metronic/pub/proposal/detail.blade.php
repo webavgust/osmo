@@ -175,6 +175,10 @@
 
                         {{-- КП, сделки Битрикса, договоры, спецификации, платежи и лицензии на одном экране --}}
                         <x-proposal.summary :proposal="$proposal"/>
+
+                        {{-- статус КП и привязка к сделкам Битрикса — оба открываются попапом --}}
+                        <x-proposal.status :proposal="$proposal" editable="1"/>
+                        <x-proposal.deal :proposal="$proposal"/>
                     </div>
 
 
@@ -240,6 +244,20 @@
 
                                                                 <x-ui.a.box class="dropdown-item" href="{{ route('proposal.box_convert', [$proposal, $proposal->iteration]) }}">
                                                                     <i class="fas fa-arrow-right-arrow-left text-primary me-2"></i> Конвертировать в валюту
+                                                                </x-ui.a.box>
+
+                                                                <div class="dropdown-divider"></div>
+
+                                                                <a class="dropdown-item" href="{{ route('deal_card.index', $proposal->group) }}">
+                                                                    <i class="fas fa-sitemap text-primary me-2"></i> Сводная информация
+                                                                </a>
+
+                                                                <x-ui.a.box class="dropdown-item" href="{{ route('proposal.box_status', [$proposal, $proposal->iteration]) }}">
+                                                                    <i class="fas fa-flag text-warning me-2"></i> Статус КП
+                                                                </x-ui.a.box>
+
+                                                                <x-ui.a.box class="dropdown-item" href="{{ route('proposal.box_deal', [$proposal, $proposal->iteration]) }}">
+                                                                    <i class="fas fa-link text-info me-2"></i> Сделки Битрикс24
                                                                 </x-ui.a.box>
 
                                                                 <div class="dropdown-divider"></div>

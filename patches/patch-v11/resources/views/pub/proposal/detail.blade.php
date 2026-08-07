@@ -175,7 +175,7 @@
 
                         {{-- КП, сделки Битрикса, договоры, спецификации, платежи и лицензии на одном экране --}}
                         <x-proposal.summary :proposal="$proposal"/>
-@dd("!!")
+
                         {{-- статус КП и привязка к сделкам Битрикса — оба открываются попапом --}}
                         <x-proposal.status :proposal="$proposal" editable="1"/>
                         <x-proposal.deal :proposal="$proposal"/>
