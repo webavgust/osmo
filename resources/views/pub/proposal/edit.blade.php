@@ -2285,10 +2285,11 @@
 
 
                     // НДС
+                    console.log(work_nds);
                     if (work_nds) {
-                        $(".work_total .nds").removeClass("d-none").find(".amount").html(cost_normalize(work_nds, true));
+                        $("tr.work_total td[column='" + column_i + "'] .nds").removeClass("d-none").find(".amount").html(cost_normalize(work_nds, true));
                     } else {
-                        $(".work_total .nds").addClass("d-none");
+                        $("tr.work_total td[column='" + column_i + "'] .nds").addClass("d-none");
                     }
                 }
 
@@ -3047,7 +3048,7 @@
                 neuroForceCost[row_num][column_num][scenario_id] &&
                 neuroForceCost[row_num][column_num][scenario_id][bestRuleCount] &&
                 neuroForceCost[row_num][column_num][scenario_id][bestRuleCount][modeKey] ?
-                neuroForceCost[row_num][column_num][scenario_id][bestRuleCount][modeKey] : 0;
+                    neuroForceCost[row_num][column_num][scenario_id][bestRuleCount][modeKey] : 0;
 
 
 
