@@ -6,10 +6,10 @@ use App\Modules\Pub\Company\Models\Company;
 use App\Modules\Pub\Company\Repositories\CompanyRepository;
 use App\Modules\Pub\Contract\Models\Contract;
 use App\Modules\Pub\Contract\Models\ContractType;
-use App\Modules\Pub\Contract\Repositories\ContractRepository;
 use App\Modules\Pub\ContractSpecification\Models\ContractSpecification;
 use App\Modules\Pub\ContractSpecification\Models\ContractSpecificationStatus;
 use App\Modules\Pub\ContractSpecification\Repository\ContractSpecificationRepository;
+use App\Modules\Pub\ContractSpecification\Services\SpecProposalService;
 use App\Modules\Pub\Proposal\Models\Proposal;
 use App\Modules\Pub\Proposal\Models\ProposalGrade;
 use App\Modules\Pub\Proposal\Models\ProposalType;
@@ -28,6 +28,7 @@ class ApiContractSpecificationController
             'status' => 'required|in:' . implode(",", array_keys(ContractSpecificationStatus::getStatuses())),
             'company' => 'required|exists:companies,id',
             'name' => 'required',
+            'date_create' => 'nullable|date',
 //            'amount' => 'nullable|int',
             'cb_signed' => 'nullable|boolean',
             'currency' => 'required|exists:currencies,slug',
@@ -47,6 +48,7 @@ class ApiContractSpecificationController
             'company' => 'required|exists:companies,id',
             'contract' => 'required|exists:contracts,id',
             'name' => 'required',
+            'date_create' => 'nullable|date',
 //            'amount' => 'nullable|int',
             'scenario' => 'nullable|array',
             'scenario_manual' => 'nullable|array',
@@ -87,5 +89,44 @@ class ApiContractSpecificationController
 
 
         return ['result' => 'success'];
+    }
+
+    /**
+     * Прикрепить или открепить КП (patch v16).
+     *
+     * Компания КП должна совпадать с компанией спецификации — это единственное
+     * ограничение. Состав блоков КП не проверяется.
+     *
+     * @param ContractSpecification $spec
+     * @param Request $request
+     * @return array
+     */
+    public function set_proposal(ContractSpecification $spec, Request $request)
+    {
+        $request->validate([
+            'group' => 'required|string|exists:proposals,group',
+            'unbind' => 'nullable|boolean',
+        ]);
+
+        $proposal = Proposal::where('group', $request->group)->orderByDesc('id')->first();
+        if (empty($proposal)) return ['result' => 'error', 'message' => 'КП не найдено'];
+
+        if ($request->unbind) {
+            SpecProposalService::detach($spec, $proposal);
+
+            return ['result' => 'success', 'message' => 'КП откреплено'];
+        }
+
+        if ((int) $proposal->company_id !== (int) $spec->company_id) {
+            return ['result' => 'error', 'message' => 'КП оформлено на другую компанию'];
+        }
+
+        $won = SpecProposalService::attach($spec, $proposal);
+
+        return [
+            'result' => 'success',
+            'won' => $won,
+            'message' => $won ? 'КП прикреплено и переведено в «Выиграно»' : 'КП прикреплено',
+        ];
     }
 }

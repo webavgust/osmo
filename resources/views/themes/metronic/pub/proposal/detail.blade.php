@@ -68,6 +68,17 @@
             'customer' => ['platform' => 0,  'soft' => 0, 'neuro' => 0, 'work' => 0 ],
         ];
 
+        // спецификации рамочных договоров, к которым прикреплено КП (patch v16)
+        $frame_specs = \App\Modules\Pub\ContractSpecification\Services\SpecProposalService::specifications($proposal);
+
+        // разложим их по блокам КП: номер договора показывается в шапке того
+        // блока, ради которого договор заключён
+        $frame_by_block = ['license' => collect(), 'platform' => collect(), 'services' => collect()];
+        foreach($frame_specs as $frame_spec) {
+            $frame_type = (string) $frame_spec->contract?->type;
+            if(isset($frame_by_block[$frame_type])) $frame_by_block[$frame_type]->push($frame_spec);
+        }
+
     @endphp
     <div class="container-fluid" id="proposal" currency="RUB">
         <div class="row">
@@ -225,6 +236,10 @@
                                                                     <i class="fas fa-file-pdf text-danger me-2"></i> Создать PDF
                                                                 </x-ui.a.box>
 
+                                                                <x-ui.a.box class="dropdown-item" href="{{ route('proposal_tools.box_excel', [$proposal, $proposal->iteration]) }}">
+                                                                    <i class="fas fa-file-excel text-success me-2"></i> Создать Excel
+                                                                </x-ui.a.box>
+
                                                                 <div class="dropdown-divider"></div>
 
                                                                 <a class="dropdown-item" href="{{ route('proposal_tools.price_history', $proposal) }}">
@@ -281,7 +296,20 @@
                                                     @if($variant->proposal_software->where('count', '>', 0)->isNotEmpty())
                                                         <tr class="subcaption">
                                                             <td rowspan="2"></td>
-                                                            <td rowspan="2" class="text-center fw-bold">ПЛАТФОРМА (ПО)</td>
+                                                            <td rowspan="2" class="fw-bold">
+                                                                <div class="d-flex justify-content-between align-items-center gap-2">
+                                                                    <span>ПЛАТФОРМА (ПО)</span>
+                                                                    <span class="text-nowrap">
+                                                                        @foreach($frame_by_block['license'] as $frame_spec)
+                                                                            <code class="fw-bold" title="Спецификация: {{ $frame_spec->name }}">{{ $frame_spec->contract->number ?? 'б/н' }}</code>
+                                                                        @endforeach
+                                                                        <a href="javascript:void(0)" class="ms-1" title="Прикрепить спецификацию по ПО"
+                                                                           onclick="javascript:box({href:'{{ route('contract_spec.box_spec', [$proposal, 'license']) }}'})">
+                                                                            <x-ui.icon.regular icon="{{ $frame_by_block['license']->isEmpty() ? 'fa-link' : 'fa-edit' }}"/>
+                                                                        </a>
+                                                                    </span>
+                                                                </div>
+                                                            </td>
                                                             <th rowspan="2" class="text-center fw-bold" valign="top">ЦЕНА</th>
                                                             <th colspan="2" class="text-center fw-bold" valign="top">СКИДКА</th>
                                                             <th rowspan="2" class="text-center fw-bold" valign="top">ЦЕНА ИТОГ</th>
@@ -375,7 +403,20 @@
                                                     @if($variant->proposal_platforms->where('count', '>', 0)->isNotEmpty())
                                                         <tr class="subcaption">
                                                             <td rowspan="2"></td>
-                                                            <td rowspan="2" class="text-center fw-bold">ПЛАТФОРМА</td>
+                                                            <td rowspan="2" class="fw-bold">
+                                                                <div class="d-flex justify-content-between align-items-center gap-2">
+                                                                    <span>ПЛАТФОРМА</span>
+                                                                    <span class="text-nowrap">
+                                                                        @foreach($frame_by_block['platform'] as $frame_spec)
+                                                                            <code class="fw-bold" title="Спецификация: {{ $frame_spec->name }}">{{ $frame_spec->contract->number ?? 'б/н' }}</code>
+                                                                        @endforeach
+                                                                        <a href="javascript:void(0)" class="ms-1" title="Прикрепить спецификацию по платформе"
+                                                                           onclick="javascript:box({href:'{{ route('contract_spec.box_spec', [$proposal, 'platform']) }}'})">
+                                                                            <x-ui.icon.regular icon="{{ $frame_by_block['platform']->isEmpty() ? 'fa-link' : 'fa-edit' }}"/>
+                                                                        </a>
+                                                                    </span>
+                                                                </div>
+                                                            </td>
                                                             <th rowspan="2" class="text-center fw-bold" valign="top">ЦЕНА</th>
                                                             <th colspan="2" class="text-center fw-bold" valign="top">СКИДКА</th>
                                                             <th rowspan="2" class="text-center fw-bold" valign="top">ЦЕНА ИТОГ</th>
@@ -596,7 +637,20 @@
 
                                                         <tr class="subcaption">
                                                             <td rowspan="2"></td>
-                                                            <td rowspan="2" class="text-center fw-bold">РАБОТЫ</td>
+                                                            <td rowspan="2" class="fw-bold">
+                                                                <div class="d-flex justify-content-between align-items-center gap-2">
+                                                                    <span>РАБОТЫ</span>
+                                                                    <span class="text-nowrap">
+                                                                        @foreach($frame_by_block['services'] as $frame_spec)
+                                                                            <code class="fw-bold" title="Спецификация: {{ $frame_spec->name }}">{{ $frame_spec->contract->number ?? 'б/н' }}</code>
+                                                                        @endforeach
+                                                                        <a href="javascript:void(0)" class="ms-1" title="Прикрепить спецификацию по услугам"
+                                                                           onclick="javascript:box({href:'{{ route('contract_spec.box_spec', [$proposal, 'services']) }}'})">
+                                                                            <x-ui.icon.regular icon="{{ $frame_by_block['services']->isEmpty() ? 'fa-link' : 'fa-edit' }}"/>
+                                                                        </a>
+                                                                    </span>
+                                                                </div>
+                                                            </td>
                                                             <th rowspan="2" class="text-center fw-bold" valign="top">ЦЕНА</th>
                                                             <th colspan="2" class="text-center fw-bold" valign="top">СКИДКА</th>
                                                             <th rowspan="2" class="text-center fw-bold" valign="top">ЦЕНА ИТОГ</th>
