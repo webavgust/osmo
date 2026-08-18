@@ -1,11 +1,13 @@
 @extends('components.box.box-static-large')
 
 @section('title')
-    Сделки Битрикс24
-    <span class="text-muted fs-7 ms-2">КП «{{ $proposal->name }}»</span>
+    Прикрепление сделки к Битрикс24
 @endsection
 
 @section('body')
+    <style>
+        .modal-body { overflow-x: hidden }
+    </style>
     {{-- Привязанные сделки --}}
     <div class="mb-4">
         <div class="d-flex align-items-center justify-content-between mb-2">
@@ -64,13 +66,10 @@
             @endforeach
         </div>
 
-        <div id="deal_links_empty" class="text-muted fs-7 @if($links->isNotEmpty()) d-none @endif">
-            Сделок пока нет. Найдите нужные ниже — можно привязать несколько.
-        </div>
     </div>
 
     {{-- Поиск --}}
-    <div class="row g-2 mb-3">
+    <div id="deal_filter" class="row g-2 mb-3">
         <div class="col-12 col-lg-6">
             <div class="position-relative">
                 <i class="fa-light fa-magnifying-glass fs-4 position-absolute top-50 translate-middle-y ms-4 text-gray-500"></i>
@@ -82,7 +81,7 @@
         </div>
 
         <div class="col-6 col-lg-3">
-            <select id="deal_manager" class="form-select form-select-solid">
+            <select id="deal_manager" class="form-select form-select-solid w-100">
                 <option value="">Все менеджеры</option>
                 @foreach($managers as $manager)
                     <option value="{{ $manager }}" @selected($params['manager'] === $manager)>
@@ -117,7 +116,7 @@
     </div>
 
     {{-- Результаты --}}
-    <div id="deal_results" style="max-height: 380px; overflow-y: auto;">
+    <div id="deal_results" class="border-1 rounded-1 border-gray-300" style="border-style: solid; max-height: 380px; overflow-y: auto;">
         @include('pub.proposal.boxes.deal_rows', ['deals' => $deals])
     </div>
 @endsection
@@ -354,6 +353,17 @@
 
     $("#deal_manager, #deal_stage, #deal_only_free").on("change", function () {
         deal_search();
+    });
+
+    $(document).ready(function() {
+       $("select#deal_manager").select2({
+           dropdownParent: $("#deal_filter"),
+           width: '100%'
+       });
+       $("select#deal_stage").select2({
+           dropdownParent: $("#deal_filter"),
+           width: '100%'
+       });
     });
 </script>
 @endsection

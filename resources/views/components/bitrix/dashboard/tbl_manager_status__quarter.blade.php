@@ -1,26 +1,26 @@
-<div class="card mb-0">
+<div class="card mb-0 border-0">
     <div class="border-bottom title-part-padding d-flex justify-content-between align-items-center">
         <h4 class="mb-0">Менеджеры и статусы поквартально</h4>
 
         <div class="d-flex d-print-none">
             <div class="reports ms-3 d-flex align-items-center">
                 <a href="{{ route('report-download.tbl_manager_status__quarter', ['mode' => 'pdf']) }}" class="ms-2">
-                    <x-ui.icon.regular icon="fa-file-pdf" class="ms-2 text-danger fs-7"></x-ui.icon.regular>
+                    <x-ui.icon.regular icon="fa-file-pdf" class="ms-2 text-danger fs-1"></x-ui.icon.regular>
                 </a>
                 <a href="{{ route('report-download.tbl_manager_status__quarter', ['mode' => 'excel']) }}" class="ms-2">
-                    <x-ui.icon.regular icon="fa-file-excel" class="ms-2 text-success fs-7"></x-ui.icon.regular>
+                    <x-ui.icon.regular icon="fa-file-excel" class="ms-2 text-success fs-1"></x-ui.icon.regular>
                 </a>
             </div>
         </div>
     </div>
-    <div class="card-body p-0 text-center text-dark fw-bolder py-4 pt-0 pb-0">
+    <div class="card-body p-0 text-center text-dark fw-bolder py-4 pt-0 pb-0 fs-6">
         <table class="table table-bordered mb-0">
             <thead>
             <tr>
                 <th class="text-start" rowspan="2">Ответственный менеджер</th>
                 <th class="text-start" rowspan="2">Статус</th>
                 @foreach($data['columns'] as $column)
-                    <th class="py-1 fs-3 align-content-center">{{ $column }}</th>
+                    <th class="py-1 align-content-center">{{ $column }}</th>
                 @endforeach
                 <th class="text-end" style="background: #F0F0F0">Итого</th>
             </tr>
@@ -51,7 +51,7 @@
                                 @if($loop_block->iteration > 1 && $loop_block->last) rowspan="2" @endif
                             >{{ $status }}</td>
                         @foreach($data['columns'] as $column)
-                            <td class="py-1 fs-3 text-end">
+                            <td class="py-1 text-end">
                                 @if(!empty($line2[$column]))
                                     @php
                                         $row_total += $line2[$column]['amount'];
@@ -74,7 +74,7 @@
                                 @endif
                             </td>
                         @endforeach
-                        <td class="text-end text-nowrap monospace " style="font-weight: 600;; background: #F0F0F0">
+                        <td class="text-end text-nowrap monospace fs-4" style="font-weight: 600;; background: #F0F0F0">
                             <a href="javascript:void(0);" onclick="javascript:box({href: '{{ route('dashboard.box.manager_status_quarter', [
                                         'r1' => \Illuminate\Support\Str::replace("/", "_", base64_encode($manager)),
                                         'r2' => \Illuminate\Support\Str::replace("/", "_", base64_encode($status)),
@@ -93,7 +93,7 @@
                 @if($loop_block->count > 1)
                     <tr>
                         @foreach($data['columns'] as $column)
-                            <td class="p-1 fs-2 text-end border-top-0 fw-bold bg-light-info" style="padding-right: 12px!important">
+                            <td class="p-1 fs-4 text-end border-top-0 fw-bold bg-light-info" style="padding-right: 12px!important">
                                 @if($subtotal[$column] > 0)
                                     {{ tools()->cost_normalize(
                                      round($subtotal[$column] ?? 0),
@@ -116,7 +116,7 @@
             <tr>
                 <td class="text-end p-1" colspan=2 style="background: #F0F0F0"></td>
                 @foreach($data['columns'] as $column)
-                    <td class="text-end monospace text-nowrap" style="font-weight: 600; background: #F0F0F0">
+                    <td class="text-end monospace text-nowrap fs-2" style="font-weight: 600; background: #F0F0F0">
                         <a href="javascript:void(0);" onclick="javascript:box({href: '{{ route('dashboard.box.manager_status_quarter', [
                                     'r1' => 'all',
                                     'r2' => 'all',
@@ -130,7 +130,7 @@
                         </a>
                     </td>
                 @endforeach
-                <td class="text-end monospace text-nowrap" style="font-weight: 600; background: #E5E5E5">
+                <td class="text-end monospace text-nowrap fs-2" style="font-weight: 600; background: #E5E5E5">
                     <a href="javascript:void(0);" onclick="javascript:box({href: '{{ route('dashboard.box.manager_status_quarter', [
                                     'r1' => 'all',
                                     'r2' => 'all',

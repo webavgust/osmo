@@ -1,3 +1,3 @@
-<div>
+<div class="cell">
     {{ $row->number }}
 </div>

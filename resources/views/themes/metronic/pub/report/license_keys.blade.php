@@ -44,7 +44,7 @@
     <div class="container-fluid">
 
         <div id="filter" class="mb-3">
-            <button class="btn btn-light-success" data-bs-toggle="modal" data-bs-target="#filter-modal">
+            <button class="btn btn-light-primary" data-bs-toggle="modal" data-bs-target="#filter-modal">
                 <i class="fa-light fa-filter"></i>
                 Фильтр <span class="count @unless($filter) d-none @endunless">(@if($filter){{ count($filter) }}) @endif</span>
             </button>
@@ -57,39 +57,39 @@
             </button>
         </div>
 
-        <div class="table-responsive">
+        <div class="table-responsive fs-6">
             <table class="bg-white table table-bordered" id="payments">
                 <tr>
-                    <th class="py-1 px-2">Партнёр</th>
-                    <th class="py-1 px-2">Компания</th>
-{{--                    <th class="py-1 px-2">КП</th>--}}
-                    <th class="py-1 px-2">Номер договора</th>
-                    <th class="py-1 px-2">Спецификация</th>
-                    <th class=" py-1 px-2">Ключ</th>
-                    <th class="text-center py-1 px-2">С</th>
-                    <th class="text-center py-1 px-2">По</th>
-                    <th class="text-center py-1 px-2">Камер</th>
-                    <th class="text-center py-1 px-2" style="width: 250px">Коммент</th>
+                    <th>Партнёр</th>
+                    <th>Компания</th>
+{{--                    <th>КП</th>--}}
+                    <th>Номер договора</th>
+                    <th>Спецификация</th>
+                    <th class="">Ключ</th>
+                    <th class="text-center">С</th>
+                    <th class="text-center">По</th>
+                    <th class="text-center">Камер</th>
+                    <th class="text-center" style="width: 250px">Коммент</th>
                 </tr>
                 @foreach($data as $row)
                     <tr @class(['sep_partner' => !empty($row[0]['rowspan']), "sep_company" => empty($row[0]['rowspan']) && !empty($row[1]['rowspan'])])>
                         {{-- ПАРТНЁР --}}
                         @if(!empty($row[0]))
-                            <td rowspan="{{ $row[0]['rowspan'] ?? 1 }}" @class(array_merge(["p-2 py-1 fs-2 text-start"], $row[0]['class'] ?? []))>
+                            <td rowspan="{{ $row[0]['rowspan'] ?? 1 }}" @class(array_merge(["p-3 text-start"], $row[0]['class'] ?? []))>
                                 <a href="{{ route('partner.detail', $row[0]['system']) }}">{{ $row[0]['cell'] }}</a>
                             </td>
                         @endif
 
                         {{-- КОМПАНИЯ --}}
                         @if(!empty($row[1]))
-                            <td rowspan="{{ $row[1]['rowspan'] ?? 1 }}" @class(array_merge(["p-2 py-1 fs-2 text-start"], $row[1]['class'] ?? []))>
+                            <td rowspan="{{ $row[1]['rowspan'] ?? 1 }}" @class(array_merge(["p-3 text-start"], $row[1]['class'] ?? []))>
                                 <a href="{{ route('company.detail', $row[1]['system']) }}">{{ $row[1]['cell'] }}</a>
                             </td>
                         @endif
 
                         {{-- Название КП --}}
                         @if(0 && !empty($row[2]))
-                            <td rowspan="{{ $row[2]['rowspan'] ?? 1 }}" @class(array_merge(["p-2 py-1 fs-2 text-start"], $row[2]['class'] ?? []))>
+                            <td rowspan="{{ $row[2]['rowspan'] ?? 1 }}" @class(array_merge(["p-3 text-start"], $row[2]['class'] ?? []))>
                                 @if(!empty($row[2]['link']))
                                     <a href="{{ $row[2]['link'] }}">
                                         {!! $row[2]['cell'] !!}
@@ -102,11 +102,11 @@
 
                         {{-- Номер договора --}}
                         @if(!empty($row[2]))
-                            <td rowspan="{{ $row[2]['rowspan'] ?? 1 }}" @class(array_merge(["p-2 py-1 fs-2 text-start text-nowrap"], $row[2]['class'] ?? []))>
+                            <td rowspan="{{ $row[2]['rowspan'] ?? 1 }}" @class(array_merge(["p-3 text-start text-nowrap"], $row[2]['class'] ?? []))>
                                 <div>{!! $row[2]['cell'] !!} </div>
 
                                 @if(!empty($row[2]['org']))
-                                    <div class="text-info fs-2">
+                                    <div class="text-info fs-7">
                                         {!!  $row[2]['org']->name !!}
                                     </div>
                                 @endif
@@ -115,35 +115,35 @@
 
                         {{-- Спецификации --}}
                         @if(!empty($row[3]))
-                            <td rowspan="{{ $row[3]['rowspan'] ?? 1 }}" @class(array_merge(["p-2 py-1 fs-2 text-start"], $row[3]['class'] ?? []))>
+                            <td rowspan="{{ $row[3]['rowspan'] ?? 1 }}" @class(array_merge(["p-3 text-start"], $row[3]['class'] ?? []))>
                                 {!! $row[3]['cell'] !!}
                             </td>
                         @endif
 
                         {{-- Ключ --}}
                         @if(!empty($row[4]))
-                            <td rowspan="{{ $row[4]['rowspan'] ?? 1 }}" @class(array_merge(["p-2 py-1 fs-2 text-start text-nowrap"], $row[4]['class'] ?? []))>
+                            <td rowspan="{{ $row[4]['rowspan'] ?? 1 }}" @class(array_merge(["p-3 text-start text-nowrap"], $row[4]['class'] ?? []))>
                                 {{ $row[4]['cell'] }}
                             </td>
                         @endif
 
                         {{-- Дата, с --}}
                         @if(!empty($row[5]))
-                            <td rowspan="{{ $row[5]['rowspan'] ?? 1 }}" @class(array_merge(["p-2 py-1 fs-2 text-center text-nowrap"], $row[5]['class'] ?? []))>
+                            <td rowspan="{{ $row[5]['rowspan'] ?? 1 }}" @class(array_merge(["p-3 text-center text-nowrap"], $row[5]['class'] ?? []))>
                                 {{ $row[5]['cell'] }}
                             </td>
                         @endif
 
                         {{-- Дата, по --}}
                         @if(!empty($row[6]))
-                            <td rowspan="{{ $row[6]['rowspan'] ?? 1 }}" @class(array_merge(["p-2 py-1 fs-2 text-center text-nowrap"], $row[6]['class'] ?? []))>
+                            <td rowspan="{{ $row[6]['rowspan'] ?? 1 }}" @class(array_merge(["p-3 text-center text-nowrap"], $row[6]['class'] ?? []))>
                                 {{ $row[6]['cell'] }}
                             </td>
                         @endif
 
                         {{-- Камер --}}
                         @if(!empty($row[7]))
-                            <td rowspan="{{ $row[7]['rowspan'] ?? 1 }}" @class(array_merge(["p-2 py-1 fs-2 text-center text-nowrap"], $row[7]['class'] ?? []))>
+                            <td rowspan="{{ $row[7]['rowspan'] ?? 1 }}" @class(array_merge(["p-3 text-center text-nowrap"], $row[7]['class'] ?? []))>
                                 {{ $row[7]['cell'] }}
                             </td>
                         @endif
@@ -152,7 +152,7 @@
                         @if(!empty($row[8]))
                             <td rowspan="{{ $row[8]['rowspan'] ?? 1 }}" @class(array_merge(["p-0 text-start"], $row[8]['class'] ?? [])) style="width: 120px">
                                 @if(!empty($row[8]['cell']))
-                                    <a href="javascript:void(0);" onclick="javscript:$(this).next('span').removeClass('d-none'); $(this).remove();" class="mx-2 fs-2"">Показать</a>
+                                    <a href="javascript:void(0);" onclick="javascript:$(this).next('span').removeClass('d-none'); $(this).remove();" class="mx-2 fs-6">Показать</a>
                                     <span class="d-none">
                                     {!! $row[8]['cell'] !!}
                                     </span>

@@ -80,6 +80,11 @@ class Proposal extends ModuleModel
         return $this->hasMany(ProposalVariant::class)->orderBy('is_main', 'desc')->orderBy('id');
     }
 
+    public function last_variant()
+    {
+        return $this->variants()->take(1);
+    }
+
 
 
     public function platforms()

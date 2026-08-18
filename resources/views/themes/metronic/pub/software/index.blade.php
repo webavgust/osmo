@@ -53,10 +53,10 @@
             <i class="fa-light fa-xmark" aria-hidden="true"></i> Убрать
         </button>
 
-        <x-ui.a.outline href="{{ route('software.create') }}" btn_type="info" class="ms-1">
+        <x-ui.a.default href="{{ route('software.create') }}" btn_type="info" class="ms-1">
             <x-ui.icon.light icon="fa-plus"/>
             Добавить
-        </x-ui.a.outline>
+        </x-ui.a.default>
 
     </div>
     <div class="container-fluid">
@@ -260,7 +260,7 @@
             if(!value) {
                 return `-`;
             } else {
-                return `<a class="btn btn-light-primary ms-1 py-1 px-2 fs-1" onclick="javascript:box({href: '{{ route('software.box_extended') }}/` + row.id + `'})" btn_type="info" type="button">
+                return `<a class="btn btn-light-primary ms-1 py-1 px-2 fs-7" onclick="javascript:box({href: '{{ route('software.box_extended') }}/` + row.id + `'})" btn_type="info" type="button">
                             <i class="fa-regular fa-eye" ></i> Посмотреть
                         </a>`;
             }

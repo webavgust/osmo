@@ -41,16 +41,16 @@
         /* счётчик «+N» вместо списка всех выбранных значений */
         #payments .select2-more {
             position: absolute;
-            right: 22px;
+            right: 64px;
             top: 50%;
             transform: translateY(-50%);
-            font-size: .8rem;
+            font-size: 1.1rem;
             font-weight: 600;
             color: var(--bs-primary);
-            background: #f9f9f9;
-            padding-left: 4px;
+            padding-left: 16px;
         }
 
+        #payments .select2-search__field { margin-top: .25rem }
         #payments .select2-selection__search { display: none; }
         #payments .select2-container--default .select2-selection--multiple .select2-selection__clear {
             margin-top: 0;
@@ -103,7 +103,7 @@
                 <div class="card h-100 border-0 bg-light-danger">
                     <div class="card-body p-5">
                         <div class="d-flex align-items-center justify-content-between mb-2">
-                            <span class="fw-semibold text-gray-700">Просрочено</span>
+                            <span class="fw-semibold text-gray-700 fs-4">Просрочено</span>
                             <i class="fa-light fa-triangle-exclamation fs-2 text-danger"></i>
                         </div>
 
@@ -113,8 +113,8 @@
                             {{ tools()->cost_normalize(round($summary['overdue']['amount'])) }} ₽
                         </a>
 
-                        <div class="fs-7 text-gray-700">
-                            {{ $summary['overdue']['count'] }} платеж(ей) за все годы
+                        <div class="fs-5 text-gray-700">
+                            {{ $summary['overdue']['count'] }} {{ tools()->num_rus($summary['overdue']['count'], ["платежа", "платёж", "платежей"]) }} за все годы
                             @if($summary['overdue']['max_days'])
                                 · до {{ $summary['overdue']['max_days'] }} дн
                             @endif
@@ -124,15 +124,18 @@
                         @if(!empty($summary['overdue']['buckets']))
                             <div class="d-flex flex-wrap gap-2 mt-3">
                                 @foreach($summary['overdue']['buckets'] as $bucket)
+
                                     <a href="{{ $link(['state' => ['overdue'], 'age' => [$bucket['code']], 'month' => null, 'all_years' => 1]) }}"
-                                       class="badge badge-white text-gray-800 text-hover-primary"
-                                       title="{{ $bucket['count'] }} платеж(ей)">
-                                        {{ $bucket['label'] }}:
-                                        <span class="fw-bold ms-1">
-                                            {{ tools()->cost_normalize(round($bucket['amount'])) }}
-                                        </span>
-                                        <span class="text-muted ms-1">/ {{ $bucket['count'] }}</span>
+                                       title="{{ $bucket['count'] }} {{ tools()->num_rus($bucket['count'], ["платежа", "платёж", "платежей"]) }}">
+                                        <x-ui.badge.default type="danger">
+                                            {{ $bucket['label'] }}:
+                                            <span class="fw-bold ms-1">
+                                                {{ tools()->cost_normalize(round($bucket['amount'])) }}
+                                            </span>
+                                            <span class="ms-1">({{ $bucket['count'] }})</span>
+                                        </x-ui.badge.default>
                                     </a>
+
                                 @endforeach
                             </div>
                         @endif
@@ -144,7 +147,7 @@
                 <div class="card h-100 border-0 bg-light-warning">
                     <div class="card-body p-5">
                         <div class="d-flex align-items-center justify-content-between mb-2">
-                            <span class="fw-semibold text-gray-700">Ждём в ближайшие {{ \App\Modules\Pub\PaymentCalendar\Services\PaymentCalendarService::SOON_DAYS }} дней</span>
+                            <span class="fw-semibold text-gray-700 fs-4">Ждём в ближайшие {{ \App\Modules\Pub\PaymentCalendar\Services\PaymentCalendarService::SOON_DAYS }} дней</span>
                             <i class="fa-light fa-hourglass-half fs-2 text-warning"></i>
                         </div>
 
@@ -153,7 +156,7 @@
                             {{ tools()->cost_normalize(round($summary['soon']['amount'])) }} ₽
                         </a>
 
-                        <div class="fs-7 text-gray-700">{{ $summary['soon']['count'] }} платеж(ей)</div>
+                        <div class="fs-7 text-gray-700">{{ $summary['soon']['count'] }} {{ tools()->num_rus($summary['soon']['count'], ["платежа", "платёж", "платежей"]) }}</div>
                     </div>
                 </div>
             </div>
@@ -162,7 +165,7 @@
                 <div class="card h-100 border-0 bg-light-success">
                     <div class="card-body p-5">
                         <div class="d-flex align-items-center justify-content-between mb-2">
-                            <span class="fw-semibold text-gray-700">Поступило в этом месяце</span>
+                            <span class="fw-semibold text-gray-700 fs-4">Поступило в этом месяце</span>
                             <i class="fa-light fa-circle-check fs-2 text-success"></i>
                         </div>
 
@@ -171,7 +174,7 @@
                             {{ tools()->cost_normalize(round($summary['paid_month']['amount'])) }} ₽
                         </a>
 
-                        <div class="fs-7 text-gray-700">{{ $summary['paid_month']['count'] }} платеж(ей)</div>
+                        <div class="fs-7 text-gray-700">{{ $summary['paid_month']['count'] }} {{ tools()->num_rus($summary['paid_month']['count'], ["платежа", "платёж", "платежей"]) }}</div>
                     </div>
                 </div>
             </div>
@@ -180,7 +183,7 @@
                 <div class="card h-100 border-0 bg-light">
                     <div class="card-body p-5">
                         <div class="d-flex align-items-center justify-content-between mb-2">
-                            <span class="fw-semibold text-gray-700">Без даты</span>
+                            <span class="fw-semibold text-gray-700 fs-4">Без даты</span>
                             <i class="fa-light fa-circle-question fs-2 text-gray-600"></i>
                         </div>
 
@@ -191,7 +194,7 @@
                         </a>
 
                         <div class="fs-7 text-gray-700">
-                            {{ $summary['unknown']['count'] }} платеж(ей) — срок не определён
+                            {{ $summary['unknown']['count'] }} {{ tools()->num_rus($summary['unknown']['count'], ["платежа", "платёж", "платежей"]) }} — срок не определён
                         </div>
 
                         @if($summary['canceled']['count'])
@@ -212,7 +215,7 @@
             <div class="alert alert-warning d-flex align-items-center mb-0">
                 <i class="fa-light fa-triangle-exclamation fs-2 me-4"></i>
                 <div class="fs-7">
-                    Для {{ $summary['rate_unknown'] }} платеж(ей) в валюте нет курса на нужную дату —
+                    Для {{ $summary['rate_unknown'] }} {{ tools()->num_rus($summary['rate_unknown'], ["платежа", "платёж", "платежей"]) }} в валюте нет курса на нужную дату —
                     они посчитаны один к одному и помечены в таблице. Обновите курсы валют
                     (<span class="text-muted">CurrencyService::updateRates</span>).
                 </div>
@@ -223,7 +226,7 @@
         <div class="card">
             <div class="card-header min-h-auto py-5 border-bottom">
                 <div class="card-title flex-column align-items-start">
-                    <h4 class="fw-bold mb-1">План и факт по месяцам</h4>
+                    <h3 class="fw-bold mb-1">План и факт по месяцам</h3>
                     <span class="text-muted fs-7">
                         Все суммы в рублях: факт — по курсу на дату поступления, план — по текущему курсу.
                         Любая цифра — ссылка на платежи, из которых она сложилась.
@@ -244,7 +247,7 @@
                             @endforeach
                         @endforeach
 
-                        <select name="year" class="form-select form-select-sm form-select-solid w-125px"
+                        <select name="year" class="form-select form-select-sm form-select-solid w-125px fs-5"
                                 onchange="this.form.submit()">
                             @foreach($years as $item)
                                 <option value="{{ $item }}" @selected($item == $year)>{{ $item }} год</option>
@@ -259,11 +262,11 @@
                     <table class="table table-row-dashed table-row-gray-300 align-middle mb-0">
                         <thead>
                         <tr class="fw-bold text-muted bg-light">
-                            <th class="ps-5" width="180">Месяц</th>
-                            <th class="text-end">План, ₽</th>
-                            <th class="text-end">Факт, ₽</th>
-                            <th class="text-end">Просрочено, ₽</th>
-                            <th class="text-end pe-5" width="160">Разница</th>
+                            <th class="ps-5" width="180">МЕСЯЦ</th>
+                            <th class="text-end">ПЛАН, ₽</th>
+                            <th class="text-end">ФАКТ, ₽</th>
+                            <th class="text-end">ПРОСРОЧЕНО, ₽</th>
+                            <th class="text-end pe-5" width="160">РАЗНИЦА</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -272,6 +275,7 @@
                             <tr @class([
                                 'bg-light-primary' => $month['is_selected'],
                                 'bg-light' => !$month['is_selected'] && $month['is_current'],
+                                'fs-6'
                             ])>
                                 <td class="ps-5">
                                     @if($month['plan_count'] || $month['fact_count'])
@@ -296,7 +300,7 @@
                                            class="fw-semibold text-gray-900 text-hover-primary">
                                             {{ tools()->cost_normalize(round($month['plan'])) }}
                                         </a>
-                                        <span class="text-muted fs-8 ms-1">/ {{ $month['plan_count'] }}</span>
+                                        <span class="text-muted fs-7 ms-1">/ {{ $month['plan_count'] }}</span>
                                     @else
                                         <span class="text-muted">—</span>
                                     @endif
@@ -308,7 +312,7 @@
                                            class="fw-semibold text-success">
                                             {{ tools()->cost_normalize(round($month['fact'])) }}
                                         </a>
-                                        <span class="text-muted fs-8 ms-1">/ {{ $month['fact_count'] }}</span>
+                                        <span class="text-muted fs-7 ms-1">/ {{ $month['fact_count'] }}</span>
                                     @else
                                         <span class="text-muted">—</span>
                                     @endif
@@ -345,25 +349,25 @@
 
                         {{-- Итого за год --}}
                         <tfoot>
-                        <tr class="fw-bold border-top border-gray-300">
+                        <tr class="fw-bold border-top border-gray-300 fs-4">
                             <td class="ps-5">
                                 ИТОГО за {{ $year }}
-                                <div class="fs-8 fw-normal text-muted">
+                                <div class="fs-7 fw-normal text-muted">
                                     оплачено {{ $year_total['progress'] }}% плана
                                 </div>
                             </td>
                             <td class="text-end">
                                 {{ tools()->cost_normalize(round($year_total['plan'])) }}
-                                <span class="text-muted fs-8 fw-normal ms-1">/ {{ $year_total['plan_count'] }}</span>
+                                <span class="text-muted fs-7 fw-normal ms-1">/ {{ $year_total['plan_count'] }}</span>
                             </td>
                             <td class="text-end text-success">
                                 {{ tools()->cost_normalize(round($year_total['fact'])) }}
-                                <span class="text-muted fs-8 fw-normal ms-1">/ {{ $year_total['fact_count'] }}</span>
+                                <span class="text-muted fs-7 fw-normal ms-1">/ {{ $year_total['fact_count'] }}</span>
                             </td>
                             <td class="text-end text-danger">
                                 @if($year_total['overdue'])
                                     {{ tools()->cost_normalize(round($year_total['overdue'])) }}
-                                    <span class="text-muted fs-8 fw-normal ms-1">/ {{ $year_total['overdue_count'] }}</span>
+                                    <span class="text-muted fs-7 fw-normal ms-1">/ {{ $year_total['overdue_count'] }}</span>
                                 @else
                                     <span class="text-muted fw-normal">—</span>
                                 @endif
@@ -389,7 +393,10 @@
 
                     @if(!empty($chips))
                         <a href="{{ route('payment_calendar.index', ['year' => $year, 'spec_status' => ['all']]) }}"
-                           class="btn btn-sm btn-light">Сбросить всё</a>
+                           class="btn btn-sm btn-light-danger">
+                            <x-ui.icon.regular icon="fa-xmark" class="me-2"/>
+                            Сбросить всё
+                        </a>
                     @endif
                 </div>
 
@@ -410,8 +417,10 @@
                         <div class="position-relative">
                             <i class="fa-light fa-magnifying-glass position-absolute top-50 translate-middle-y ms-4 text-gray-500"></i>
                             <input type="text" name="q" value="{{ $params['q'] }}"
-                                   class="form-control form-control-sm form-control-solid ps-11"
-                                   placeholder="КП, компания, партнёр, спецификация, договор" />
+                                   class="form-control form-control-sm form-control-solid ps-11 fs-7 py-3"
+                                   placeholder="КП, компания, партнёр, спецификация, договор"
+                                   style="border-color: #e9ecef!important"
+                            />
                         </div>
                     </div>
 
@@ -448,8 +457,8 @@
                         </select>
                     </div>
 
-                    <div class="col-8 col-lg-1">
-                        <select name="spec_status[]" class="form-select form-select-sm form-select-solid calendar-select2"
+                    <div class="col-12 col-lg-2 d-flex justify-content-between">
+                        <select name="spec_status[]" class="form-select form-select-sm form-select-solid calendar-select2 flex-grow-1"
                                 multiple data-placeholder="Статус спец."
                                 title="По умолчанию — спецификации в работе. Оплаченные платежи видны при любом статусе.">
                             @foreach($spec_statuses as $code => $label)
@@ -458,10 +467,8 @@
                                 </option>
                             @endforeach
                         </select>
-                    </div>
 
-                    <div class="col-4 col-lg-1 d-grid">
-                        <button type="submit" class="btn btn-sm btn-primary">
+                        <button type="submit" class="btn btn-sm btn-primary text-nowrap ms-2">
                             <i class="fa-light fa-filter fs-6 me-1"></i>Найти
                         </button>
                     </div>
@@ -472,7 +479,7 @@
             @if(!empty($chips))
                 <div class="card-body py-3 border-bottom">
                     <div class="d-flex flex-wrap align-items-center gap-2">
-                        <span class="text-muted fs-8 text-uppercase me-1">Отбор</span>
+                        <span class="text-muted fs-7 text-uppercase me-1">Отбор</span>
                         @foreach($chips as $chip)
                             <a href="{{ $unlink($chip['key'], $chip['value']) }}"
                                class="badge badge-light-primary d-inline-flex align-items-center"
@@ -495,28 +502,27 @@
                         <table class="table table-row-dashed table-row-gray-300 align-middle mb-0">
                             <thead>
                             <tr class="fw-bold text-muted bg-light">
-                                <th class="ps-5" width="130">Состояние</th>
+                                <th class="ps-5" width="130">СОСТОЯНИЕ</th>
                                 <th width="170">КП</th>
-                                <th>Компания</th>
-                                <th>Договор и спецификация</th>
-                                <th width="105">План</th>
-                                <th width="105">Факт</th>
-                                <th class="text-end" width="150">Оплата</th>
-                                <th class="text-end" width="130">Курс</th>
-                                <th class="text-end" width="140">Итого, ₽</th>
-                                <th class="text-end pe-5" width="70">Сводная</th>
+                                <th>КОМПАНИЯ</th>
+                                <th>ДОГОВОР И СПЕЦИФИКАЦИЯ</th>
+                                <th width="105">ОПТАЛА, ПЛАН И ФАКТ</th>
+                                <th class="text-end" width="150">ОПЛАТА</th>
+                                <th class="text-end" width="130">КУРС</th>
+                                <th class="text-end" width="140">ИТОГО, ₽</th>
+                                <th class="text-end pe-5" width="70">СВОДНАЯ</th>
                             </tr>
                             </thead>
                             <tbody>
                             @foreach($rows as $row)
-                                <tr @class(['opacity-75' => $row->state === 'canceled'])>
+                                <tr @class(['fs-7', 'opacity-75' => $row->state === 'canceled'])>
                                     <td class="ps-5">
                                         <span class="badge badge-light-{{ $row->state_decorate['color'] }}">
-                                            <i class="fa-light {{ $row->state_decorate['icon'] }} fs-8 me-2"></i>
-                                            {{ $row->state_decorate['label'] }}
+                                            <i class="fa-light {{ $row->state_decorate['icon'] }} fs-5 me-2"></i>
+                                            <span class="fs-7">{{ $row->state_decorate['label'] }}</span>
                                         </span>
                                         @if($row->state === 'overdue')
-                                            <div class="fs-8 text-danger mt-1">
+                                            <div class="fs-8 text-danger text-center mt-1">
                                                 {{ $row->overdue_days }} дн назад
                                             </div>
                                         @elseif($row->state === 'soon')
@@ -534,12 +540,12 @@
                                                 {{ $row->proposal_number ?: $row->proposal_name }}
                                             </a>
                                             @if($row->proposal_number && $row->proposal_name)
-                                                <div class="fs-8 text-muted text-truncate" style="max-width: 170px;">
+                                                <div class="fs-8 text-muted text-truncate" style="max-width: 170px;" title="{{ $row->proposal_name }}">
                                                     {{ $row->proposal_name }}
                                                 </div>
                                             @endif
                                         @else
-                                            <span class="text-muted fs-8">КП не привязано</span>
+                                            <span class="text-muted fs-7">КП не привязано</span>
                                         @endif
                                     </td>
 
@@ -575,28 +581,29 @@
                                                 {{ $row->spec_name ?: 'спецификация без названия' }}
                                             </a>
                                             @if($row->spec_status_label)
-                                                <span class="badge badge-light fs-9 ms-1">{{ $row->spec_status_label }}</span>
+                                                <span class="badge badge-light fs-8 ms-1">{{ $row->spec_status_label }}</span>
                                             @endif
                                             @if($row->state !== 'canceled' && !$row->is_signed)
-                                                <span class="badge badge-light-warning fs-9 ms-1">не подписана</span>
+                                                <span class="badge badge-light-warning fs-8 ms-1">не подписана</span>
                                             @endif
                                         </div>
                                     </td>
 
-                                    <td class="text-nowrap">
-                                        {{ $row->date_plan?->format('d.m.Y') ?: '—' }}
+                                    <td class="text-nowrap fs-6">
+                                        <div class="d-flex justift-content-start">
+                                            <span>{{ $row->date_plan?->format('d.m.Y') ?: '—' }}</span>
+
+                                            @if($row->date_fact)
+                                                <span class="mx-2">--></span>
+                                                <span class="text-success">{{ $row->date_fact->format('d.m.Y') }}</span>
+                                            @endif
+                                        </div>
+
                                         @if($row->delay)
                                             <div class="fs-8 text-muted">отсрочка {{ $row->delay }} дн</div>
                                         @endif
                                     </td>
 
-                                    <td class="text-nowrap">
-                                        @if($row->date_fact)
-                                            <span class="text-success">{{ $row->date_fact->format('d.m.Y') }}</span>
-                                        @else
-                                            <span class="text-muted">—</span>
-                                        @endif
-                                    </td>
 
                                     {{-- Оплата в валюте спецификации --}}
                                     @php
@@ -611,7 +618,7 @@
                                                title="Фактическая оплата отличается от плановой: по плану {{ tools()->cost_normalize(round((float) $row->amount_plan, 2)) }} {{ $row->currency_slug }}"></i>
                                         @endif
                                         <span class="fw-bold">{{ tools()->cost_normalize(round($row->amount, 2)) }}</span>
-                                        <span class="text-muted fs-8 ms-1">{{ $row->currency_slug }}</span>
+                                        <span class="text-muted fs-7 ms-1">{{ $row->currency_slug }}</span>
 
                                         @if($amount_mismatch)
                                             <div class="fs-8 text-danger">
@@ -630,16 +637,14 @@
                                         @if(!$row->is_currency)
                                             <span class="text-muted">—</span>
                                         @else
-                                            <span class="fw-semibold">{{ number_format($row->rate, 2, ',', ' ') }}</span>
-                                            <div class="fs-8 text-muted">
+                                            <span class="fw-semibold" title="
                                                 @if($row->rate_unknown)
-                                                    <span class="text-warning">курса нет, 1:1</span>
+                                                    курса нет, 1:1
                                                 @else
-                                                    на {{ $row->rate_date->format('d.m.Y') }}
-                                                    <span class="text-gray-500">
-                                                        ({{ $row->date_fact ? 'факт' : 'текущий' }})
-                                                    </span>
+                                                    на {{ $row->rate_date->format('d.m.Y') }} ({{ $row->date_fact ? 'факт' : 'текущий' }})
                                                 @endif
+                                            ">{{ number_format($row->rate, 2, ',', ' ') }}</span>
+                                            <div class="fs-8 text-muted">
                                             </div>
                                         @endif
                                     </td>
@@ -647,7 +652,7 @@
                                     {{-- Итого в рублях --}}
                                     <td class="text-end text-nowrap">
                                         <span class="fw-bold">{{ tools()->cost_normalize(round($row->amount_rub)) }}</span>
-                                        <span class="text-muted fs-8 ms-1">₽</span>
+                                        <span class="text-muted fs-7 ms-1">₽</span>
                                     </td>
 
                                     <td class="text-end pe-5">
@@ -664,11 +669,11 @@
                             </tbody>
 
                             <tfoot>
-                            <tr class="fw-bold border-top border-gray-300">
+                            <tr class="fw-bold border-top border-gray-300 fs-5">
                                 <td class="ps-5" colspan="8">ИТОГО по выборке</td>
                                 <td class="text-end text-nowrap">
                                     {{ tools()->cost_normalize(round($rows->sum(fn($row) => (float) $row->amount_rub))) }}
-                                    <span class="text-muted fs-8 ms-1">₽</span>
+                                    <span class="text-muted fs-7 ms-1">₽</span>
                                 </td>
                                 <td class="pe-5"></td>
                             </tr>

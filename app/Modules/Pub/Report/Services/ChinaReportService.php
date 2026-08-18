@@ -94,7 +94,7 @@ class ChinaReportService
                             'expired' => $key->active && $key->active_to->lessThan(now()),
                             'warning' => $key->active && $key->active_to->greaterThan(now()) && $key->active_to->subMonths(3)->lessThan(now()),
                             'text-wrap',
-                            'fs-1',
+                            'fs-8',
                         ], 'system' => $key->id . '-' . $jj];
                     $grid[$i][9] = ['rowspan' => 1, 'cell' => $json_values[$jj] ?? '',
                         'class' => [
@@ -102,7 +102,7 @@ class ChinaReportService
                             'expired' => $key->active && $key->active_to->lessThan(now()),
                             'warning' => $key->active && $key->active_to->greaterThan(now()) && $key->active_to->subMonths(3)->lessThan(now()),
                             'text-wrap',
-                            'fs-1',
+                            'fs-8',
                         ], 'system' => $key->id . '-' . $jj];
                 } else {
                     $grid[$i][8] = ['rowspan' => 1, 'cell' => '', 'system' => $key->id . '-' . $jj];

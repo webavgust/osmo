@@ -88,9 +88,9 @@ return [
                  * без них на старых страницах будут пустые квадраты.
                  * После полного перевода строки можно удалить.
                  */
-                '/assets/extra-libs/materialdesignicons/css/materialdesignicons.min.css',
-                '/assets/extra-libs/themify-icons/themify-icons.css',
-                '/assets/extra-libs/simple-line-icons/css/simple-line-icons.css',
+//                '/assets/extra-libs/materialdesignicons/css/materialdesignicons.min.css',
+//                '/assets/extra-libs/themify-icons/themify-icons.css',
+//                '/assets/extra-libs/simple-line-icons/css/simple-line-icons.css',
             ],
         ],
 

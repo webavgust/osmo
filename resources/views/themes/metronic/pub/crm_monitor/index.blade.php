@@ -29,25 +29,22 @@
                                 <i class="fa-light {{ $issue['icon'] }} fs-2 text-{{ $issue['color'] }}"></i>
                                 <span class="fs-2hx fw-bold text-gray-900">{{ $counters[$code] }}</span>
                             </div>
-                            <div class="fs-7 fw-semibold text-gray-800">{{ $issue['label'] }}</div>
-                            <div class="fs-8 text-muted mt-auto pt-2">{{ $issue['hint'] }}</div>
+                            <div class="fs-5 fw-bold text-gray-800">{{ $issue['label'] }}</div>
+                            <div class="fs-7 text-muted mt-auto pt-2">{{ $issue['hint'] }}</div>
                         </div>
                     </a>
                 </div>
             @endforeach
         </div>
 
-        @if($money['count'])
-            <div class="alert alert-light-danger d-flex align-items-center mb-0">
+        @if($params['issue'] == 'amount' && $money['count'])
+            <x-ui.notification.regular type="danger" class="fs-6 mb-0">
                 <i class="fa-light fa-scale-unbalanced fs-2 text-danger me-4"></i>
-                <div class="fs-7">
-                    По {{ $money['count'] }} КП суммы в Битриксе и на портале расходятся на
-                    <b>{{ $money['diff'] > 0 ? '+' : '' }}{{ tools()->cost_normalize(round($money['diff'])) }}</b>
-                    (в Битриксе {{ tools()->cost_normalize(round($money['deals_total'])) }},
-                    в КП {{ tools()->cost_normalize(round($money['proposal_total'])) }}).
-                    Суммы сложены как есть, без конвертации валют.
-                </div>
-            </div>
+                По {{ $money['count'] }} КП суммы в Битриксе и на портале расходятся на
+                <b>{{ $money['diff'] > 0 ? '+' : '' }}{{ tools()->cost_normalize(round($money['diff'])) }}</b>
+                (в Битриксе {{ tools()->cost_normalize(round($money['deals_total'])) }},
+                в КП {{ tools()->cost_normalize(round($money['proposal_total'])) }}).
+            </x-ui.notification.regular>
         @endif
 
         {{-- Список --}}
@@ -63,63 +60,68 @@
                 </div>
 
                 <div class="card-toolbar">
-                    <form method="get" class="d-flex flex-wrap align-items-center gap-2">
-                        @if($params['issue'])
-                            <input type="hidden" name="issue" value="{{ $params['issue'] }}" />
-                        @endif
+                    <form method="get" class="d-flex flex-wrap ">
+                        <div class="d-flex justify-content-start gap-3 align-items-center">
+                            @if($params['issue'])
+                                <input type="hidden" name="issue" value="{{ $params['issue'] }}" />
+                            @endif
 
-                        <div class="position-relative">
-                            <i class="fa-light fa-magnifying-glass position-absolute top-50 translate-middle-y ms-4 text-gray-500"></i>
-                            <input type="text" name="q" value="{{ $params['q'] }}"
-                                   class="form-control form-control-sm form-control-solid ps-11 w-225px"
-                                   placeholder="КП, номер, компания" />
+                            <div class="position-relative">
+                                <i class="fa-light fa-magnifying-glass position-absolute top-50 translate-middle-y ms-4 text-gray-500"></i>
+                                <input type="text" name="q" value="{{ $params['q'] }}"
+                                       class="form-control form-control-sm form-control-solid ps-11 w-225px"
+                                       placeholder="КП, номер, компания" />
+                            </div>
+
+                            <select name="status" class="form-select form-select-sm form-select-solid w-160px">
+                                    <option value="">Все статусы</option>
+                                    @foreach($statuses as $code => $status)
+                                        <option value="{{ $code }}" @selected($params['status'] === $code)>{{ $status['label'] }}</option>
+                                    @endforeach
+                            </select>
+
+                            <select name="manager" class="form-select form-select-sm form-select-solid w-175px">
+                                <option value="">Все менеджеры</option>
+                                @foreach($managers as $manager)
+                                    <option value="{{ $manager->id }}" @selected($params['manager'] == $manager->id)>
+                                        {{ $manager->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+
+                            <label class="form-check form-check-custom form-check-solid form-check-sm"
+                                   title="Показать и те КП, где всё сходится">
+                                <input class="form-check-input" type="checkbox" name="all" value="1"
+                                       @checked(!$params['only_issues']) />
+                                <span class="form-check-label fs-8 text-nowrap">все КП</span>
+                            </label>
+
+                            <button type="submit" class="btn btn-sm btn-primary text-nowrap">
+                                <i class="fa-light fa-filter fs-6 me-2"></i> Применить
+                            </button>
+
+                            @if($params['issue'] || $params['status'] || $params['manager'] || $params['q'] || !$params['only_issues'])
+                                <a href="{{ route('crm_monitor.index') }}" class="btn btn-sm btn-light text-nowrap">
+                                    <i class="fa-light fa-xmark fs-6 me-2"></i>
+                                    Сбросить
+                                </a>
+                            @endif
                         </div>
-
-                        <select name="status" class="form-select form-select-sm form-select-solid w-160px">
-                            <option value="">Все статусы</option>
-                            @foreach($statuses as $code => $status)
-                                <option value="{{ $code }}" @selected($params['status'] === $code)>{{ $status['label'] }}</option>
-                            @endforeach
-                        </select>
-
-                        <select name="manager" class="form-select form-select-sm form-select-solid w-175px">
-                            <option value="">Все менеджеры</option>
-                            @foreach($managers as $manager)
-                                <option value="{{ $manager->id }}" @selected($params['manager'] == $manager->id)>
-                                    {{ $manager->name }}
-                                </option>
-                            @endforeach
-                        </select>
-
-                        <label class="form-check form-check-custom form-check-solid form-check-sm"
-                               title="Показать и те КП, где всё сходится">
-                            <input class="form-check-input" type="checkbox" name="all" value="1"
-                                   @checked(!$params['only_issues']) />
-                            <span class="form-check-label fs-8 text-nowrap">все КП</span>
-                        </label>
-
-                        <button type="submit" class="btn btn-sm btn-primary">
-                            <i class="fa-light fa-filter fs-6 me-2"></i>Применить
-                        </button>
-
-                        @if($params['issue'] || $params['status'] || $params['manager'] || $params['q'] || !$params['only_issues'])
-                            <a href="{{ route('crm_monitor.index') }}" class="btn btn-sm btn-light">Сбросить</a>
-                        @endif
                     </form>
                 </div>
             </div>
 
             <div class="card-body p-0">
                 @if($rows->isEmpty())
-                    <div class="text-center text-muted py-10">
+                    <div class="text-center text-muted py-10 fs-4">
                         Расхождений нет — портал и Битрикс сходятся
                     </div>
                 @else
                     <div class="table-responsive">
                         <table class="table table-row-dashed table-row-gray-300 align-middle mb-0">
                             <thead>
-                            <tr class="fw-bold text-muted bg-light">
-                                <th class="ps-5" width="230">КП</th>
+                            <tr class="fw-bold text-muted bg-light fs-7">
+                                <th class="ps-5">КП</th>
                                 <th width="140">Статус</th>
                                 <th>Сделки Битрикс24</th>
                                 <th class="text-end" width="150">В КП</th>
@@ -134,7 +136,7 @@
                                 <tr>
                                     <td class="ps-5">
                                         <a href="{{ route('deal_card.index', $proposal) }}"
-                                           class="fw-semibold text-gray-900 text-hover-primary d-block"
+                                           class="fw-semibold text-gray-900 text-hover-primary d-block fs-5"
                                            title="Сводная информация по сделке">
                                             {{ $proposal->name }}
                                         </a>
@@ -144,15 +146,15 @@
                                             @endif
                                             {{ $proposal->company?->name ?: 'без компании' }}
                                         </div>
-                                        @if($proposal->manager?->name)
-                                            <div class="fs-8 text-muted">{{ $proposal->manager->name }}</div>
+                                        @if($proposal->manager?->full_name)
+                                            <div class="fs-8 text-muted">{{ $proposal->manager->full_name }}</div>
                                         @endif
                                     </td>
 
                                     <td>
                                         @if($row['status'])
-                                            <span class="badge badge-light-{{ $row['status']->data()['color'] }}">
-                                                <i class="fa-light {{ $row['status']->data()['icon'] }} fs-8 me-2"></i>
+                                            <span class="fs-7 badge badge-light-{{ $row['status']->data()['color'] }}">
+                                                <i class="fa-light {{ $row['status']->data()['icon'] }} fs- me-2"></i>
                                                 {{ $row['status']->data()['label'] }}
                                             </span>
                                         @else
@@ -166,9 +168,10 @@
                                         @else
                                             @foreach($row['links'] as $link_row)
                                                 <div class="fs-7 mb-1">
-                                                    <span class="fw-semibold">#{{ $link_row->crm_deal_id }}</span>
                                                     @if($link_row->is_main)
-                                                        <span class="badge badge-light-success fs-9 ms-1">главная</span>
+                                                        <span class="badge badge-light-danger fs-7" title="Главная сделка">#{{ $link_row->crm_deal_id }}</span>
+                                                    @else
+                                                        <span class="fw-semibold ms-2">#{{ $link_row->crm_deal_id }}</span>
                                                     @endif
                                                     <span class="text-muted ms-1">
                                                         {{ \Illuminate\Support\Str::limit($link_row->deal?->title ?: '—', 45) }}
@@ -184,19 +187,19 @@
                                     </td>
 
                                     <td class="text-end text-nowrap">
-                                        <span class="fw-bold">{{ tools()->cost_normalize(round($row['proposal_total'])) }}</span>
-                                        <span class="text-muted fs-8 ms-1">{{ $row['currency'] }}</span>
+                                        <span class="fw-bold fs-5">{{ tools()->cost_normalize(round($row['proposal_total'])) }}</span>
+                                        <span class="text-muted fs-7 ms-1">{{ $row['currency'] }}</span>
                                     </td>
 
                                     <td class="text-end text-nowrap">
                                         @if($row['links']->isEmpty())
                                             <span class="text-muted">—</span>
                                         @else
-                                            <span class="fw-bold">{{ tools()->cost_normalize(round($row['deals_total'])) }}</span>
+                                            <span class="fw-bold fs-5">{{ tools()->cost_normalize(round($row['deals_total'])) }}</span>
                                         @endif
                                     </td>
 
-                                    <td class="text-end text-nowrap">
+                                    <td class="text-end text-nowrap fs-5">
                                         @if($row['links']->isEmpty() || abs($row['diff']) < 1)
                                             <span class="text-muted">—</span>
                                         @else
@@ -210,10 +213,9 @@
                                         <div class="d-flex flex-column gap-1">
                                             @foreach($row['issues'] as $code => $message)
                                                 <div>
-                                                    <span class="badge badge-light-{{ $issues[$code]['color'] }} fs-9">
+                                                    <span class="badge badge-light-{{ $issues[$code]['color'] }} fs-7">
                                                         {{ $issues[$code]['label'] }}
                                                     </span>
-                                                    <div class="fs-8 text-muted">{{ $message }}</div>
                                                 </div>
                                             @endforeach
 

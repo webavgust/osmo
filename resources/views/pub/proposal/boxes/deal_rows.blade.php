@@ -11,7 +11,7 @@
                 : '';
         @endphp
 
-        <div class="d-flex align-items-center justify-content-between border-bottom py-3 deal-row"
+        <div class="d-flex align-items-center justify-content-between border-bottom py-3 deal-row ps-2 pe-3"
              id="deal_row_{{ $deal->id }}"
              data-id="{{ $deal->id }}"
              data-title="{{ $deal->title }}"

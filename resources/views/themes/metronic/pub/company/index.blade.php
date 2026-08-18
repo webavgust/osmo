@@ -40,7 +40,7 @@
 
 @section('content')
     <div id="filter">
-        <button class="btn btn-light-success" data-bs-toggle="modal" data-bs-target="#filter-modal">
+        <button class="btn btn-light-primary" data-bs-toggle="modal" data-bs-target="#filter-modal">
             <i class="fa-light fa-filter"></i>
             Фильтр <span class="count @unless($filter) d-none @endunless">(@if($filter){{ count($filter) }}) @endif</span>
         </button>
@@ -53,10 +53,10 @@
             <i class="fa-light fa-xmark" aria-hidden="true"></i> Убрать
         </button>
 
-        <x-ui.a.outline href="{{ route('company.create') }}" btn_type="info" class="ms-1">
+        <x-ui.a.default href="{{ route('company.create') }}" btn_type="info" class="ms-1">
             <x-ui.icon.light icon="fa-plus"/>
             Добавить
-        </x-ui.a.outline>
+        </x-ui.a.default>
 
     </div>
     <div class="container-fluid">

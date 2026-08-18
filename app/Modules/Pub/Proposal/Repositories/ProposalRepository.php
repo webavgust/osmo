@@ -762,6 +762,13 @@ class ProposalRepository
                     $builder->join('companies', 'proposals.company_id', '=', 'companies.id')
                     ->orderBy('companies.name', $params['order']);
                     break;
+                case "date":
+                    $builder->orderBy('created_at', $params['order']);
+                    break;
+                case "cost":
+                    $builder->whereHas('last_variant', function($builder) use ($params) {
+                        $builder->orderBy('cost_total', $params['order']);
+                    });
                     break;
                 default:
                     $builder->orderBy($params['sort'], $params['order']);

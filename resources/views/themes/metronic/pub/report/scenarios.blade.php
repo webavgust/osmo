@@ -35,12 +35,12 @@
 
     <div class="container-fluid">
         <div class="table-responsive">
-            <table class="bg-white table table-bordered" id="payments">
+            <table class="bg-white table table-bordered fs-6" id="payments">
                 <tr>
-                    <th class="py-1 px-2">Группа</th>
-                    <th class="py-1 px-2">Номер</th>
-                    <th class="py-1 px-2">Название</th>
-                    <th class="py-1 px-2">Нейросервисы</th>
+                    <th>Группа</th>
+                    <th>Номер</th>
+                    <th>Название</th>
+                    <th>Нейросервисы</th>
                 </tr>
                 @foreach($data as $row)
                     <tr @class(['sep_partner' => !empty($row[0]['rowspan']), "sep_company" => empty($row[0]['rowspan']) && !empty($row[1]['rowspan'])])>

@@ -49,16 +49,16 @@
             </button>
         </div>
 
-        <div class="table-responsive">
+        <div class="table-responsive fs-6">
             <table class="bg-white table table-bordered" id="payments">
                 <tr>
-                    <th class="py-1 px-2">Партнёр</th>
-                    <th class="py-1 px-2">Компания</th>
-                    <th class="py-1 px-2">КП</th>
-                    <th class="py-1 px-2">Номер договора</th>
-                    <th class="py-1 px-2">Спецификация</th>
-                    <th class="text-center py-1 px-2">Сценарий</th>
-                    <th class="text-center py-1 px-2">Нейросервис</th>
+                    <th>Партнёр</th>
+                    <th>Компания</th>
+                    <th>КП</th>
+                    <th>Номер договора</th>
+                    <th>Спецификация</th>
+                    <th class="text-center">Сценарий</th>
+                    <th class="text-center">Нейросервис</th>
                 </tr>
                 @foreach($data as $row)
                     <tr @class(['sep_partner' => !empty($row[0]['rowspan']), "sep_company" => empty($row[0]['rowspan']) && !empty($row[1]['rowspan'])])>

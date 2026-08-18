@@ -3,7 +3,7 @@
 @endphp
 
 <div class="card h-100">
-    <div class="border-bottom title-part-padding d-flex justify-content-between align-items-center">
+    <div class="card-header d-flex justify-content-between px-3 align-items-center">
         <h4 class="card-title mb-0">Продление лицензий</h4>
 
         @if($urgent > 0)
@@ -11,32 +11,12 @@
         @endif
     </div>
 
-    <div class="card-body p-0 text-center text-dark fw-bolder py-4" style="font-size: 40px;">
+    <div class="card-body p-0 text-center text-dark fw-bolder" style="font-size: 40px;">
         <x-ui.a.box href="{{ route('dashboard.box.license_renewal') }}"
-                    class="p-0 ms-3 text-dark"
+                    class="p-0 m-0 text-dark"
                     style="margin-top: 4px; font-size: 40px;">
             {{ $data['total'] }}
         </x-ui.a.box>
-    </div>
-
-    <div class="px-3 pb-3 d-flex justify-content-center gap-2 flex-wrap">
-        @if($data['expired'] > 0)
-            <span class="badge badge-light-dark" title="Срок уже истёк">
-                истекли: {{ $data['expired'] }}
-            </span>
-        @endif
-
-        @foreach($data['horizons'] as $days => $horizon)
-            @continue(!$horizon['count'])
-            <span class="badge badge-light-{{ $days <= 30 ? 'danger' : ($days <= 60 ? 'warning' : 'info') }}"
-                  title="Истекает в ближайшие {{ $days }} дней">
-                {{ $days }} дн: {{ $horizon['count'] }}
-            </span>
-        @endforeach
-
-        @if(!$data['total'])
-            <span class="text-muted fs-8">Ничего не истекает в ближайшие 90 дней</span>
-        @endif
     </div>
 
     @if($data['amount'] > 0)

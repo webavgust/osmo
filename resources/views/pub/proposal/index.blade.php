@@ -551,7 +551,6 @@
                 title: "Дата КП",
                 align: "right",
                 width: 30,
-                sortable: true,
                 // formatter: dateFormatter,
             },
             {

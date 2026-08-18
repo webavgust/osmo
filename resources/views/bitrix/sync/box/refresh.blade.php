@@ -19,7 +19,7 @@
                 </span>
                 <div class="fs-6 ms-3 flex-grow-1">
                     Выполните запрос
-                    <textarea class="form-control">{!! $query !!}</textarea>
+                    <textarea class="form-control" rows="6">{!! $query !!}</textarea>
                 </div>
             </div>
 

@@ -108,7 +108,7 @@
                     <div class="">
                         <table class="table table-row-dashed table-row-gray-300 align-middle h-100" id="table_scenarios">
                             <thead class="fw-bold text-muted bg-light">
-                            <tr>
+                            <tr class="fs-6">
                                 <th class="ps-3" width="1">Номер</th>
                                 <th class="px-0" width="1"></th>
                                 <th class="">Сценарий</th>
@@ -120,7 +120,7 @@
                             <tbody>
                             @foreach($groups as $group)
                                 @foreach($group->scenarios as $scenario)
-                                    <tr group="{{ $group->id }}" id="{{ $scenario->id }}" @class(["d-none", "unactive" => !$scenario->active, "bg-odd" => $loop->odd, "bg-light-warning" => $scenario->neuroservices->contains(env('SERVICE_NEED_CORRECTION'))])>
+                                    <tr group="{{ $group->id }}" id="{{ $scenario->id }}" @class(["fs-6", "d-none", "unactive" => !$scenario->active, "bg-odd" => $loop->odd, "bg-light-warning" => $scenario->neuroservices->contains(env('SERVICE_NEED_CORRECTION'))])>
                                         <td @class(["ps-3 p-1 text-nowrap"])>
                                             {{ $scenario->number }}
                                         </td>

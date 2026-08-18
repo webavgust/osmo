@@ -17,7 +17,12 @@
         /* панель инструментов bootstrap-table */
         .fixed-table-toolbar .bs-bars { padding-top: 0; }
         .fixed-table-toolbar .search .form-control { min-width: 240px; }
-        .bootstrap-table .fixed-table-container .table thead th .th-inner { padding: .75rem .75rem; }
+        .bootstrap-table .fixed-table-container .table thead th .th-inner { padding: .75rem 1.5rem .75rem .75rem; }
+        .fixed-table-container thead th .desc { background-position-y: 8px; }
+        .fixed-table-container thead th .asc { background-position-y: 17px; }
+
+        #table_data td { padding: 0; }
+        #table_data .cell { padding: 3px 4px; }
     </style>
 @endsection
 
@@ -60,20 +65,23 @@
         </div>
     @endforeach
 
-    <div class="card card-flush">
-        <div class="card-header border-bottom-0 pt-4 min-h-auto">
-            <ul class="nav nav-tabs nav-line-tabs nav-line-tabs-2x border-0 fs-6 fw-semibold" role="tablist">
-                <li class="nav-item">
-                    <a class="nav-link active" data-bs-toggle="tab" href="#tab_all" role="tab">Все</a>
-                </li>
-                @foreach($managers as $manager)
-                    <li class="nav-item">
-                        <a class="nav-link" data-bs-toggle="tab" href="#tab_{{ $manager->id }}" role="tab">
-                            {{ $manager->full_name }}
-                        </a>
-                    </li>
-                @endforeach
-            </ul>
+    <div class="card">
+        <div class="card-header pt-4 min-h-auto">
+            <div class="card-toolbar m-0">
+                    <ul class="nav nav-tabs nav-line-tabs nav-line-tabs-2x border-0 fs-6 fw-semibold" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link active" data-bs-toggle="tab" href="#tab_all" role="tab">Все</a>
+                        </li>
+                        @foreach($managers as $manager)
+                            <li class="nav-item">
+                                <a class="nav-link" data-bs-toggle="tab" href="#tab_{{ $manager->id }}" role="tab">
+                                    {{ $manager->full_name }}
+                                </a>
+                            </li>
+                        @endforeach
+                    </ul>
+            </div>
+
         </div>
 
         <div class="card-body pt-2">
@@ -137,25 +145,25 @@
                         <div class="row mb-5">
                             <label class="col-sm-3 col-form-label fw-semibold text-sm-end">Партнёр</label>
                             <div class="col-sm-9">
-                                <x-ui.select.single class="select2" name="partner" required :items="$partners" id="id" value-name="label" :value="$filter['partner'] ?? null"></x-ui.select.single>
+                                <x-ui.select.single name="partner" required :items="$partners" id="id" value-name="label" :value="$filter['partner'] ?? null"></x-ui.select.single>
                             </div>
                         </div>
                         <div class="row mb-5">
                             <label class="col-sm-3 col-form-label fw-semibold text-sm-end">Компания</label>
                             <div class="col-sm-9">
-                                <x-ui.select.single class="select2" name="company" required :items="$companies" id="id" value-name="label" :value="$filter['company'] ?? null"></x-ui.select.single>
+                                <x-ui.select.single name="company" required :items="$companies" id="id" value-name="label" :value="$filter['company'] ?? null"></x-ui.select.single>
                             </div>
                         </div>
                         <div class="row mb-5">
                             <label class="col-sm-3 col-form-label fw-semibold text-sm-end">Сценарий</label>
                             <div class="col-sm-9">
-                                <x-ui.select.single class="select2" name="scenario" required :items="$scenarios" id="id" value-name="label" :value="$filter['scenario'] ?? null"></x-ui.select.single>
+                                <x-ui.select.single name="scenario" required :items="$scenarios" id="id" value-name="label" :value="$filter['scenario'] ?? null"></x-ui.select.single>
                             </div>
                         </div>
                         <div class="row mb-5">
                             <label class="col-sm-3 col-form-label fw-semibold text-sm-end">Нейросервис</label>
                             <div class="col-sm-9">
-                                <x-ui.select.single class="select2" name="neuroservice" required :items="$neuroservices" id="id" value-name="label" :value="$filter['neuroservice'] ?? null"></x-ui.select.single>
+                                <x-ui.select.single name="neuroservice" required :items="$neuroservices" id="id" value-name="label" :value="$filter['neuroservice'] ?? null"></x-ui.select.single>
                             </div>
                         </div>
 
@@ -264,10 +272,10 @@
                $(this).bootstrapTable('resetView', {height: false});
             });
 
-            $(".select2").select2({
-                dropdownParent: $("#filter-modal .modal-body"),
-                width: '100%'
-            });
+            let select_params = { width: '100%' };
+
+            $("select[select2]").select2(select_params);
+
 
             $("#filter_clear").on("click", function () {
                 filter_remove();
@@ -481,20 +489,7 @@
                 field: "number",
                 title: "Номер",
                 align: "center",
-                width: 125,
-                sortable: true,
-            },
-            {
-                field: "partner",
-                title: "Партнёр",
-                align: "left",
-                width: 300,
-                sortable: true,
-            },
-            {
-                field: "company",
-                title: "Компания",
-                align: "left",
+                width: 75,
                 sortable: true,
             },
             {
@@ -504,25 +499,16 @@
                 sortable: true,
             },
             {
+                field: "partner",
+                title: "Партнёр и компания",
+                align: "left",
+            },
+            {
                 field: "cost",
                 title: "Стоимость",
                 align: "right",
                 width: 125,
-                sortable: true,
-            },
-            {
-                field: "date",
-                title: "Дата КП",
-                align: "right",
-                width: 30,
-                sortable: true,
-            },
-            {
-                field: "status",
-                title: "Статус",
-                align: "center",
-                width: 150,
-                sortable: true,
+                sortable: false,
             },
             {
                 field: "deal",
@@ -531,9 +517,24 @@
                 width: 130,
             },
             {
+                field: "date",
+                title: "Дата КП",
+                align: "center",
+                width: 85,
+                sortable: true,
+            },
+            {
                 field: "updated_at",
                 title: "Изменено",
-                align: "right",
+                align: "center",
+                width: 85,
+                sortable: true,
+            },
+            {
+                field: "status",
+                title: "Статус",
+                align: "center",
+                width: 120,
                 sortable: true,
             },
             {
@@ -541,12 +542,6 @@
                 title: " ",
                 width: 40,
                 align: "center",
-            },
-            {
-                field: "actions",
-                title: " ",
-                width: 20,
-                align: "right",
             },
         ];
 

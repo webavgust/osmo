@@ -1,3 +1,5 @@
-<a href="{{ route('company.detail', $row->company) }}">
-    {{ $row->company->name }}
-</span>
+<div class="cell">
+    <a href="{{ route('company.detail', $row->company) }}" class="text-dark">
+        {{ $row->company->name }}
+    </a>
+</div>

@@ -14,7 +14,7 @@
     $as_btn = ($as ?? '') === 'btn';
 
     // привязки нет — жёлтая плашка: серая на сером фоне не читалась
-    $color = $links->isNotEmpty() ? 'success' : 'warning';
+    $color = $links->isNotEmpty() ? 'success' : 'dark';
     $class = $as_btn ? 'btn btn-sm btn-light-' . $color : 'badge badge-light-' . $color;
 @endphp
 

@@ -37,13 +37,13 @@
         {{-- Периоды --}}
         <div class="row g-4">
             <div class="col-12 col-xxl-6">
-                <div class="card card-flush h-100">
-                    <div class="card-header min-h-auto pt-5 pb-2">
-                        <h3 class="card-title align-items-start flex-column">
+                <div class="card">
+                    <div class="card-header min-h-auto align-items-end">
+                        <h3 class="card-title align-items-start flex-column mb-3 mt-5">
                             <span class="card-label fw-bold text-gray-900">Кварталы</span>
                         </h3>
-                        <div class="card-toolbar">
-                            <ul class="nav nav-tabs nav-line-tabs nav-stretch border-0 fs-7 fw-semibold" role="tablist">
+                        <div class="card-toolbar m-0">
+                            <ul class="nav nav-tabs nav-line-tabs nav-stretch border-0 fs-6 fw-semibold" role="tablist">
                                 <li class="nav-item">
                                     <a class="nav-link active" data-bs-toggle="tab" href="#quarter_country_status" role="tab">
                                         Страна → Статус
@@ -57,7 +57,7 @@
                             </ul>
                         </div>
                     </div>
-                    <div class="card-body pt-2">
+                    <div class="card-body p-0">
                         <div class="tab-content">
                             <div class="tab-pane active" id="quarter_country_status" role="tabpanel">
                                 <x-bitrix.dashboard.tbl_country_status__quarter/>
@@ -71,13 +71,13 @@
             </div>
 
             <div class="col-12 col-xxl-6">
-                <div class="card card-flush h-100">
-                    <div class="card-header min-h-auto pt-5 pb-2">
-                        <h3 class="card-title align-items-start flex-column">
+                <div class="card">
+                    <div class="card-header min-h-auto align-items-end">
+                        <h3 class="card-title align-items-start flex-column mb-3 mt-5">
                             <span class="card-label fw-bold text-gray-900">6 месяцев</span>
                         </h3>
-                        <div class="card-toolbar">
-                            <ul class="nav nav-tabs nav-line-tabs nav-stretch border-0 fs-7 fw-semibold" role="tablist">
+                        <div class="card-toolbar m-0">
+                            <ul class="nav nav-tabs nav-line-tabs nav-stretch border-0 fs-6 fw-semibold" role="tablist">
                                 <li class="nav-item">
                                     <a class="nav-link active" data-bs-toggle="tab" href="#month_country_status" role="tab">
                                         Страна → Статус
@@ -91,7 +91,7 @@
                             </ul>
                         </div>
                     </div>
-                    <div class="card-body pt-2">
+                    <div class="card-body p-0">
                         <div class="tab-content">
                             <div class="tab-pane active" id="month_country_status" role="tabpanel">
                                 <x-bitrix.dashboard.tbl_country_status__month/>
@@ -119,7 +119,7 @@
         @endif
 
         <x-ui.a.box href="{{ route('dashboard.box.currency') }}" btn_type="light-success" class="fw-bold">
-            <i class="fa-light fa-money-bill-transfer me-2"></i>
+            <i class="fa-solid fa-ruble-sign me-2"></i>
             {{ $currency->slug }} ({{ $currency->symbol }})
         </x-ui.a.box>
 

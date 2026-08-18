@@ -5,7 +5,7 @@
     <form method="post" id="calendar_add">
         <div class="card">
             <div class="card-body p-0">
-                <table class="table customize-table v-middle" id="table_scenarios">
+                <table class="table table-row-dashed table-row-gray-300 align-middle" id="table_scenarios">
                     <tbody>
                         @foreach($neuroservice->scenarios as $scenario)
                             <tr id="{{ $scenario->id }}">

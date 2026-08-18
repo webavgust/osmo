@@ -13,8 +13,8 @@
                 Отфильтрованные
             </a>
             <a type="button" @class(["
-                        btn btn-light-info
-                        text-info
+                        btn btn-light-primary
+                        text-primary
                         fw-semibold
                         align-content-center
                       ", "active" => !empty($mode) && $mode !== 'filtered'])
@@ -26,10 +26,10 @@
 
         <div class="reports ms-3 d-flex align-items-center pt-1">
             <a href="{{ route('report-download.specs', ['mode' => 'pdf']) }}" class="ms-2">
-                <x-ui.icon.regular icon="fa-file-pdf" class="ms-2 text-danger fs-7"></x-ui.icon.regular>
+                <x-ui.icon.regular icon="fa-file-pdf" class="ms-2 text-danger fs-1"></x-ui.icon.regular>
             </a>
             <a href="{{ route('report-download.specs', ['mode' => 'excel']) }}" class="ms-2">
-                <x-ui.icon.regular icon="fa-file-excel" class="ms-2 text-success fs-7"></x-ui.icon.regular>
+                <x-ui.icon.regular icon="fa-file-excel" class="ms-2 text-success fs-1"></x-ui.icon.regular>
             </a>
         </div>
     </div>
@@ -65,29 +65,29 @@
         $future = $past = $plan = [1 => 0, 2 => 0];
     @endphp
     <div class="container-fluid">
-        <div class="table-responsive">
+        <div class="table-responsive fs-6">
             <form id="active">
                 <table class="bg-white table table-bordered" id="payments">
                  <tr class="fs-6">
-                     <th class="py-1 px-2">Партнёр</th>
-                     <th class="py-1 px-2">Клиент</th>
-                     <th class="py-1 px-2">Номер договора</th>
-                     <th class="py-1 px-2">Спецификация</th>
-                     <th class="py-1 px-2">Конфигурация</th>
-                     <th class="py-1 px-2">Состав</th>
+                     <th>Партнёр</th>
+                     <th>Клиент</th>
+                     <th>Номер договора</th>
+                     <th>Спецификация</th>
+                     <th>Конфигурация</th>
+                     <th>Состав</th>
                  </tr>
              @foreach($data as $row)
                  <tr @class(['sep_partner' => !empty($row[0]['rowspan']), "sep_client" => empty($row[0]['rowspan']) && !empty($row[1]['rowspan'])])>
                      {{-- ПАРТНЁР --}}
                      @if(!empty($row[0]))
-                         <td rowspan="{{ $row[0]['rowspan'] ?? 1 }}" class="p-2 text-start">
+                         <td rowspan="{{ $row[0]['rowspan'] ?? 1 }}" class="p-3 text-start">
                              <a href="{{ route('partner.detail', $row[0]['system']) }}">{{ $row[0]['cell'] }}</a>
                          </td>
                      @endif
 
                     {{-- КЛИЕНТ --}}
                      @if(!empty($row[1]))
-                         <td rowspan="{{ $row[1]['rowspan'] ?? 1 }}" class="p-2 text-start">
+                         <td rowspan="{{ $row[1]['rowspan'] ?? 1 }}" class="p-3 text-start">
                              <a href="{{ route('company.detail', $row[1]['system']) }}">{{ $row[1]['cell'] }}</a>
                          </td>
                      @endif
@@ -96,7 +96,7 @@
 
                      {{-- Номер договора --}}
                      @if(!empty($row[2]))
-                         <td rowspan="{{ $row[2]['rowspan'] ?? 1 }}" class="p-2 text-start text-nowrap">
+                         <td rowspan="{{ $row[2]['rowspan'] ?? 1 }}" class="p-3 text-start text-nowrap">
                              <div>{{ $row[2]['cell'] }}</div>
 
                              @if($row[2]['org']->id == 2)
@@ -111,7 +111,7 @@
 
                      {{--  спецификация --}}
                      @if(!empty($row[3]))
-                         <td rowspan="{{ $row[3]['rowspan'] ?? 1 }}" class="p-2 text-start text-nowrap">
+                         <td rowspan="{{ $row[3]['rowspan'] ?? 1 }}" class="p-3 text-start text-nowrap">
                              @if(!empty($mode) && $mode !== 'filtered')
                                  <div class="form-check">
                                      <input name="active[{{ $row[3]['instance']->id }}]"  class="form-check-input" type="checkbox" value="1" id="flexCheckDefault"
@@ -131,14 +131,16 @@
                      @if(!empty($row[4]))
                          <td rowspan="{{ $row[4]['rowspan'] ?? 1 }}" class="p-1 text-center text-nowrap">
                              <div>
-                                 <code class="fs-4">{{ $row[4]['cell'] }}</code>
+                                 @if(!empty($row[4]['cell']))
+                                    <code class="fs-4">{{ $row[4]['cell'] }}</code>
+                                 @endif
                              </div>
                          </td>
                      @endif
 
 {{--                      сценарий --}}
                      @if(!empty($row[5]))
-                         <td rowspan="{{ $row[5]['rowspan'] ?? 1 }}" @class(["p-2 text-start text-nowrap", "text-info" => !empty($row[5]['handle'])])>
+                         <td rowspan="{{ $row[5]['rowspan'] ?? 1 }}" @class(["p-3 text-start text-nowrap", "text-info" => !empty($row[5]['handle'])])>
                              <div>{{ $row[5]['cell'] }}</div>
                          </td>
                      @endif

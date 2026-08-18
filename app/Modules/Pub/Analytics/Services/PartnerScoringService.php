@@ -283,7 +283,7 @@ class PartnerScoringService
             $score >= 65 => ['letter' => 'B', 'color' => 'primary', 'label' => 'Надёжный'],
             $score >= 50 => ['letter' => 'C', 'color' => 'info', 'label' => 'Рабочий'],
             $score >= 35 => ['letter' => 'D', 'color' => 'warning', 'label' => 'Слабый'],
-            default => ['letter' => 'E', 'color' => 'danger', 'label' => 'Требует внимания'],
+            default => ['letter' => 'E', 'color' => 'danger', 'label' => 'Ужасно'],
         };
     }
 

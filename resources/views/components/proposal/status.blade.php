@@ -24,15 +24,15 @@
 <span class="d-inline-flex align-items-center gap-2">
     @if($editable)
         <a href="javascript:box({href: '{{ route('proposal.box_status', [$proposal, $proposal->iteration]) }}'})"
-           class="{{ $class }} d-inline-flex align-items-center text-decoration-none text-nowrap"
+           class="{{ $class }} d-inline-flex align-items-center text-decoration-none text-nowrap fs-7"
            title="Сменить статус">
-            <i class="fa-light {{ $status['icon'] }} fs-7 me-2"></i>
+            <i class="fa-light {{ $status['icon'] }} fs-6 me-2"></i>
             {{ $status['label'] }}
             <i class="fa-light fa-pen fs-8 ms-2 opacity-50"></i>
         </a>
     @else
-        <span class="{{ $class }} d-inline-flex align-items-center text-nowrap">
-            <i class="fa-light {{ $status['icon'] }} fs-7 me-2"></i>
+        <span class="{{ $class }} d-inline-flex align-items-center text-nowrap fs-7">
+            <i class="fa-light {{ $status['icon'] }} fs-6 me-2"></i>
             {{ $status['label'] }}
         </span>
     @endif

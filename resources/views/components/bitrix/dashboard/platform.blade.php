@@ -1,5 +1,5 @@
 <div class="card">
-    <div class="border-bottom title-part-padding d-flex justify-content-between align-items-center">
+    <div class="card-header d-flex justify-content-between px-3 align-items-center">
         <h4 class="card-title mb-0">Стоимость платф. дораб.</h4>
     </div>
     <div class="card-body p-0 text-center text-dark fw-bolder py-4" style="font-size: 40px;">

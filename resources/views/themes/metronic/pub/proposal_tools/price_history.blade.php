@@ -26,7 +26,7 @@
                         @if($proposal->number)
                             <span class="badge badge-light">№ {{ $proposal->number }}</span>
                         @endif
-                        <span class="badge badge-light">редакций: {{ $rows->count() }}</span>
+                        <span class="badge badge-light fs-8">РЕДАКЦИЙ: {{ $rows->count() }}</span>
 
                         @if($mode['convert'])
                             <span class="badge badge-light-warning"
@@ -34,7 +34,7 @@
                                 {{ implode(' / ', $mode['currencies']) }} → ₽ по курсу на сегодня
                             </span>
                         @else
-                            <span class="badge badge-light-primary">все суммы в {{ $mode['currency'] }}</span>
+                            <span class="badge badge-light-primary fs-8">ВСЕ СУММЫ В {{ $mode['currency'] }}</span>
                         @endif
                     </div>
                 </div>
@@ -52,12 +52,12 @@
             <div class="card-body py-5">
                 <div class="row g-5">
                     <div class="col-6 col-lg-3">
-                        <div class="text-muted fs-8 text-uppercase mb-1">Первая редакция</div>
-                        <div class="fs-3 fw-bold">
-                            {{ tools()->cost_normalize(round($first['value'])) }}
+                        <div class="text-muted fs-7 fw-bold text-uppercase mb-1">Первая редакция</div>
+                        <div class="fs-3">
+                            <span class="fw-bold">{{ tools()->cost_normalize(round($first['value'])) }}</span>
                             <span class="fs-6 text-muted">{{ $mode['currency'] }}</span>
                         </div>
-                        <div class="fs-8 text-muted">
+                        <div class="fs-7 text-muted">
                             #{{ $first['iteration'] }} · {{ $first['sended_at']?->format('d.m.Y') ?: '—' }}
                             @if($first['show_source'])
                                 · {{ $source($first) }}
@@ -65,12 +65,12 @@
                         </div>
                     </div>
                     <div class="col-6 col-lg-3">
-                        <div class="text-muted fs-8 text-uppercase mb-1">Последняя редакция</div>
-                        <div class="fs-3 fw-bold">
-                            {{ tools()->cost_normalize(round($last['value'])) }}
+                        <div class="text-muted fs-7 fw-bold text-uppercase mb-1">Последняя редакция</div>
+                        <div class="fs-3">
+                            <span class="fw-bold">{{ tools()->cost_normalize(round($last['value'])) }}</span>
                             <span class="fs-6 text-muted">{{ $mode['currency'] }}</span>
                         </div>
-                        <div class="fs-8 text-muted">
+                        <div class="fs-7 text-muted">
                             #{{ $last['iteration'] }} · {{ $last['sended_at']?->format('d.m.Y') ?: '—' }}
                             @if($last['show_source'])
                                 · {{ $source($last) }}
@@ -78,19 +78,18 @@
                         </div>
                     </div>
                     <div class="col-6 col-lg-3">
-                        <div class="text-muted fs-8 text-uppercase mb-1">Изменение</div>
-                        <div class="fs-3 fw-bold text-{{ $total_diff > 0 ? 'success' : ($total_diff < 0 ? 'danger' : 'muted') }}">
-                            {{ $total_diff > 0 ? '+' : '' }}{{ tools()->cost_normalize(round($total_diff)) }}
+                        <div class="text-muted fs-7 fw-bold text-uppercase mb-1">Изменение</div>
+                        <div class="fs-3 text-{{ $total_diff > 0 ? 'success' : ($total_diff < 0 ? 'danger' : 'muted') }}">
+                            <span class="fw-bold">{{ $total_diff > 0 ? '+' : '' }}{{ tools()->cost_normalize(round($total_diff)) }}</span>
                             <span class="fs-6 text-muted">{{ $mode['currency'] }}</span>
                         </div>
                         @if($total_diff_p !== null)
-                            <div class="fs-8 text-muted">{{ $total_diff_p > 0 ? '+' : '' }}{{ $total_diff_p }}%</div>
+                            <div class="fs-7 fw-bold text-{{ $total_diff > 0 ? 'success' : ($total_diff < 0 ? 'danger' : 'muted') }}">{{ $total_diff_p > 0 ? '+' : '' }}{{ $total_diff_p }}%</div>
                         @endif
                     </div>
                     <div class="col-6 col-lg-3">
-                        <div class="text-muted fs-8 text-uppercase mb-1">Валюта расчёта</div>
+                        <div class="text-muted fs-7 fw-bold text-uppercase mb-1">Валюта расчёта</div>
                         <div class="fs-3 fw-bold">{{ $last['currency'] }}</div>
-                        <div class="fs-8 text-muted">{{ $last['period'] }}</div>
                     </div>
                 </div>
 
@@ -128,9 +127,9 @@
                 <div class="table-responsive">
                     <table class="table table-row-dashed table-row-gray-300 align-middle mb-0">
                         <thead>
-                        <tr class="fw-bold text-muted bg-light">
+                        <tr class="fw-bold text-muted text-uppercase fs-7 bg-light">
                             <th class="ps-5" width="90">Редакция</th>
-                            <th width="120">Отправлено</th>
+                            <th width="120" class=" text-center">Отправлено</th>
                             <th width="130">Период</th>
                             @foreach($blocks as $block)
                                 <th class="text-end">{{ $block['label'] }}</th>
@@ -143,13 +142,13 @@
                         </thead>
                         <tbody>
                         @foreach($rows as $row)
-                            <tr @class(['bg-light-primary' => $row['iteration'] === $last['iteration']])>
-                                <td class="ps-5">
+                            <tr @class(['fs-6', 'bg-light-primary' => $row['iteration'] === $last['iteration']])>
+                                <td class="ps-5 text-center">
                                     <a href="{{ route('proposal.detail', [$row['proposal'], $row['iteration']]) }}"
                                        class="fw-bold">#{{ $row['iteration'] }}</a>
                                 </td>
-                                <td class="text-nowrap">{{ $row['sended_at']?->format('d.m.Y') ?: '—' }}</td>
-                                <td class="fs-7">{{ $row['period'] }}</td>
+                                <td class="text-nowrap text-center">{{ $row['sended_at']?->format('d.m.Y') ?: '—' }}</td>
+                                <td>{{ $row['period'] }}</td>
 
                                 @foreach($blocks as $code => $block)
                                     <td class="text-end">
@@ -157,7 +156,7 @@
                                             {{ tools()->cost_normalize(round($row['blocks_value'][$code])) }}
                                             {{-- сумма до пересчёта: видно, из чего получился рублёвый итог --}}
                                             @if($row['show_source'])
-                                                <div class="fs-8 text-muted">
+                                                <div class="fs-7 text-muted">
                                                     {{ tools()->cost_normalize(round($row['blocks'][$code])) }} {{ $row['currency'] }}
                                                 </div>
                                             @endif
@@ -171,7 +170,7 @@
                                     @if($row['nds_value'])
                                         {{ tools()->cost_normalize(round($row['nds_value'])) }}
                                         @if($row['show_source'])
-                                            <div class="fs-8 text-muted">
+                                            <div class="fs-7 text-muted">
                                                 {{ tools()->cost_normalize(round($row['nds'])) }} {{ $row['currency'] }}
                                             </div>
                                         @endif
@@ -183,7 +182,7 @@
                                 <td class="text-end">
                                     <span class="fw-bold">{{ tools()->cost_normalize(round($row['value'])) }}</span>
                                     @if($row['show_source'])
-                                        <div class="fs-8 text-muted">
+                                        <div class="fs-7 text-muted">
                                             {{ tools()->cost_normalize(round($row['total'])) }} {{ $row['currency'] }}
                                         </div>
                                     @endif
@@ -192,7 +191,7 @@
                                 <td>
                                     <span class="fs-7">{{ $row['currency'] }}</span>
                                     @if($row['show_source'])
-                                        <div class="fs-8 text-muted text-nowrap">
+                                        <div class="fs-7 text-muted text-nowrap">
                                             курс {{ number_format($row['rate'], 2, ',', ' ') }}
                                             @if($row['rate_unknown'])
                                                 <span class="text-warning">курса нет</span>
@@ -205,9 +204,9 @@
                                     @if($row['diff'] === null)
                                         <span class="text-muted">—</span>
                                     @elseif(abs($row['diff']) < 1)
-                                        <span class="badge badge-light">без изменений</span>
+                                        <span class="badge badge-light fs-7">без изменений</span>
                                     @else
-                                        <span class="badge badge-light-{{ $row['diff'] > 0 ? 'success' : 'danger' }}">
+                                        <span class="badge badge-light-{{ $row['diff'] > 0 ? 'success' : 'danger' }} fs-7">
                                             {{ $row['diff'] > 0 ? '+' : '' }}{{ tools()->cost_normalize(round($row['diff'])) }}
                                             @if($row['diff_p'] !== null)
                                                 <span class="ms-1">({{ $row['diff_p'] > 0 ? '+' : '' }}{{ $row['diff_p'] }}%)</span>
@@ -278,7 +277,7 @@
                     <div class="table-responsive">
                         <table class="table table-row-dashed table-row-gray-300 align-middle mb-0">
                             <thead>
-                            <tr class="fw-bold text-muted bg-light">
+                            <tr class="fw-bold text-muted bg-light text-uppercase">
                                 <th class="ps-5" width="130">Блок</th>
                                 <th>Позиция</th>
                                 <th class="text-end" width="190">
@@ -311,8 +310,8 @@
                                         default => ['label' => 'без изменений', 'color' => 'light'],
                                     };
                                 @endphp
-                                <tr @class(['opacity-75' => $item['state'] === 'same'])>
-                                    <td class="ps-5 fs-7 text-muted">{{ $blocks[$item['block']]['label'] ?? $item['block'] }}</td>
+                                <tr @class(['fs-6', 'opacity-75' => $item['state'] === 'same'])>
+                                    <td class="ps-5 text-muted">{{ $blocks[$item['block']]['label'] ?? $item['block'] }}</td>
 
                                     <td>
                                         <div class="fw-semibold" style="word-break: break-word;">{{ $item['label'] }}</div>
@@ -320,10 +319,10 @@
 
                                     <td class="text-end">
                                         @if($item['from'])
-                                            <div class="fw-semibold">
+                                            <div class="fw-bold">
                                                 {{ tools()->cost_normalize(round($item['from']['value'])) }}
                                             </div>
-                                            <div class="fs-8 text-muted">
+                                            <div class="fs-7 text-muted">
                                                 {{ (int) $item['from']['count'] }} ×
                                                 {{ tools()->cost_normalize(round($item['from']['cost'])) }}
                                                 {{ $from_row['currency'] }}
@@ -338,10 +337,10 @@
 
                                     <td class="text-end">
                                         @if($item['to'])
-                                            <div class="fw-semibold">
+                                            <div class="fw-bold">
                                                 {{ tools()->cost_normalize(round($item['to']['value'])) }}
                                             </div>
-                                            <div class="fs-8 text-muted">
+                                            <div class="fs-7 text-muted">
                                                 {{ (int) $item['to']['count'] }} ×
                                                 {{ tools()->cost_normalize(round($item['to']['cost'])) }}
                                                 {{ $to_row['currency'] }}
@@ -358,11 +357,15 @@
                                         @if(abs($item['diff']) < 1)
                                             <span class="text-muted">—</span>
                                         @else
-                                            <span class="fw-semibold text-{{ $item['diff'] > 0 ? 'success' : 'danger' }}">
-                                                {{ $item['diff'] > 0 ? '+' : '' }}{{ tools()->cost_normalize(round($item['diff'])) }}
+                                            <span class="fw-bold text-{{ $item['diff'] > 0 ? 'success' : 'danger' }}">
+                                                @if($item['diff'] > 0)
+                                                    + {{ tools()->cost_normalize(round($item['diff'])) }}
+                                                @else
+                                                    &ndash; {{ tools()->cost_normalize(round(abs($item['diff']))) }}
+                                                @endif
                                             </span>
                                             @if($item['diff_p'] !== null)
-                                                <div class="fs-8 text-muted">
+                                                <div class="fs-7 text-muted">
                                                     {{ $item['diff_p'] > 0 ? '+' : '' }}{{ $item['diff_p'] }}%
                                                 </div>
                                             @endif
@@ -370,7 +373,7 @@
                                     </td>
 
                                     <td class="pe-5">
-                                        <span class="badge badge-light-{{ $state['color'] }}">{{ $state['label'] }}</span>
+                                        <span class="badge badge-light-{{ $state['color'] }} fs-7">{{ $state['label'] }}</span>
                                     </td>
                                 </tr>
                             @endforeach
@@ -379,24 +382,24 @@
                             {{-- Итого по сравнению --}}
                             <tfoot>
                             <tr class="fw-bold border-top border-gray-300">
-                                <td class="ps-5" colspan="2">
+                                <td class="ps-5 fs-5" colspan="2">
                                     ИТОГО по позициям
-                                    <div class="fs-8 fw-normal text-muted">
+                                    <div class="fs-7 fw-normal text-muted">
                                         новых {{ $diff_total['added'] }} ·
                                         убрано {{ $diff_total['removed'] }} ·
                                         изменено {{ $diff_total['changed'] }}
                                     </div>
                                 </td>
                                 <td class="text-end text-nowrap">
-                                    {{ tools()->cost_normalize(round($diff_total['from'])) }}
-                                    <span class="text-muted fs-8 fw-normal ms-1">{{ $diff_currency }}</span>
+                                    <span class="fs-4">{{ tools()->cost_normalize(round($diff_total['from'])) }}</span>
+                                    <span class="text-muted fs-6 fw-normal ms-1">{{ $diff_currency }}</span>
                                 </td>
                                 <td class="text-end text-nowrap">
-                                    {{ tools()->cost_normalize(round($diff_total['to'])) }}
-                                    <span class="text-muted fs-8 fw-normal ms-1">{{ $diff_currency }}</span>
+                                    <span class="fs-4">{{ tools()->cost_normalize(round($diff_total['to'])) }}</span>
+                                    <span class="text-muted fs-6 fw-normal ms-1">{{ $diff_currency }}</span>
                                 </td>
                                 <td class="text-end text-nowrap text-{{ $diff_total['diff'] > 0 ? 'success' : ($diff_total['diff'] < 0 ? 'danger' : 'muted') }}">
-                                    {{ $diff_total['diff'] > 0 ? '+' : '' }}{{ tools()->cost_normalize(round($diff_total['diff'])) }}
+                                    <span class="fs-4">{{ $diff_total['diff'] > 0 ? '+' : '' }}{{ tools()->cost_normalize(round($diff_total['diff'])) }}</span>
                                     @if($diff_total['diff_p'] !== null)
                                         <div class="fs-8 fw-normal text-muted">
                                             {{ $diff_total['diff_p'] > 0 ? '+' : '' }}{{ $diff_total['diff_p'] }}%

@@ -53,7 +53,7 @@
 
                 <div class="row">
                     <div class="col-12 mb-4">
-                        <ul class="nav nav-tabs" role="tablist">
+                        <ul class="nav nav-tabs nav-line-tabs nav-line-tabs-2x border-0 fs-6 fw-semibold">
                             <li class="nav-item">
                                 <a class="nav-link d-flex active" data-bs-toggle="tab" href="#quarter_country_status" role="tab" aria-selected="true">
                                     <span>Страна > Статус</span>

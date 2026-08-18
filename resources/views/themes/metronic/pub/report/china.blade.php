@@ -12,7 +12,7 @@
     <div class="container-fluid">
         <div>
             <!-- Nav tabs -->
-            <ul class="nav nav-tabs" role="tablist">
+            <ul class="nav nav-tabs fs-5" role="tablist">
                 <li class="nav-item active">
                     <a class="nav-link  active" data-bs-toggle="tab" href="#report1" role="tab" aria-selected="false">
                         <span>Отчёт 1</span>
@@ -31,14 +31,13 @@
                         <form method="post" action="{{ route('report-download.china1') }}">
                             @csrf
 
-                            <h5>Курсы валют (на {{ $currency_date->format("d.m.Y") }})</h5>
+                            <h4>Курсы валют (на {{ $currency_date->format("d.m.Y") }})</h4>
                             <div class="d-flex justify-content-start mb-2">
-
                                 <div class="me-2">
-                                    <span class="input-group-text">
+                                    <span class="input-group-text p-2">
                                         <div class="form-check">
                                             <input class="form-check-input" type="radio" name="currency" id="curRUB" value="RUB">
-                                            <label class="form-check-label mb-0 fs-2" for="curRUB">
+                                            <label class="form-check-label mb-0 fs-5" for="curRUB">
                                               RUB (₽)
                                             </label>
                                         </div>
@@ -57,20 +56,20 @@
                                         <span class="input-group-text p-1">
                                             <div class="form-check">
                                                 <input class="form-check-input" type="radio" name="currency" id="cur{{ $cur->slug }}" value="{{ $cur->slug }}" @checked($cur->slug == 'CNY')>
-                                                <label class="form-check-label mb-0 fs-2" for="cur{{ $cur->slug }}">
+                                                <label class="form-check-label mb-0 fs-5" for="cur{{ $cur->slug }}">
                                                   {{ $cur->slug }} ({{ $cur->symbol }}) =
                                                 </label>
                                             </div>
 
                                             <input name="rates[{{ $cur->slug }}]" currency="{{ $cur->slug }}" type="number"
-                                                   class="currency form-control flex-grow-0 fs-2 p-1"
+                                                   class="currency form-control flex-grow-0 fs-5 p-1"
                                                    value="{{ $rate }}" style="width: 100px">
                                         </span>
                                     </div>
                                 <? endforeach; ?>
                             </div>
 
-                            <h5 class="mt-5">Таблица</h5>
+                            <h4 class="mt-5">Таблица</h4>
                             <div class="table-responsive">
                                 <table class="bg-white table table-bordered" id="payments">
                                     <tr>
@@ -80,39 +79,39 @@
                                                        checked="">
                                             </div>
                                         </th>
-                                        <th class="py-1 px-2 fs-2 text-center">
+                                        <th class="py-1 px-2 fs-5 text-center">
                                             客户<br/>
                                             CUSTOMER
                                         </th>
-                                        <th class="py-1 px-2 fs-2 text-center">
+                                        <th class="py-1 px-2 fs-5 text-center">
                                             国家<br/>
                                             COUNTRY
                                         </th>
-                                        <th class="py-1 px-2 fs-2 text-center">
+                                        <th class="py-1 px-2 fs-5 text-center">
                                             经销商<br/>
                                             DEALER
                                         </th>
-                                        <th class="py-1 px-2 fs-2 text-center">
+                                        <th class="py-1 px-2 fs-5 text-center">
                                             金额<br/>
                                             AMOUNT
                                         </th>
-                                        <th class="py-1 px-2 fs-2 text-center">
+                                        <th class="py-1 px-2 fs-5 text-center">
                                             日期<br/>
                                             FROM
                                         </th>
-                                        <th class="py-1 px-2 fs-2 text-center">
+                                        <th class="py-1 px-2 fs-5 text-center">
                                             结束日期<br/>
                                             TO
                                         </th>
-                                        <th class="py-1 px-2 fs-2 text-center">
+                                        <th class="py-1 px-2 fs-5 text-center">
                                             延长<br/>
                                             PROLONGATION
                                         </th>
-                                        <th class="py-1 px-2 fs-2 text-center">
+                                        <th class="py-1 px-2 fs-5 text-center">
                                             平台<br/>
                                             PLATFORM
                                         </th>
-                                        <th class="py-0 px-2 fs-2 text-center">
+                                        <th class="py-0 px-2 fs-5 text-center">
                                             神经服务<br/>
                                             NEUROSERVICES
                                         </th>
@@ -131,14 +130,14 @@
                                             @if(!empty($row[0]))
                                                 <td rowspan="{{ $row[1]['rowspan'] ?? 1 }}"
                                                     class="px-0 py-1 fs-3 text-start">
-                                                    <div class="form-check d-flex justify-content-center">
+                                                    <div class="form-check d-flex justify-content-center pt-2">
                                                         <input name="key[]" class="form-check-input cb_once"
                                                                type="checkbox" value="{{ $row[0]['system'] }}"
                                                                checked="">
                                                     </div>
                                                 </td>
 
-                                                <td rowspan="{{ $row[1]['rowspan'] ?? 1 }}" @class(array_merge(["p-1 py-1 fs-2 text-start"], $row[1]['class'] ?? []))>
+                                                <td rowspan="{{ $row[1]['rowspan'] ?? 1 }}" @class(array_merge(["p-2fs-5 text-start"], $row[1]['class'] ?? []))>
                                                     <a href="{{ route('company.detail', $row[0]['id']) }}">{{ $row[0]['cell'] }}</a>
                                                 </td>
                                             @endif
@@ -146,21 +145,21 @@
 
                                             {{-- COUNTRY --}}
                                             @if(!empty($row[1]))
-                                                <td rowspan="{{ $row[0]['rowspan'] ?? 1 }}" @class(array_merge(["p-1 py-1 fs-2 text-start"], $row[0]['class'] ?? []))>
+                                                <td rowspan="{{ $row[0]['rowspan'] ?? 1 }}" @class(array_merge(["p-2fs-5 text-start"], $row[0]['class'] ?? []))>
                                                     {{ $row[1]['cell'] }}
                                                 </td>
                                             @endif
 
                                             {{-- DEALER --}}
                                             @if(!empty($row[2]))
-                                                <td rowspan="{{ $row[2]['rowspan'] ?? 1 }}" @class(array_merge(["p-1 py-1 fs-2 text-start"], $row[2]['class'] ?? []))>
+                                                <td rowspan="{{ $row[2]['rowspan'] ?? 1 }}" @class(array_merge(["p-2fs-5 text-start"], $row[2]['class'] ?? []))>
                                                     <a href="{{ route('partner.detail', $row[2]['id']) }}">{{ $row[2]['cell'] }}</a>
                                                 </td>
                                             @endif
 
                                             {{-- AMOUNT --}}
                                             @if(!empty($row[3]))
-                                                <td rowspan="{{ $row[3]['rowspan'] ?? 1 }}" @class(array_merge(["p-1 py-1 fs-2 text-end text-nowrap"], $row[3]['class'] ?? []))>
+                                                <td rowspan="{{ $row[3]['rowspan'] ?? 1 }}" @class(array_merge(["p-2fs-5 text-end text-nowrap"], $row[3]['class'] ?? []))>
                                                     @if($row[3]['cell'])
                                                         <span data-currency="{{ $row[3]['currency'] }}"
                                                               data-amount="{{ $row[3]['cell'] }}"></span>
@@ -172,14 +171,14 @@
 
                                             {{-- FROM --}}
                                             @if(!empty($row[4]))
-                                                <td rowspan="{{ $row[4]['rowspan'] ?? 1 }}" @class(array_merge(["p-1 py-1 fs-2 text-center text-nowrap"], $row[4]['class'] ?? []))>
+                                                <td rowspan="{{ $row[4]['rowspan'] ?? 1 }}" @class(array_merge(["p-2fs-5 text-center text-nowrap"], $row[4]['class'] ?? []))>
                                                     {{ $row[4]['cell'] }}
                                                 </td>
                                             @endif
 
                                             {{-- TO --}}
                                             @if(!empty($row[5]))
-                                                <td rowspan="{{ $row[5]['rowspan'] ?? 1 }}" @class(array_merge(["p-1 py-1 fs-2 text-center text-nowrap"], $row[5]['class'] ?? []))>
+                                                <td rowspan="{{ $row[5]['rowspan'] ?? 1 }}" @class(array_merge(["p-2fs-5 text-center text-nowrap"], $row[5]['class'] ?? []))>
                                                     {{ $row[5]['cell'] }}
                                                 </td>
                                             @endif
@@ -187,14 +186,14 @@
 
                                             {{-- PROLONGATION --}}
                                             @if(!empty($row[6]))
-                                                <td rowspan="{{ $row[6]['rowspan'] ?? 1 }}" @class(array_merge(["p-1 py-1 fs-2 text-center text-nowrap"], $row[6]['class'] ?? []))>
+                                                <td rowspan="{{ $row[6]['rowspan'] ?? 1 }}" @class(array_merge(["p-2fs-5 text-center text-nowrap"], $row[6]['class'] ?? []))>
                                                     {{ $row[6]['cell'] }}
                                                 </td>
                                             @endif
 
                                             {{-- PLATFORM --}}
                                             @if(!empty($row[7]))
-                                                <td rowspan="{{ $row[7]['rowspan'] ?? 1 }}" @class(array_merge(["p-1 py-1 fs-2 text-center text-nowrap"], $row[7]['class'] ?? []))>
+                                                <td rowspan="{{ $row[7]['rowspan'] ?? 1 }}" @class(array_merge(["p-2fs-5 text-center text-nowrap"], $row[7]['class'] ?? []))>
                                                     {{ $row[7]['cell'] }}
                                                 </td>
                                             @endif
@@ -212,7 +211,7 @@
                                 </table>
                             </div>
 
-                            <div class="text-end">
+                            <div class="text-end mt-2">
                                 <x-ui.button.default btn_type="primary"
                                                      onclick="javascript:$(this).parents('form').submit();">
                                     <x-ui.icon.regular icon="fa-file-excel" class="me-1"/>

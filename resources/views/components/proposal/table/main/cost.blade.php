@@ -1,7 +1,7 @@
 @php
     $currency = \App\Modules\Pub\Currency\Repository\CurrencyRepository::get($row->currency_slug);
 @endphp
-<div>
+<div class="cell">
     @if(empty($row->variants[0]->cost_total))
         -
     @else

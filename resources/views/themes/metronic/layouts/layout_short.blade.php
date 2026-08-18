@@ -39,6 +39,9 @@
     {{-- Левое меню (в бандле demo48 стилей app-sidebar нет — они здесь) --}}
     <link href="/metronic/css/osmo-sidebar.css" rel="stylesheet" />
 
+    {{-- Коррекция стилей --}}
+    <link href="/metronic/css/osmo-fix.css" rel="stylesheet" />
+
     {{-- Слой совместимости: MaterialPro-классы поверх Metronic --}}
     <link href="/metronic/css/osmo-compat.css" rel="stylesheet" />
     <link href="/metronic/css/osmo-compat-pages.css" rel="stylesheet" />

@@ -13,7 +13,7 @@
         </span>
 
         @if($group->neuroservices->count())
-            <span class="todo-badge badge bg-light-info text-info rounded-pill px-3 font-weight-medium ms-auto">{{ $group->neuroservices()->count()}}</span>
+            <span class="todo-badge badge bg-light-info text-info rounded-pill px-3 font-weight-medium ms-auto fs-4">{{ $group->neuroservices()->count()}}</span>
         @endif
     </a>
 </li>

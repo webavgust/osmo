@@ -689,7 +689,7 @@ class ReportService
                     'expired' => $key->active && $key->active_to->lessThan(now()),
                     'warning' => $key->active && $key->active_to->greaterThan(now()) && $key->active_to->subMonths(3)->lessThan(now()),
                     'text-wrap',
-                    'fs-1',
+                    'fs-7',
                 ], 'system' => 'active_to' . $key->id];
 
             $i++;

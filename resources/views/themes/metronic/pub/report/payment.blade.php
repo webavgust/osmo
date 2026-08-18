@@ -26,16 +26,16 @@
 
 @section('breadcrumb_right')
     <div class="d-flex align-items-center justify-content-end fs-5">
-        <x-ui.a.box href="{{ route('dashboard.box.currency') }}" btn_type="light-info" class="text-success fw-bolder fs-5 ms-2">
+        <x-ui.a.box href="{{ route('dashboard.box.currency') }}" btn_type="light-primary" class="text-primary fw-bolder fs-5 ms-2">
             {{ $currency->slug }} ({{ $currency->symbol }})
         </x-ui.a.box>
 
         <div class="reports ms-3 d-flex align-items-center pt-1">
             <a href="{{ route('report-download.payments', ['mode' => 'pdf']) }}" class="ms-2">
-                <x-ui.icon.regular icon="fa-file-pdf" class="ms-2 text-danger fs-7"></x-ui.icon.regular>
+                <x-ui.icon.regular icon="fa-file-pdf" class="ms-2 text-danger fs-1"></x-ui.icon.regular>
             </a>
             <a href="{{ route('report-download.payments', ['mode' => 'excel']) }}" class="ms-2">
-                <x-ui.icon.regular icon="fa-file-excel" class="ms-2 text-success fs-7"></x-ui.icon.regular>
+                <x-ui.icon.regular icon="fa-file-excel" class="ms-2 text-success fs-1"></x-ui.icon.regular>
             </a>
         </div>
     </div>
@@ -49,9 +49,8 @@
         $future = $past = $plan = [1 => 0, 2 => 0];
     @endphp
     <div class="container-fluid">
-
         <div id="filter" class="mb-3">
-            <button class="btn btn-light-success" data-bs-toggle="modal" data-bs-target="#filter-modal">
+            <button class="btn btn-light-primary" data-bs-toggle="modal" data-bs-target="#filter-modal">
                 <i class="fa-light fa-filter"></i>
                 Фильтр <span class="count @unless($filter) d-none @endunless">(@if($filter){{ count($filter) }}) @endif</span>
             </button>
@@ -64,15 +63,15 @@
             </button>
         </div>
 
-        <div class="table-responsive">
+        <div class="table-responsive fs-6">
             <table class="bg-white table table-bordered" id="payments">
              <tr>
-                 <th rowspan="2" class="py-1 px-2">Партнёр</th>
-                 <th rowspan="2" class="py-1 px-2">Тип договора</th>
-                 <th rowspan="2" class="py-1 px-2">Номер договора</th>
-                 <th rowspan="2" class="py-1 px-2">Компания</th>
-                 <th rowspan="2" class="py-1 px-2" style="width: 30px"></th>
-                 <th rowspan="2" class="py-1 px-2">Спецификация</th>
+                 <th rowspan="2">Партнёр</th>
+                 <th rowspan="2">Тип договора</th>
+                 <th rowspan="2">Номер договора</th>
+                 <th rowspan="2">Компания</th>
+                 <th rowspan="2" style="width: 30px"></th>
+                 <th rowspan="2">Спецификация</th>
                  <th rowspan="2" width="1" class="py-1 px-2">Кто</th>
                  <th rowspan="2" class="text-center py-1 px-2">Ожидаем</th>
                  <th colspan="2" class="text-center py-1 px-2">План</th>
@@ -89,27 +88,25 @@
                  <tr @class(['sep_partner' => !empty($row[0]['rowspan']), "sep_company" => empty($row[0]['rowspan']) && !empty($row[1]['rowspan'])])>
                      {{-- ПАРТНЁР --}}
                      @if(!empty($row[0]))
-                         <td rowspan="{{ $row[0]['rowspan'] ?? 1 }}" class="p-2 text-start">
+                         <td rowspan="{{ $row[0]['rowspan'] ?? 1 }}" class="p-3 text-start">
                              <a href="{{ route('partner.detail', $row[0]['system']) }}">{{ $row[0]['cell'] }}</a>
                          </td>
                      @endif
 
-
-
                      {{-- Тип договора --}}
                      @if(!empty($row[1]))
-                         <td rowspan="{{ $row[1]['rowspan'] ?? 1 }}" class="p-2 text-start">
+                         <td rowspan="{{ $row[1]['rowspan'] ?? 1 }}" class="p-3 text-start">
                              {{ $contractTypes[$row[1]['cell']]['label'] }}
                          </td>
                      @endif
 
                      {{-- Номер договора --}}
                      @if(!empty($row[2]))
-                         <td rowspan="{{ $row[2]['rowspan'] ?? 1 }}" class="p-2 text-start text-nowrap">
+                         <td rowspan="{{ $row[2]['rowspan'] ?? 1 }}" class="p-3 text-start text-nowrap">
                              <div>{{ $row[2]['cell'] }}</div>
 
                              @if($row[2]['org']->id == 2)
-                                 <div class="text-info fs-2">
+                                 <div class="text-info fs-8 fw-bold">
                                     {{ $row[2]['org']->name }}
                                  </div>
                              @endif
@@ -124,16 +121,11 @@
                          </td>
                      @endif
 
-
-
-
-
-
                      {{-- Спецификация --}}
                      @if(!empty($row[4]))
                          <td rowspan="{{ $row[4]['rowspan'] ?? 1 }}" class="p-2 text-start">
                              @if($row[12]['cell'])
-                                 <x-ui.icon.regular icon="fa-check" class="text-success"/>
+                                 <x-ui.icon.solid icon="fa-check" class="text-success"/>
                              @endif
                          </td>
 
@@ -160,7 +152,7 @@
                              @endif
 
                              @if(!empty($row[7]['alt']))
-                                <div class="fs-1 me-2 text-danger">({{ $row[7]['alt'] }})</div>
+                                <div class="fs-8 me-2 text-danger">({{ $row[7]['alt'] }})</div>
                              @endif
                          </td>
                      @endif
@@ -195,7 +187,7 @@
                                  {{ tools()->cost_normalize($row[9]['cell']) }} {{ $currency->symbol }}
                              @endif
                              @if(!empty($row[9]['alt']))
-                                 <div class="fs-1 me-2 text-danger">({{ $row[9]['alt'] }})</div>
+                                 <div class="fs-8 me-2 text-danger">({{ $row[9]['alt'] }})</div>
                              @endif
                          </td>
                      @endif
@@ -226,7 +218,7 @@
                              @endif
 
                              @if(!empty($row[11]['alt']))
-                                 <div class="fs-1 me-2 text-danger">({{ $row[11]['alt'] }})</div>
+                                 <div class="fs-8 me-2 text-danger">({{ $row[11]['alt'] }})</div>
                              @endif
                          </td>
                      @endif
@@ -243,7 +235,7 @@
                              @endif
 
                              @if(!empty($row[6]['alt']))
-                                 <div class="fs-1 me-2 text-danger">({{ $row[6]['alt'] }})</div>
+                                 <div class="fs-8 me-2 text-danger">({{ $row[6]['alt'] }})</div>
                              @endif
                          </td>
                      @endif

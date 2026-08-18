@@ -12,19 +12,20 @@
     // secondary в Metronic — светло-серый: светлый текст на светлом фоне не читается
     $palette = fn($color) => in_array($color, ['secondary', 'light', 'white', '', null], true) ? 'dark' : $color;
 @endphp
+<div class="cell">
+    <div class="d-flex flex-column align-items-center gap-1">
+        <a href="javascript:box({href: '{{ route('proposal.box_status', [$row, $row->iteration]) }}'})"
+           class="badge badge-light-{{ $palette($status['color']) }} d-inline-flex align-items-center text-decoration-none"
+           title="Сменить статус">
+            <i class="fa-light {{ $status['icon'] }} fs-6 me-2"></i>
+            <span class="fs-7">{{ $status['label'] }}</span>
+        </a>
 
-<div class="d-flex flex-column align-items-center gap-1">
-    <a href="javascript:box({href: '{{ route('proposal.box_status', [$row, $row->iteration]) }}'})"
-       class="badge badge-light-{{ $palette($status['color']) }} d-inline-flex align-items-center text-decoration-none"
-       title="Сменить статус">
-        <i class="fa-light {{ $status['icon'] }} fs-8 me-2"></i>
-        {{ $status['label'] }}
-    </a>
-
-    @if($reason)
-        <span class="badge badge-light-{{ $palette($reason['color']) }} text-truncate" style="max-width: 140px"
-              title="{{ $row->status_comment ?: $reason['hint'] }}">
-            {{ $reason['label'] }}
-        </span>
-    @endif
+        @if($reason)
+            <span class="badge badge-light-{{ $palette($reason['color']) }} text-truncate" style="max-width: 140px"
+                  title="{{ $row->status_comment ?: $reason['hint'] }}">
+                {{ $reason['label'] }}
+            </span>
+        @endif
+    </div>
 </div>

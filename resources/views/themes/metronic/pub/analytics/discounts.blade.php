@@ -18,7 +18,7 @@
                 <form method="get" action="{{ route('analytics.discounts') }}">
                     <div class="row g-3 align-items-end">
                         <div class="col-auto">
-                            <label class="form-label fs-8 text-muted mb-1">Год</label>
+                            <label class="form-label fs-7 text-muted mb-1">ГОД</label>
                             <select name="year" class="form-select form-select-sm" onchange="this.form.submit()">
                                 <option value="">все годы</option>
                                 @foreach($years as $year)
@@ -28,7 +28,7 @@
                         </div>
 
                         <div class="col-3">
-                            <label class="form-label fs-8 text-muted mb-1">Партнёр</label>
+                            <label class="form-label fs-7 text-muted mb-1">ПАРТНЁР</label>
                             <select name="partner" class="form-select form-select-sm" onchange="this.form.submit()">
                                 <option value="">все партнёры</option>
                                 @foreach($partners as $partner)
@@ -38,7 +38,7 @@
                         </div>
 
                         <div class="col-2">
-                            <label class="form-label fs-8 text-muted mb-1">Статус КП</label>
+                            <label class="form-label fs-7 text-muted mb-1">СТАТУС КП</label>
                             <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
                                 <option value="">любой</option>
                                 @foreach($statuses as $code => $status)
@@ -48,13 +48,13 @@
                         </div>
 
                         <div class="col-3">
-                            <label class="form-label fs-8 text-muted mb-1">Поиск</label>
+                            <label class="form-label fs-7 text-muted mb-1">ПОИСК</label>
                             <input type="text" name="q" value="{{ $params['q'] }}" class="form-control form-control-sm"
                                    placeholder="номер, название, компания">
                         </div>
 
                         <div class="col-auto">
-                            <label class="form-check form-check-sm form-check-custom">
+                            <label class="form-check form-check-sm form-check-custom mb-2">
                                 <input type="checkbox" name="only_alert" value="1" class="form-check-input"
                                        @checked($params['only_alert']) onchange="this.form.submit()">
                                 <span class="form-check-label fs-7">только выделенные</span>
@@ -87,9 +87,9 @@
                 <div class="col">
                     <div class="card h-100">
                         <div class="card-body p-4">
-                            <div class="fs-8 text-muted text-uppercase">{{ $card['label'] }}</div>
-                            <div class="fs-2 fw-bold text-{{ $card['color'] }} mt-1">{{ $card['value'] }}</div>
-                            <div class="fs-8 text-muted mt-1">{{ $card['sub'] }}</div>
+                            <div class="fs-6 text-muted text-uppercase">{{ $card['label'] }}</div>
+                            <div class="fs-1 fw-bold text-{{ $card['color'] }} mt-1">{{ $card['value'] }}</div>
+                            <div class="fs-7 text-muted mt-1">{{ $card['sub'] }}</div>
                         </div>
                     </div>
                 </div>
@@ -104,12 +104,14 @@
 
         {{-- Таблица --}}
         <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h3 class="m-0">Скидки по КП</h3>
-                <span class="text-muted fs-7">
-                    Сортировка по совокупной скидке. Суммы — в валюте своего КП,
-                    проценты сравнимы между собой.
-                </span>
+            <div class="card-header">
+                <div class="card-title flex-column align-items-start">
+                    <h3 class="fw-bold mb-1">Скидки по КП</h3>
+                    <span class="text-muted fs-7">
+                        Сортировка по совокупной скидке. Суммы — в валюте своего КП,
+                        проценты сравнимы между собой.
+                    </span>
+                </div>
             </div>
 
             <div class="table-responsive">
@@ -124,21 +126,21 @@
                             <th class="text-end">Партнёру</th>
                             <th class="text-end">Итог</th>
                             <th class="text-center">Совокупно</th>
-                            <th>По блокам: заказчику / партнёру</th>
+                            <th>заказчику / партнёру</th>
                             <th class="pe-4">Пометки</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($rows as $row)
                             @php $proposal = $row['proposal']; @endphp
-                            <tr @class(['bg-light-danger' => !empty($row['alerts'])])>
+                            <tr @class(['fs-5', 'bg-light-danger border-bottom-danger' => !empty($row['alerts'])])>
                                 <td class="ps-4">
                                     <a href="{{ route('proposal.detail', [$proposal, $proposal->iteration]) }}" class="fw-bold">
                                         {{ $proposal->number ?: 'б/н' }}
                                     </a>
-                                    <div class="fs-8 text-muted text-truncate" style="max-width: 240px">{{ $proposal->name }}</div>
+                                    <div class="fs-7 text-muted text-truncate" style="max-width: 240px">{{ $proposal->name }}</div>
                                     @if(!empty($row['company']))
-                                        <a href="{{ route('company.detail', $row['company']) }}" class="fs-8">{{ $row['company']->name }}</a>
+                                        <a href="{{ route('company.detail', $row['company']) }}" class="fs-7">{{ $row['company']->name }}</a>
                                     @endif
                                 </td>
 
@@ -159,14 +161,15 @@
                                 </td>
 
                                 <td class="text-end text-nowrap">
-                                    {{ tools()->cost_normalize(round($row['list'])) }}
-                                    <div class="fs-8 text-muted">{{ $row['currency'] }}</div>
+                                    <span class="fw-semibold text-gray-900 text-hover-primary">{{ tools()->cost_normalize(round($row['list'])) }}</span>
+                                    <div class="fs-7 text-muted">{{ $row['currency'] }}</div>
                                 </td>
 
                                 <td class="text-end text-nowrap">
                                     @if($row['customer'] > 0)
-                                        <span class="text-warning">− {{ tools()->cost_normalize(round($row['customer'])) }}</span>
-                                        <div class="fs-8 text-muted">{{ round($row['customer_p'], 1) }}%</div>
+                                        <span class="text-warning fw-semibold ">&ndash; {{ tools()->cost_normalize(round($row['customer'])) }}</span>
+
+                                        <div class="fs-7 text-muted">{{ round($row['customer_p'], 1) }}%</div>
                                     @else
                                         <span class="text-muted">—</span>
                                     @endif
@@ -174,14 +177,21 @@
 
                                 <td class="text-end text-nowrap">
                                     @if($row['partner_amount'] > 0)
-                                        <span class="text-danger">− {{ tools()->cost_normalize(round($row['partner_amount'])) }}</span>
-                                        <div class="fs-8 text-muted">{{ round($row['partner_p'], 1) }}%</div>
+                                        <span class="text-danger fw-semibold ">&ndash; {{ tools()->cost_normalize(round($row['partner_amount'])) }}</span>
+
+                                        <div class="fs-7 text-muted">{{ round($row['partner_p'], 1) }}%</div>
                                     @else
                                         <span class="text-muted">—</span>
                                     @endif
                                 </td>
 
-                                <td class="text-end text-nowrap fw-bold">{{ tools()->cost_normalize(round($row['total'])) }}</td>
+                                <td class="text-end text-nowrap fw-bold">
+                                    <span class="text-dark fw-semibold ">{{ tools()->cost_normalize(round($row['total'])) }}</span>
+
+                                    <div class="fs-7 text-muted">&nbsp;</div>
+
+                                </td>
+
 
                                 <td class="text-center text-nowrap">
                                     <span @class(['fs-4 fw-bold', 'text-danger' => !empty($row['alerts']), 'text-dark' => empty($row['alerts'])])>
@@ -189,7 +199,7 @@
                                     </span>
                                     @if(!empty($row['grade_average']))
                                         <div class="fs-8 text-muted">
-                                            грейд: {{ round($row['grade_average'], 1) }}%
+                                            {{ round($row['grade_average'], 1) }}%
                                             @if($row['grade_diff'] > 0)
                                                 <span class="text-danger">+{{ round($row['grade_diff'], 1) }}</span>
                                             @else
@@ -210,23 +220,23 @@
                                                 $base = $block['list'] - $block['customer'];
                                                 $partner_p = $base > 0 ? $block['partner'] / $base * 100 : 0;
                                             @endphp
-                                            <div class="border border-1 border-gray-300 rounded px-2 py-1"
+                                            <div class="border border-1 border-gray-500 rounded px-2 py-1"
                                                  title="{{ $block['label'] }}: прайс {{ tools()->cost_normalize(round($block['list'])) }}, заказчику −{{ tools()->cost_normalize(round($block['customer'])) }}, партнёру −{{ tools()->cost_normalize(round($block['partner'])) }}, итог {{ tools()->cost_normalize(round($block['total'])) }}">
                                                 <div class="fs-8 text-muted text-uppercase text-nowrap">{{ $block['label'] }}</div>
                                                 <div class="d-flex gap-2 text-nowrap">
-                                                    <span class="fs-7 fw-bold @if($customer_p > 0) text-warning @else text-muted @endif"
-                                                          title="Скидка заказчику">З {{ round($customer_p, 1) }}%</span>
+                                                   <span class="fs-7 fw-bold @if($customer_p > 0) text-warning @else text-muted @endif"
+                                                         title="Скидка заказчику">З: {{ round($customer_p, 1) }}%</span>
                                                     <span class="fs-7 fw-bold @if($partner_p > 0) text-danger @else text-muted @endif"
-                                                          title="Скидка партнёру">П {{ round($partner_p, 1) }}%</span>
+                                                          title="Скидка партнёру">П: {{ round($partner_p, 1) }}%</span>
                                                 </div>
                                             </div>
                                         @endforeach
                                     </div>
                                 </td>
 
-                                <td class="pe-4">
+                                <td class="pe-4 fs-7">
                                     @foreach($row['alerts'] as $alert)
-                                        <div class="fs-8 text-danger">{{ $alert }}</div>
+                                        <div class="fs-8 text-danger mb-2">{{ $loop->iteration }}. {{ $alert }}</div>
                                     @endforeach
                                 </td>
                             </tr>
@@ -241,7 +251,7 @@
                 </table>
             </div>
 
-            <div class="card-footer py-3 fs-8 text-muted">
+            <div class="card-footer py-3 fs-7 text-muted">
                 Скидка считается по последнему созданному варианту последней редакции КП, по той же
                 формуле, что в карточке: процент заказчику снимается с прайса, процент партнёру —
                 с уже уменьшенной цены. В блоках «З» — скидка заказчику, «П» — партнёру, каждая

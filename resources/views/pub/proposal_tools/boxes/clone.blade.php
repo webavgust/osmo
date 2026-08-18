@@ -2,7 +2,6 @@
 
 @section('title')
     Клонирование КП
-    <span class="text-muted fs-7 ms-2">из «{{ $proposal->name }}» (редакция {{ $proposal->iteration }})</span>
 @endsection
 
 @section('body')
