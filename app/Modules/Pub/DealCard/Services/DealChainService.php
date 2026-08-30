@@ -37,7 +37,7 @@ class DealChainService
 
         $last = $iterations->last() ?? $proposal;
 
-        $contracts = static::contracts($iterations->pluck('id'));
+        $contracts = static::contracts($proposal->group);
         $specs = static::specifications($contracts->pluck('id'));
         $payments = static::payments($specs);
         $keys = static::licenseKeys($specs->pluck('id'));
@@ -70,14 +70,15 @@ class DealChainService
      * @param \Illuminate\Support\Collection $proposalIds
      * @return \Illuminate\Support\Collection
      */
-    public static function contracts($proposalIds)
+    public static function contracts($proposalGroup)
     {
-        if ($proposalIds->isEmpty()) return collect();
 
         return collect(DB::table('contracts as c')
             ->leftJoin('companies as co', 'co.id', '=', 'c.company_id')
             ->leftJoin('partners as pa', 'pa.id', '=', 'c.partner_id')
-            ->whereIn('c.proposal_id', $proposalIds)
+            ->leftJoin('contract_specifications as cs', 'c.id', '=', 'cs.contract_id')
+            ->leftJoin('contract_specification_proposals as csp', 'cs.id', '=', 'csp.contract_specification_id')
+            ->where('csp.proposal_group', $proposalGroup)
             ->select([
                 'c.id', 'c.number', 'c.date', 'c.type', 'c.cb_signed',
                 'c.currency_slug', 'c.proposal_id', 'c.old', 'c.company_id',
@@ -187,7 +188,8 @@ class DealChainService
     public static function steps($proposal, $links, $contracts, $specs, $payments, $keys, array $check = []): array
     {
         // архивные договоры в оценке не участвуют
-        $live_contracts = $contracts->where('old', '!=', 1);
+//        $live_contracts = $contracts->where('old', '!=', 1);
+        $live_contracts = $contracts;
         $signed_contracts = $live_contracts->where('cb_signed', 1);
         $unsigned_contracts = $live_contracts->where('cb_signed', '!=', 1);
 

@@ -22,7 +22,13 @@
         </div>
 
         <div class="col-6 col-lg-4">
-            <label class="form-label fw-semibold">Номер <span class="text-danger">*</span></label>
+            <label class="form-label fw-semibold">
+                Номер <span class="text-danger">*</span>
+                <x-ui.badge.default type="info"
+                                    onclick="javascript:$(`select#clone_manager`).change()"
+                                    class="ms-2 fw-bold fs-7 text-nowrap cursor-pointer">
+                    {{ $max_number }}</x-ui.badge.default>
+            </label>
             <input type="text" id="clone_number" class="form-control form-control-solid"
                    value="{{ $proposal->number }}-К" />
         </div>
@@ -77,9 +83,16 @@
 
 @section('modal')
 <script>
+    let users = @json($users);
     $(".clone-select2").select2({
-        dropdownParent: $(".modal .modal-content"),
+        dropdownParent: $(".modal"),
         width: '100%'
+    });
+
+    $("select#clone_manager").on("change", function() {
+        let initials = users[$(this).val()]['initials'] ?? '?';
+        ret =  `${initials}{{ $max_number }}`;
+        $("input#clone_number").val(ret);
     });
 
     function clone_save() {

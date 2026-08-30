@@ -64,6 +64,7 @@ class ProposalToolsController extends Controller
             : $proposal;
 
         if (empty($proposal)) abort(404);
+        $max_number = Proposal::max('number_int') + 1;
 
         return View::make('pub.proposal_tools.boxes.clone', [
             'title' => 'Клонирование КП',
@@ -71,6 +72,7 @@ class ProposalToolsController extends Controller
             'companies' => Company::orderBy('name')->get(['id', 'name']),
             'partners' => Partner::orderBy('name')->get(['id', 'name']),
             'managers' => User::orderBy('name')->get(['id', 'name']),
+            'max_number' => $max_number,
         ]);
     }
 }

@@ -18,6 +18,7 @@ use App\Modules\Pub\Visit\Models\Visit;
 use App\Modules\Pub\Visit\Repository\VisitRepository;
 use App\Modules\Pub\Visit\Services\VisitService;
 use App\Services\Portal\Events;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Route;
@@ -199,6 +200,27 @@ if (config('app.env') == 'development') {
        return view('valentine', ['img' => $img]);
     });
     Route::get('/test', function() {
+        $a = collect(DB::table('contracts as c')
+            ->leftJoin('companies as co', 'co.id', '=', 'c.company_id')
+            ->leftJoin('partners as pa', 'pa.id', '=', 'c.partner_id')
+            ->leftJoin('contract_specifications as cs', 'c.id', '=', 'cs.contract_id')
+            ->leftJoin('contract_specification_proposals as csp', 'cs.id', '=', 'csp.contract_specification_id')
+            ->whereIn('csp.proposal_group', ['f2be22ee-10b0-4bc6-8ea7-72acdebc08a5'])
+            ->select([
+                'c.id', 'c.number', 'c.date', 'c.type', 'c.cb_signed',
+                'c.currency_slug', 'c.proposal_id', 'c.old', 'c.company_id',
+                'co.name as company_name', 'pa.name as partner_name',
+            ])
+            ->orderBy('c.date')
+            ->get())
+            ->map(function ($row) {
+                $row->date = $row->date ? Carbon::parse($row->date) : null;
+                return $row;
+            });
+
+        dd($a);
+
+
         $service = new \App\Modules\Bitrix\Dashboard\Services\DashboardDataService();
         dd($service->anna_text());
 

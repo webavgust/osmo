@@ -10,6 +10,7 @@ use App\Modules\Pub\Proposal\Models\Proposal;
 use App\Modules\Pub\Proposal\Repositories\ProposalRepository;
 use App\Modules\Pub\ProposalTools\Services\ProposalPriceHistoryService;
 use App\Modules\Pub\User\Models\User;
+use App\Modules\Pub\User\Repositories\UserRepository;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\View;
 
@@ -83,11 +84,13 @@ class ProposalToolsController extends Controller
      */
     public function box_clone(Proposal $proposal, int $iteration = null)
     {
+        $users = UserRepository::getAll();
         $proposal = $iteration
             ? ProposalRepository::getOnce($proposal->group, $iteration)
             : $proposal;
 
         if (empty($proposal)) abort(404);
+        $max_number = Proposal::max('number_int') + 1;
 
         return View::make('pub.proposal_tools.boxes.clone', [
             'title' => 'Клонирование КП',
@@ -95,6 +98,8 @@ class ProposalToolsController extends Controller
             'companies' => Company::orderBy('name')->get(['id', 'name']),
             'partners' => Partner::orderBy('name')->get(['id', 'name']),
             'managers' => User::orderBy('name')->get(['id', 'name']),
+            'max_number' => $max_number,
+            'users' => $users,
         ]);
     }
 }
