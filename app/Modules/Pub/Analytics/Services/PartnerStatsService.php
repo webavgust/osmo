@@ -53,7 +53,7 @@ class PartnerStatsService
 
         PartnerScoringService::proposals()
             ->where('partner_id', $partner_id)
-            ->each(fn($row) => $years->push($row->sended_at?->year));
+            ->each(fn($row) => $years->push($row->year_ref));
 
         PartnerScoringService::specifications()
             ->where('partner_id', $partner_id)
@@ -73,8 +73,8 @@ class PartnerStatsService
     {
         return PartnerScoringService::proposals()
             ->where('partner_id', $partner_id)
-            ->filter(fn($row) => !$year || $row->sended_at?->year === $year)
-            ->sortByDesc(fn($row) => $row->sended_at)
+            ->filter(fn($row) => !$year || $row->year_ref === $year)
+            ->sortByDesc(fn($row) => $row->sended_at ?? $row->spec_date)
             ->values();
     }
 
@@ -89,9 +89,9 @@ class PartnerStatsService
     {
         return PartnerScoringService::proposals()
             ->where('partner_id', $partner_id)
-            ->filter(fn($row) => (string) $row->status === ProposalStatus::WON->value)
-            ->filter(fn($row) => !$year || $row->sended_at?->year === $year)
-            ->sortByDesc(fn($row) => $row->sended_at)
+            ->filter(fn($row) => (string) $row->status_effective === ProposalStatus::WON->value)
+            ->filter(fn($row) => !$year || $row->year_ref === $year)
+            ->sortByDesc(fn($row) => $row->sended_at ?? $row->spec_date)
             ->values();
     }
 
@@ -153,13 +153,16 @@ class PartnerStatsService
     {
         $paid = $payments->where('state', 'paid');
         $overdue = $payments->where('state', 'overdue');
+        $expected = $payments->whereIn('state', ['planned', 'unknown']);
 
         return [
             'count' => $payments->count(),
             'paid' => $paid->count(),
             'overdue' => $overdue->count(),
+            'expected' => $expected->count(),
             'paid_sum' => $paid->sum(fn($row) => (float) $row->amount_fact * PartnerScoringService::rate($row->currency_slug)),
             'overdue_sum' => $overdue->sum(fn($row) => (float) $row->amount_plan * PartnerScoringService::rate($row->currency_slug)),
+            'expected_sum' => $expected->sum(fn($row) => (float) $row->amount_plan * PartnerScoringService::rate($row->currency_slug)),
         ];
     }
 }

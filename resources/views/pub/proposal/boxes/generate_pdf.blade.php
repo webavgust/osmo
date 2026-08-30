@@ -7,7 +7,6 @@
         <div class="row">
             <div class="col-12">
                 <div class="fs-4 fw-bold">Выберите варианты для добавления в КП:</div>
-
             </div>
 
             <div class="px-3 mt-2">
@@ -27,7 +26,7 @@
                             </div>
                         </div>
 
-                        <div class="form-floating">
+                        <div class="form-floating" style="width: 300px;">
                             <input name="variant[{{ $variant->id }}][name]"  type="text" class="form-control" aria-label="Text input with checkbox">
 
                             <label for="tb-fname">Название</label>
@@ -43,13 +42,13 @@
                             <label for="tb-fname">Камер</label>
                         </div>
 
-                        <div class="form-floating" style="width: 200px">
+                        <div class="form-floating" style="width: 100px">
                             <input name="variant[{{ $variant->id }}][period_po]"  type="text" class="form-control" >
 
                             <label for="tb-fname">Срок поставки ПО</label>
                         </div>
 
-                        <div class="form-floating" style="width: 200px">
+                        <div class="form-floating" style="width: 100px">
                             <input name="variant[{{ $variant->id }}][period_pk]"  type="text" class="form-control" >
 
                             <label for="tb-fname">Срок поставки ПК</label>

@@ -182,17 +182,15 @@
                             Тут почему-то нет вариантов расчёта
                         </x-ui.notification.light>
                     @else
-
-
                                     <div class="d-flex justify-content-between">
                                         <div class="d-flex justify-content-start align-items-center">
                                             <h3 class="font-weight-medium text-uppercase m-0">
                                                 КОММЕРЧЕСКОЕ ПРЕДЛОЖЕНИЕ
                                             </h3>
-                                            <div class="dropdown-action ms-2 mb-1" style="margin-top: 3px">
+                                            <div class="dropdown-action ms-2 mb-1" style="margin-top: 1px">
                                                 <div class="dropdown todo-action-dropdown">
                                                     <button class="btn btn-link text-dark p-1 text-decoration-none todo-action-dropdown" type="button" id="more-action-1" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                                        <x-ui.icon.regular icon="fa-ellipsis-vertical" class="fs-5"/>
+                                                        <x-ui.icon.solid icon="fa-ellipsis-vertical" class="fs-3 ms-1"/>
                                                     </button>
                                                     <div class="dropdown-menu dropdown-menu-right" style="">
                                                         <a class="btn dropdown-item" href="{{ route('proposal.edit', [$proposal, $proposal->iteration]) }}">
@@ -247,7 +245,7 @@
                                                 <div class="card-header pt-3 pb-2 align-items-center">
                                                         <div class="left">
                                                             <div class="d-flex align-items-center justify-content-start">
-                                                                <h2>{{ $proposal->name }}</h2>
+                                                                <h2 class="mb-1">{{ $proposal->name }}</h2>
                                                                 @if(!empty($proposal->name_alt))
                                                                     <sup><code class="ms-1">{{ $proposal->name_alt }}</code></sup>
                                                                 @endif

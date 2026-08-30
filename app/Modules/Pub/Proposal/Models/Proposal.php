@@ -165,6 +165,10 @@ class Proposal extends ModuleModel
             });
         })->orWhereHas('variants.proposal_scenarios.scenario', function($builder) use ($search) {
             $builder->where('name', 'like', '%' . $search . '%');
+        })->orWhereHas('company', function($builder) use ($search) {
+            $builder->where('name', 'like', '%' . $search . '%');
+        })->orWhereHas('partner', function($builder) use ($search) {
+            $builder->where('name', 'like', '%' . $search . '%');
         });
 
         return $builder;

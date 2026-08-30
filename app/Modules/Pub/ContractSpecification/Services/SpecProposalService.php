@@ -40,6 +40,9 @@ class SpecProposalService
         'platform' => ['label' => 'Платформа', 'relation' => 'proposal_platforms'],
     ];
 
+    /** Статусы, из которых прикрепление НЕ переводит КП в «Выиграно» */
+    public const WIN_KEEP = [ProposalStatus::WON, ProposalStatus::LOST, ProposalStatus::CANCELED];
+
     /** Статусы, из которых прикрепление переводит КП в «Выиграно» */
     public const WIN_FROM = [ProposalStatus::IN_WORK, ProposalStatus::FROZEN];
 
@@ -203,15 +206,20 @@ class SpecProposalService
      * Статус — свойство предложения, а не редакции, поэтому меняется по всей
      * группе: иначе список (он читает последнюю редакцию) и история разойдутся.
      *
+     * Патч v20: отбор идёт «от чего НЕ переводим», а не «от чего переводим».
+     * Раньше условие whereIn('status', ['in_work','frozen']) молча ничего не
+     * обновляло, если в базе лежал статус старой схемы (sent, negotiation) —
+     * КП оставалось невыигранным, и в скоринге всегда было 0 выигранных.
+     *
      * @param Proposal $proposal
      * @return bool сменился ли статус
      */
     public static function win(Proposal $proposal): bool
     {
-        $from = array_map(fn($case) => $case->value, static::WIN_FROM);
+        $keep = array_map(fn($case) => $case->value, static::WIN_KEEP);
 
         $changed = Proposal::where('group', $proposal->group)
-            ->whereIn('status', $from)
+            ->whereNotIn('status', $keep)
             ->update([
                 'status' => ProposalStatus::WON->value,
                 'status_reason' => null,

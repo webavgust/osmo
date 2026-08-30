@@ -22,7 +22,7 @@
         .fixed-table-container thead th .asc { background-position-y: 17px; }
 
         #table_data td { padding: 0; }
-        #table_data .cell { padding: 3px 4px; }
+        #table_data .cell { padding: 8px 2px; }
     </style>
 @endsection
 
@@ -145,25 +145,25 @@
                         <div class="row mb-5">
                             <label class="col-sm-3 col-form-label fw-semibold text-sm-end">Партнёр</label>
                             <div class="col-sm-9">
-                                <x-ui.select.single name="partner" required :items="$partners" id="id" value-name="label" :value="$filter['partner'] ?? null"></x-ui.select.single>
+                                <x-ui.select.single name="partner" select2 required :items="$partners" id="id" value-name="label" :value="$filter['partner'] ?? null"></x-ui.select.single>
                             </div>
                         </div>
                         <div class="row mb-5">
                             <label class="col-sm-3 col-form-label fw-semibold text-sm-end">Компания</label>
                             <div class="col-sm-9">
-                                <x-ui.select.single name="company" required :items="$companies" id="id" value-name="label" :value="$filter['company'] ?? null"></x-ui.select.single>
+                                <x-ui.select.single name="company" select2 required :items="$companies" id="id" value-name="label" :value="$filter['company'] ?? null"></x-ui.select.single>
                             </div>
                         </div>
                         <div class="row mb-5">
                             <label class="col-sm-3 col-form-label fw-semibold text-sm-end">Сценарий</label>
                             <div class="col-sm-9">
-                                <x-ui.select.single name="scenario" required :items="$scenarios" id="id" value-name="label" :value="$filter['scenario'] ?? null"></x-ui.select.single>
+                                <x-ui.select.single name="scenario" select2 required :items="$scenarios" id="id" value-name="label" :value="$filter['scenario'] ?? null"></x-ui.select.single>
                             </div>
                         </div>
                         <div class="row mb-5">
                             <label class="col-sm-3 col-form-label fw-semibold text-sm-end">Нейросервис</label>
                             <div class="col-sm-9">
-                                <x-ui.select.single name="neuroservice" required :items="$neuroservices" id="id" value-name="label" :value="$filter['neuroservice'] ?? null"></x-ui.select.single>
+                                <x-ui.select.single name="neuroservice" select2 required :items="$neuroservices" id="id" value-name="label" :value="$filter['neuroservice'] ?? null"></x-ui.select.single>
                             </div>
                         </div>
 

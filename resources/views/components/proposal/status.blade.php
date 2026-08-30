@@ -21,7 +21,7 @@
     $class = $as_btn ? 'btn btn-sm btn-light-' . $color : 'badge badge-light-' . $color;
 @endphp
 
-<span class="d-inline-flex align-items-center gap-2">
+<span class="d-inline-flex align-items-center gap-2 mb-1">
     @if($editable)
         <a href="javascript:box({href: '{{ route('proposal.box_status', [$proposal, $proposal->iteration]) }}'})"
            class="{{ $class }} d-inline-flex align-items-center text-decoration-none text-nowrap fs-7"

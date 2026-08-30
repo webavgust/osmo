@@ -23,7 +23,7 @@
             <div class="fs-8 text-muted">{{ $grade['label'] ?? '—' }} · {{ $grade['description'] ?? '' }}</div>
         </div>
 
-        <div class="text-end fs-7 text-muted" style="max-width: 340px">
+        <div class="text-end fs-8 text-muted" style="max-width: 340px">
             @if($year)
                 Расшифровки показаны за {{ $year }} год. Разбивка по годам — за всю историю.
             @else
@@ -56,8 +56,8 @@
         <div class="tab-pane fade @if($tab === 'stats') show active @endif" id="partner_tab_stats">
             <table class="table table-row-bordered align-middle m-0">
                 <thead>
-                    <tr class="fw-bold fs-7 text-muted text-uppercase">
-                        <th width="70" class="ps-3">Год</th>
+                    <tr class="fw-bold fs-8 text-muted text-uppercase">
+                        <th width="70">Год</th>
                         <th width="110" class="text-center">Место</th>
                         <th width="90" class="text-center">Балл</th>
                         <th class="text-center">КП</th>
@@ -72,14 +72,17 @@
                 <tbody>
                     @forelse($years as $item)
                         @php $row = $item['row']; @endphp
-                        <tr @class(['fs-5', 'bg-light-primary' => $item['current']])>
-                            <td class="fw-bold ps-3">
+                        <tr @class(['bg-light-primary' => $item['current']])>
+                            <td class="fw-bold">
                                 {{ $item['year'] }}
+                                @if($item['current'])
+                                    <div class="fs-8 text-muted">на сегодня</div>
+                                @endif
                             </td>
                             <td class="text-center">
                                 @if($item['place'])
-                                    <span class="fw-bold fs-4 pe-1">{{ $item['place'] }}</span>
-                                    <span class="fs-6 text-muted">из {{ $item['total'] }}</span>
+                                    <span class="fw-bold fs-4">{{ $item['place'] }}</span>
+                                    <span class="fs-8 text-muted">из {{ $item['total'] }}</span>
                                 @else
                                     <span class="text-muted">—</span>
                                 @endif
@@ -87,14 +90,14 @@
                             <td class="text-center">
                                 @if($item['score'] !== null)
                                     <span class="badge badge-{{ $item['rank']['color'] }} fs-6 fw-bold">
-                                        {{ $item['rank']['letter'] }} &ndash; {{ $item['score'] }}
+                                        {{ $item['rank']['letter'] }} {{ $item['score'] }}
                                     </span>
                                 @else
                                     <span class="text-muted">—</span>
                                 @endif
                             </td>
                             <td class="text-center text-nowrap">
-                                <div class="fs-4 fw-bold">{{ $row['proposals'] ?? 0 }}</div>
+                                {{ $row['proposals'] ?? 0 }}
                                 <div class="fs-8 text-muted">
                                     <span class="text-success">{{ $row['won'] ?? 0 }}</span> /
                                     <span class="text-danger">{{ $row['lost'] ?? 0 }}</span> /
@@ -103,23 +106,24 @@
                             </td>
                             <td class="text-center">
                                 @if(($row['conversion'] ?? null) !== null)
-                                    <span class="fs-5 fw-bold">{{ round($row['conversion']) }}%</span>
+                                    {{ round($row['conversion']) }}%
                                 @else
                                     <span class="text-muted">—</span>
                                 @endif
                             </td>
-                            <td class="text-end text-nowrap fs-5 fw-bold">
-                                {{ tools()->cost_normalize(round($row['amount_won'] ?? 0)) }} ₽
-                            </td>
+                            <td class="text-end text-nowrap">{{ tools()->cost_normalize(round($row['amount_won'] ?? 0)) }} ₽</td>
                             <td class="text-center text-nowrap">
                                 <span class="text-success fw-bold">{{ $row['specs_signed'] ?? 0 }}</span>
-                                / <span class="fw-bold">{{ $row['specs'] ?? 0 }}</span>
+                                из {{ $row['specs'] ?? 0 }}
                             </td>
                             <td class="text-end text-nowrap fw-bold">{{ tools()->cost_normalize(round($row['specs_sum'] ?? 0)) }} ₽</td>
                             <td class="text-center text-nowrap">
                                 <span class="text-success">{{ $row['payments_paid'] ?? 0 }}</span>
                                 @if($row['payments_overdue'] ?? 0)
                                     / <span class="text-danger fw-bold">{{ $row['payments_overdue'] }}</span>
+                                @endif
+                                @if(($row['expected_sum'] ?? 0) > 0)
+                                    <div class="fs-8 text-primary">ждём {{ tools()->cost_normalize(round($row['expected_sum'])) }} ₽</div>
                                 @endif
                             </td>
                             <td class="text-center text-nowrap">
@@ -137,7 +141,9 @@
             <div class="fs-8 text-muted mt-3">
                 Место считается среди всех партнёров, у кого в этом году было хоть одно КП или
                 спецификация. Балл каждый год нормируется на лидера этого года, поэтому 100 в
-                разные годы — это разные деньги. Спецификации относятся к году по своей дате.
+                разные годы — это разные деньги, а сам балл года сглажен двумя предыдущими
+                ({{ implode('/', \App\Modules\Pub\Analytics\Services\PartnerScoringService::YEAR_WEIGHTS) }}%).
+                Спецификации относятся к году по своей дате.
             </div>
         </div>
 
@@ -145,9 +151,10 @@
         <div class="tab-pane fade @if($tab === 'proposals') show active @endif" id="partner_tab_proposals">
             <table class="table table-row-bordered align-middle m-0">
                 <thead>
-                    <tr class="fw-bold fs-7 text-muted text-uppercase">
+                    <tr class="fw-bold fs-8 text-muted text-uppercase">
                         <th width="120">Номер</th>
                         <th>Название</th>
+                        <th width="220">Компания</th>
                         <th width="110" class="text-center">Отправлено</th>
                         <th width="130" class="text-center">Статус</th>
                         <th width="150" class="text-end">Сумма</th>
@@ -155,35 +162,44 @@
                 </thead>
                 <tbody>
                     @forelse($proposals as $row)
-                        @php $status = $statuses[(string) $row->status] ?? null; @endphp
-                        <tr class="fs-5">
+                        @php $status = $statuses[(string) $row->status_effective] ?? null; @endphp
+                        <tr>
                             <td>
-                                <div class="d-flex justify-content-start align-items-center">
-                                    <a href="{{ route('proposal.detail', [$row->group, $row->iteration]) }}" target="_blank" class="fw-bold">
-                                        {{ $row->number ?: 'б/н' }}
-                                    </a>
-                                    @if($row->iteration > 1)
-                                        <x-ui.badge.light class="ms-2" type="primary">{{ $row->iteration }}</x-ui.badge.light>
-                                    @endif
-                                </div>
+                                <a href="{{ route('proposal.detail', [$row->group, $row->iteration]) }}" target="_blank" class="fw-bold">
+                                    {{ $row->number ?: 'б/н' }}
+                                </a>
+                                <div class="fs-8 text-muted">редакция {{ $row->iteration }}</div>
                             </td>
-                            <td >{{ $row->name }}</td>
+                            <td>{{ $row->name }}</td>
+                            <td>
+                                @if(!empty($row->company_id))
+                                    <a href="{{ route('company.detail', $row->company_id) }}" target="_blank" class="text-secondary">
+                                        <x-ui.icon.light icon="fa-building" class="me-1"/>{{ $row->company_name ?: 'без названия' }}
+                                    </a>
+                                @else
+                                    <span class="text-muted">не указана</span>
+                                @endif
+                            </td>
                             <td class="text-center text-nowrap">{{ $row->sended_at?->format('d.m.Y') ?? '—' }}</td>
                             <td class="text-center">
                                 @if(!empty($status))
-                                    <x-ui.badge.light class="fs-7 px-3" :type="$status['color']">{{ $status['label'] }}</x-ui.badge.light>
+                                    <x-ui.badge.light :type="$status['color']">{{ $status['label'] }}</x-ui.badge.light>
                                 @else
-                                    <span class="text-muted">{{ $row->status }}</span>
+                                    <span class="text-muted">{{ $row->status_effective }}</span>
+                                @endif
+
+                                @if($row->is_attached && (string) $row->status !== (string) $row->status_effective)
+                                    <div class="fs-8 text-muted">по спецификации</div>
                                 @endif
                             </td>
                             <td class="text-end text-nowrap">
-                                <span class="fw-bold">{{ tools()->cost_normalize(round($row->cost_total)) }}</span>
+                                {{ tools()->cost_normalize(round($row->cost_total)) }}
                                 <span class="fs-8 text-muted">{{ $row->currency_slug }}</span>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="text-center text-muted py-8">КП нет</td>
+                            <td colspan="6" class="text-center text-muted py-8">КП нет</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -194,9 +210,10 @@
         <div class="tab-pane fade @if($tab === 'volume') show active @endif" id="partner_tab_volume">
             <table class="table table-row-bordered align-middle m-0">
                 <thead>
-                    <tr class="fw-bold fs-7 text-muted text-uppercase">
+                    <tr class="fw-bold fs-8 text-muted text-uppercase">
                         <th width="120">Номер</th>
                         <th>Название</th>
+                        <th width="220">Компания</th>
                         <th width="110" class="text-center">Отправлено</th>
                         <th width="150" class="text-end">Сумма</th>
                         <th width="150" class="text-end">В рублях</th>
@@ -204,25 +221,34 @@
                 </thead>
                 <tbody>
                     @forelse($volume as $row)
-                        <tr class="fs-5">
+                        <tr>
                             <td>
                                 <a href="{{ route('proposal.detail', [$row->group, $row->iteration]) }}" target="_blank" class="fw-bold">
                                     {{ $row->number ?: 'б/н' }}
                                 </a>
                             </td>
                             <td>{{ $row->name }}</td>
+                            <td>
+                                @if(!empty($row->company_id))
+                                    <a href="{{ route('company.detail', $row->company_id) }}" target="_blank" class="text-secondary">
+                                        <x-ui.icon.light icon="fa-building" class="me-1"/>{{ $row->company_name ?: 'без названия' }}
+                                    </a>
+                                @else
+                                    <span class="text-muted">не указана</span>
+                                @endif
+                            </td>
                             <td class="text-center text-nowrap">{{ $row->sended_at?->format('d.m.Y') ?? '—' }}</td>
                             <td class="text-end text-nowrap">
-                                <span class="fw-bold">{{ tools()->cost_normalize(round($row->cost_total)) }}</span>
+                                {{ tools()->cost_normalize(round($row->cost_total)) }}
                                 <span class="fs-8 text-muted">{{ $row->currency_slug }}</span>
                             </td>
                             <td class="text-end text-nowrap">
-                                <span class="fw-bold">{{ tools()->cost_normalize(round($row->cost_total * \App\Modules\Pub\Analytics\Services\PartnerScoringService::rate($row->currency_slug))) }}</span> ₽
+                                {{ tools()->cost_normalize(round($row->cost_total * \App\Modules\Pub\Analytics\Services\PartnerScoringService::rate($row->currency_slug))) }} ₽
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="text-center text-muted py-8">Выигранных КП нет</td>
+                            <td colspan="6" class="text-center text-muted py-8">Выигранных КП нет</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -233,7 +259,7 @@
         <div class="tab-pane fade @if($tab === 'contracts') show active @endif" id="partner_tab_contracts">
             <table class="table table-bordered align-middle m-0">
                 <thead>
-                    <tr class="fw-bold fs-7 text-muted text-uppercase">
+                    <tr class="fw-bold fs-8 text-muted text-uppercase">
                         <th width="220">Рамочный договор</th>
                         <th>Спецификация</th>
                         <th width="100" class="text-center">Дата</th>
@@ -247,18 +273,16 @@
                     @forelse($contracts as $contract_id => $specs)
                         @php $first = $specs->first(); @endphp
                         @foreach($specs as $spec)
-                            <tr class="fs-6">
+                            <tr>
                                 @if($loop->first)
                                     <td rowspan="{{ $specs->count() }}">
-                                        <div class="d-flex justify-content-between">
-                                            @php $type = \App\Modules\Pub\Contract\Models\ContractType::tryFrom((string) $first->contract_type)?->data(); @endphp
-                                            <div class="fs-6 fw-bold text-{{ $type['color'] ?? 'dark' }}">
-                                                @if(!empty($type))
-                                                    <x-ui.icon.regular :icon="$type['icon']" class="me-1"/>{{ $type['label'] }}
-                                                @endif
-                                            </div>
-                                            <code>{{ $first->contract_number ?: 'б/н' }}</code>
+                                        @php $type = \App\Modules\Pub\Contract\Models\ContractType::tryFrom((string) $first->contract_type)?->data(); @endphp
+                                        <div class="fw-bold text-{{ $type['color'] ?? 'dark' }}">
+                                            @if(!empty($type))
+                                                <x-ui.icon.regular :icon="$type['icon']" class="me-1"/>{{ $type['label'] }}
+                                            @endif
                                         </div>
+                                        <code>{{ $first->contract_number ?: 'б/н' }}</code>
                                         <div class="fs-8 text-muted">{{ $first->contract_date?->format('d.m.Y') ?? 'без даты' }}</div>
                                     </td>
                                 @endif
@@ -271,13 +295,13 @@
                                 </td>
                                 <td class="text-center">
                                     @php $status = \App\Modules\Pub\ContractSpecification\Models\ContractSpecificationStatus::tryFrom((string) $spec->status)?->data(); @endphp
-                                    <x-ui.badge.light :type="$status['color'] ?? 'secondary'" class="fs-6">
+                                    <x-ui.badge.light :type="$status['color'] ?? 'secondary'">
                                         {{ $status['label'] ?? $spec->status }}
                                     </x-ui.badge.light>
                                 </td>
                                 <td class="text-center">
                                     @if($spec->is_signed)
-                                        <x-ui.icon.regular icon="fa-check" class="text-success"></x-ui.icon.regular>
+                                        <span class="text-success fw-bold">да</span>
                                     @else
                                         <span class="text-muted">нет</span>
                                     @endif
@@ -290,7 +314,7 @@
                                     @endif
                                 </td>
                                 <td class="text-end text-nowrap">
-                                    <span class="fw-bold">{{ tools()->cost_normalize(round($spec->amount)) }}</span>
+                                    {{ tools()->cost_normalize(round($spec->amount)) }}
                                     <span class="fs-8 text-muted">{{ $spec->currency_slug }}</span>
                                 </td>
                             </tr>
@@ -308,24 +332,31 @@
         <div class="tab-pane fade @if($tab === 'payments') show active @endif" id="partner_tab_payments">
             <div class="d-flex flex-wrap gap-6 mb-3">
                 <div>
-                    <div class="fs-8 text-uppercase fw-bold text-dark">Оплачено</div>
+                    <div class="fs-8 text-muted text-uppercase">Оплачено</div>
                     <div class="fs-3 fw-bold text-success">
                         {{ tools()->cost_normalize(round($totals_payments['paid_sum'])) }} ₽
                         <span class="fs-7 text-muted">/ {{ $totals_payments['paid'] }} шт.</span>
                     </div>
                 </div>
-                <div class="ms-5">
-                    <div class="fs-8 text-uppercase fw-bold text-dark">Просрочено</div>
+                <div>
+                    <div class="fs-8 text-muted text-uppercase">Просрочено</div>
                     <div class="fs-3 fw-bold text-danger">
                         {{ tools()->cost_normalize(round($totals_payments['overdue_sum'])) }} ₽
                         <span class="fs-7 text-muted">/ {{ $totals_payments['overdue'] }} шт.</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="fs-8 text-muted text-uppercase">Ожидается</div>
+                    <div class="fs-3 fw-bold text-primary">
+                        {{ tools()->cost_normalize(round($totals_payments['expected_sum'])) }} ₽
+                        <span class="fs-7 text-muted">/ {{ $totals_payments['expected'] }} шт.</span>
                     </div>
                 </div>
             </div>
 
             <table class="table table-row-bordered align-middle m-0">
                 <thead>
-                    <tr class="fw-bold fs-7 text-muted text-uppercase">
+                    <tr class="fw-bold fs-8 text-muted text-uppercase">
                         <th>Спецификация</th>
                         <th width="120" class="text-center">План</th>
                         <th width="120" class="text-center">Факт</th>
@@ -336,31 +367,19 @@
                 <tbody>
                     @forelse($payments as $row)
                         @php $state = $states[$row->state] ?? $states['unknown']; @endphp
-                        <tr class="fs-6">
+                        <tr>
                             <td>
-                                <span class="fs-5 fw-bold">{{ $row->spec_name }}</span>
+                                {{ $row->spec_name }}
                                 <div class="fs-8 text-muted">договор {{ $row->contract_number ?: 'б/н' }}</div>
                             </td>
-                            <td class="text-center text-nowrap fw-bold">
-                                @if(!empty($row->date_plan))
-                                    {{ $row->date_plan?->format('d.m.Y') ?? '—' }}
-                                @else
-                                    <span class="text-muted">—</span>
-                                @endif
-                            </td>
-                            <td class="text-center text-nowrap fw-bold">
-                                @if(!empty($row->date_fact))
-                                    {{ $row->date_fact?->format('d.m.Y') ?? '—' }}
-                                @else
-                                    <span class="text-muted">—</span>
-                                @endif
-                            </td>
+                            <td class="text-center text-nowrap">{{ $row->date_plan?->format('d.m.Y') ?? '—' }}</td>
+                            <td class="text-center text-nowrap">{{ $row->date_fact?->format('d.m.Y') ?? '—' }}</td>
                             <td class="text-end text-nowrap">
-                                <span class="fs-5 fw-bold">{{ tools()->cost_normalize(round($row->amount_fact ?: $row->amount_plan)) }}</span>
+                                {{ tools()->cost_normalize(round($row->amount_fact ?: $row->amount_plan)) }}
                                 <span class="fs-8 text-muted">{{ $row->currency_slug }}</span>
                             </td>
                             <td class="text-center">
-                                <x-ui.badge.light :type="$state['color']" class="fs-7">{{ $state['label'] }}</x-ui.badge.light>
+                                <x-ui.badge.light :type="$state['color']">{{ $state['label'] }}</x-ui.badge.light>
                             </td>
                         </tr>
                     @empty

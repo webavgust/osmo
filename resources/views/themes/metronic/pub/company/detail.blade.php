@@ -38,7 +38,7 @@
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h3 class="m-0">Общая информация</h3>
                     </div>
-                    <div class="card-body p-0">
+                    <div class="card-body p-1">
                         <div class="card-table m-4">
                             <x-ui.card.card_table_tr field="Название">{{ $company->name }}</x-ui.card.card_table_tr>
                             <x-ui.card.card_table_tr field="Партнёр">
@@ -94,15 +94,13 @@
 
 
                 <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center pe-2">
+                    <div class="card-header d-flex justify-content-between align-items-center">
                         <h3 class="m-0">Проекты</h3>
 
                         <div class="btn-toolbar" role="toolbar" aria-label="Toolbar with button groups">
-                            <x-ui.a.box btn_type="success" href="{{ route('project.box.add', $company) }}"
-                                        class=" ms-2">
+                            <x-ui.a.box_clear btn_type="success" href="{{ route('project.box.add', $company) }}" class="fs-2" title="Добавить проект">
                                 <x-ui.icon.regular icon="fa-plus-circle"/>
-                                Добавить проект
-                            </x-ui.a.box>
+                            </x-ui.a.box_clear>
                         </div>
                     </div>
 
@@ -178,17 +176,22 @@
 
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h3>Коммерческие предложения</h3>
-                        <a href="{{ route('proposal.create', ['company' => $company->id]) }}">Создать</a>
-                    </div>
-                    <div class="card-body p-0">
+                        <h3 class="mb-0">Коммерческие предложения</h3>
 
+                        <div class="btn-toolbar" role="toolbar" aria-label="Toolbar with button groups">
+                            <a href="{{ route('proposal.create', ['company' => $company->id]) }}" class="fs-2">
+                                <x-ui.icon.regular icon="fa-plus-circle"/>
+                            </a>
+                        </div>
+
+                    </div>
+                    <div class="card-body p-1">
                         @if(!empty($proposals))
                             @foreach($proposals as $group)
                                 <div class="accordion accordion-flush" id="accordionFlushExample">
                                     <div class="accordion-item">
                                         <h2 class="accordion-header" id="flush-heading{{ $loop->iteration }}">
-                                            <button class="accordion-button collapsed bg-white" type="button"
+                                            <button @class(["accordion-button collapsed bg-white px-3 py-4", "border-top" => !$loop->first]) type="button"
                                                     data-bs-toggle="collapse"
                                                     data-bs-target="#flush-collapse{{ $loop->iteration }}"
                                                     aria-expanded="false"
@@ -200,36 +203,32 @@
                                              class="accordion-collapse collapse bg-white"
                                              aria-labelledby="flush-heading{{ $loop->iteration }}"
                                              data-bs-parent="#accordionFlushExample">
-                                            <div class="accordion-body p-0">
-                                                <table class="table m-0">
+                                            <div class="accordion-body p-0 px-2">
+                                                <table class="table m-0 w-100 table-bordered mb-2">
                                                     <tr>
                                                         <th>Номер</th>
-                                                        <th>Название</th>
                                                         <th class="text-center">Вар.</th>
                                                         <th class="text-center">Статус</th>
-                                                        <th class="text-center">Сделка</th>
                                                         <th class="text-end">Сумма</th>
                                                         <th width="1"></th>
                                                     </tr>
                                                     @foreach($group['rows'] as $proposal)
                                                         <tr>
-                                                            <td>{{ $proposal->number }}</td>
-                                                            <td>
-                                                                <a href="{{ route('proposal.detail', [$proposal, $proposal->iteration]) }}">
-                                                                    {{ $proposal->name }}
-                                                                    <sup>{{ $proposal->iteration }}</sup>
-                                                                </a>
+                                                            <td class="p-1">
+                                                                <a href="{{ route('proposal.detail', [$proposal, $proposal->iteration]) }}">{{ $proposal->number }}</a>
                                                             </td>
-                                                            <td class="text-center">{{ $proposal->variants->count() }}</td>
-                                                            <td class="text-center"><x-proposal.status :proposal="$proposal"/></td>
-                                                            <td class="text-center"><x-proposal.deal :proposal="$proposal"/></td>
-                                                            <td class="text-end text-nowrap">{{ tools()->cost_normalize($proposal->cost_total) }} {{ $proposal->currency->symbol }}</td>
-                                                            <td class="pe-3">
+                                                            <td class="p-1 text-center">{{ $proposal->variants->count() }}</td>
+                                                            <td class="p-1 text-center">
+                                                                <x-proposal.status :proposal="$proposal" class="fs-8"/>
+                                                                <x-proposal.deal :proposal="$proposal"/>
+                                                            </td>
+                                                            <td class="p-1 text-end text-nowrap">{{ tools()->cost_normalize($proposal->cost_total) }} {{ $proposal->currency->symbol }}</td>
+                                                            <td class="p-1">
                                                                 {{-- сквозная карточка: сделки, договоры, спецификации, платежи --}}
                                                                 <a href="{{ route('deal_card.index', $proposal->group) }}"
-                                                                   class="btn btn-sm btn-icon btn-primary"
+                                                                   class="fs-8 p-1"
                                                                    title="Сводная информация">
-                                                                    <i class="fas fa-sitemap"></i>
+                                                                    <i class="fas fa-sitemap fs-7"></i>
                                                                 </a>
                                                             </td>
                                                         </tr>
@@ -259,11 +258,11 @@
                             Прикрепить
                         </a>
                     </div>
-                    <div class="card-body p-0">
+                    <div class="card-body p-1">
                         @if($company->license_keys->isNotEmpty())
                             @foreach($company->license_keys as $key)
                                 <div class="border-top border-1 p-3 position-relative key_row">
-                                    <div class="mb-2 fs-3 fw-bold d-flex">
+                                    <div class="mb-2 fs-9 fw-bold d-flex">
                                         <span>{{ $key->key }}</span>
 
                                         <a href="javascript:void(0)"
@@ -274,15 +273,17 @@
                                     </div>
 
                                     <div @class(["d-flex justify-content-between ", "text-muted" => !$key->active, "text-dark" => $key->active])>
-                                        <div>
+                                        <div class="fs-7">
                                             @if(!empty($key->specification))
                                                 <div class="d-flex flex-column align-items-start">
                                                     <div>
                                                         @php
                                                             $info = \App\Modules\Pub\Contract\Models\ContractType::from($key->specification->contract->type)->data();
                                                         @endphp
-                                                        <x-ui.icon.regular :icon="$info['icon']" class="me-1 fs-5"/>
-                                                        {{ $info['label'] }}
+                                                        <sfpan @class(["fw-bold text-" . $info['color']])>
+                                                            <x-ui.icon.regular :icon="$info['icon']" @class(["me-1 fs-5"])/>
+                                                            {{ $info['label'] }}
+                                                        </sfpan>
 
                                                         @if(!empty($key->specification->contract->number))
                                                             <x-ui.badge.light type="secondary"
@@ -290,14 +291,14 @@
                                                         @endif
                                                     </div>
 
-                                                    <mark class="fs-2 mt-1">{{ $key->specification->name }}</mark>
+                                                    <mark class="fs-7 mt-1">{{ $key->specification->name }}</mark>
                                                 </div>
                                             @else
                                                 Без спецификации
                                             @endif
                                         </div>
 
-                                        <div>
+                                        <div class="fs-7">
                                             @if($key->active && $key->active_to->lessThan(now()))
                                                 <span style="color: #dc0404">
                                                 {{ $key->active_from->format("d.m.Y") }}
@@ -363,9 +364,9 @@
 
                         <table class="table table-bordered">
                             <tr>
-                                <th width="170">Тип</th>
-                                <th width="100" class="text-center">Номер</th>
-                                <th>Название</th>
+                                <th>Тип</th>
+                                <th class="text-center">Номер</th>
+                                <th class="min-w-250px">Название</th>
                                 <th>
                                     <div class="d-flex justify-content-between">
                                         <span>Ключи</span>
@@ -377,9 +378,9 @@
                                         </a>
                                     </div>
                                 </th>
-                                <th width="160">Конфигурации</th>
-                                <th width="210">КП</th>
-                                <th width="190">Сумма оплат</th>
+                                <th>Конфиг.</th>
+                                <th>КП</th>
+                                <th class="text-end">Сумма оплат</th>
                             </tr>
 
                             @foreach($specsGrouped as $type => $group)
@@ -393,21 +394,21 @@
                                         <tr>
 
                                             @if($loop->first)
-                                                <td rowspan="{{ $group->sum(fn($group) => $group['specs']->count()) }}">
+                                                <td class="px-2" rowspan="{{ $group->sum(fn($group) => $group['specs']->count()) }}">
                                                  <span class="fw-bold text-{{ $type_decorate['color'] }} fs-5">
                                                     <x-ui.icon.regular :icon="$type_decorate['icon']" class="me-1 fs-5"/>
                                                     {{ $type_decorate['label'] }}
                                                 </span>
-                                                    <div class="fs-1  text-secondary"
+                                                    <div class="fs-8  text-secondary"
                                                          style="margin-left: 29px;">{{ $spec->contract->organization->name }}</div>
                                                 </td>
 
-                                                <td class="text-center"  rowspan="{{ $instance['specs']->count() }}">
+                                                <td class="px-1 text-center"  rowspan="{{ $instance['specs']->count() }}">
                                                     @if(!empty($spec->contract->number))
                                                         <x-ui.badge.light
                                                             type="secondary">{{ $spec->contract->number ?? '-'}}</x-ui.badge.light>
                                                         <div
-                                                            class="fs-1">{{ $spec->contract->date?->format("d.m.Y") ?? '-' }}</div>
+                                                            class="fs-8">{{ $spec->contract->date?->format("d.m.Y") ?? '-' }}</div>
                                                     @endif
                                                 </td>
                                             @endif
@@ -415,7 +416,7 @@
                                             <td @class(['bg-light-danger' => $spec->status == \App\Modules\Pub\ContractSpecification\Models\ContractSpecificationStatus::CANCELED->value])>
                                                 {{ $spec->name }}
                                                 @if(!empty($spec->date_create))
-                                                    <div class="fs-1 text-muted">{{ $spec->date_create->format('d.m.Y') }}</div>
+                                                    <div class="fs-8 text-muted">{{ $spec->date_create->format('d.m.Y') }}</div>
                                                 @endif
                                             </td>
                                             <td width="400"  @class(['p-0', 'bg-light-danger' => $spec->status == \App\Modules\Pub\ContractSpecification\Models\ContractSpecificationStatus::CANCELED->value])>
@@ -445,8 +446,8 @@
                                                             </div>
                                                         </div>
 
-                                                        <div class="mb-2 fs-3 fw-bold d-flex">
-                                                            <span>{{ $key->key }}</span>
+                                                        <div class="mb-2 fs-9 fw-bold d-flex">
+                                                            <span class="text-wrap">{{ $key->key }}</span>
 
                                                             <a href="javascript:void(0)"
                                                                onclick="javascript:box({href:'{{ route('license-keys.box_edit', ['license_key' => $key]) }}'})"
@@ -506,9 +507,9 @@
                                                             <a href="{{ route('proposal.detail', [$linked, $linked->iteration]) }}" class="fw-bold">
                                                                 {{ $linked->number ?: 'б/н' }}
                                                             </a>
-                                                            <x-proposal.status :proposal="$linked"/>
                                                         </div>
-                                                        <div class="fs-1 text-muted">
+                                                        <x-proposal.status :proposal="$linked"/>
+                                                        <div class="fs-8 text-muted">
                                                             {{ tools()->cost_normalize(round($linked->cost_total)) }} {{ $linked->currency->symbol ?? '' }}
                                                         </div>
                                                     @endforeach
@@ -528,7 +529,7 @@
                                             <td @class(['bg-light-danger' => $spec->status == \App\Modules\Pub\ContractSpecification\Models\ContractSpecificationStatus::CANCELED->value])>
                                                 @php $check = $reconcile->get($spec->id); @endphp
 
-                                                <div class="fw-bold text-end">{{ tools()->cost_normalize($spec->amount) }} ₽</div>
+                                                <div class="fw-bold text-end text-nowrap">{{ tools()->cost_normalize($spec->amount) }} ₽</div>
 
                                                 @if(!empty($check) && empty($check['skip']) && empty($check['ok']))
                                                     <div @class(['mt-2 p-2 rounded text-start', 'bg-light-danger' => $check['hard'], 'bg-light-warning' => !$check['hard']])>
@@ -537,10 +538,10 @@
                                                         </div>
 
                                                         @foreach($check['reasons'] as $reason)
-                                                            <div class="fs-1 text-dark" style="text-wrap: pretty">{{ $reason }}</div>
+                                                            <div class="fs-8 text-dark" style="text-wrap: pretty">{{ $reason }}</div>
                                                         @endforeach
 
-                                                        <div class="fs-1 text-muted mt-1">
+                                                        <div class="fs-8 text-muted mt-1">
                                                             платежи {{ tools()->cost_normalize(round($check['payments'])) }}
                                                             @if($check['proposals'] !== null)
                                                                 · КП {{ tools()->cost_normalize(round($check['proposals'])) }}

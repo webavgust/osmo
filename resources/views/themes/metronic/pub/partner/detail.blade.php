@@ -30,7 +30,7 @@
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h3 class="m-0">Общая информация</h3>
                     </div>
-                    <div class="card-body p-0">
+                    <div class="card-body p-1">
                         <div class="card-table m-4">
                             <x-ui.card.card_table_tr field="Название">{{ $partner->name }}</x-ui.card.card_table_tr>
                             <x-ui.card.card_table_tr field="Тип партнёра">
@@ -73,17 +73,50 @@
                         </div>
                     </div>
                 </div>
+
+                {{-- Компании партнёра (patch v20) --}}
+                @php
+                    $spec_counts = $partner->contracts
+                        ->flatMap(fn($contract) => $contract->contract_specifications)
+                        ->groupBy('company_id')
+                        ->map(fn($specs) => $specs->count());
+                @endphp
+                <div class="card mt-5">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h3 class="m-0">Компании</h3>
+                        <x-ui.badge.light type="secondary" class="fs-6">{{ $partner->companies->count() }}</x-ui.badge.light>
+                    </div>
+                    <div class="card-body p-1">
+                        @if($partner->companies->isEmpty())
+                            <div class="p-4 text-muted">К партнёру не прикреплено ни одной компании</div>
+                        @else
+                            <div class="card-table m-4">
+                                @foreach($partner->companies as $company)
+                                    <div class="tr">
+                                        <span class="th">
+                                            <a href="{{ route('company.detail', $company) }}" >
+                                                <x-ui.icon.light icon="fa-building" class="me-1"/>
+                                                {{ $company->name }}
+                                            </a>
+                                        </span>
+                                        <span class="td ps-3">
+                                            @if(($spec_counts[$company->id] ?? 0) > 0)
+                                                {{ $spec_counts[$company->id] }}
+                                            @else
+                                                <span class="text-muted">-</span>
+                                            @endif
+                                        </span>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
+                </div>
             </div>
             <div class="col-9" id="payments" mode="summary">
 
                 <div class="d-flex justify-content-between mb-2">
                     <h2>Договоры</h2>
-
-                    <div class="btn-toolbar" role="toolbar" aria-label="Toolbar with button groups">
-                        <x-ui.a.box btn_type="success" href="{{ route('contract.box_add', $partner) }}" class=" ms-2">
-                            <x-ui.icon.regular icon="fa-plus-circle"/>
-                        </x-ui.a.box>
-                    </div>
                 </div>
 
 
@@ -95,7 +128,11 @@
                             <th width="100" class="text-center">Информация</th>
                             <th>Оплаты</th>
                             <th width="130" class="text-end">Сумма</th>
-                            <th width="1" class="p-0"></th>
+                            <th width="1" class="p-1 text-center align-center pt-3">
+                                <x-ui.a.box_clear btn_type="success" href="{{ route('contract.box_add', $partner) }}" class="fs-6" title="Добавить договор">
+                                    <x-ui.icon.regular icon="fa-plus-circle"/>
+                                </x-ui.a.box_clear>
+                            </th>
                         </tr>
                         @foreach($partner->contracts as $contract)
                             @php
@@ -107,7 +144,7 @@
                                         <x-ui.icon.regular :icon="$type_decorate['icon']" class="me-1 fs-5"/>
                                         {{ $type_decorate['label'] }}
                                     </span>
-                                    <div class="fs-1  text-secondary" style="margin-left: 29px;">{{ $contract->organization->name }}</div>
+                                    <div class="fs-8  text-secondary" style="margin-left: 29px;">{{ $contract->organization->name }}</div>
                                 </td>
                                 <td class="text-center">
                                     @if($contract->cb_signed)
@@ -117,10 +154,10 @@
                                 <td class="text-center">
                                     @if(!empty($contract->number))
                                         <x-ui.badge.light type="secondary">{{ $contract->number ?? '-'}}</x-ui.badge.light>
-                                        <div class="fs-1">{{ $contract->date?->format("d.m.Y") ?? '-' }}</div>
+                                        <div class="fs-8">{{ $contract->date?->format("d.m.Y") ?? '-' }}</div>
                                     @endif
                                 </td>
-                                <td class="text-end fw-bold fs-4" colspan="2">
+                                <td class="text-end fw-bold fs-3" colspan="2">
 
 
                                     @php
@@ -162,7 +199,7 @@
                                                 @endif
                                             </div>
                                         </td>
-                                        <td class="text-end fw-bold fs-3">
+                                        <td class="text-end fw-bold fs-5">
 
                                             @php
                                                 $amounts = $contract->amountByCurrencies($company);
@@ -185,6 +222,19 @@
                                                 <div class="ps-4">
                                                         {{ $spec->name }}
                                                 </div>
+
+                                                {{-- дата спецификации и прикреплённые КП (patch v16) --}}
+                                                <div class="ps-4 fs-8 text-secondary">
+                                                    {{ ($spec->date_create ?? $contract->date)?->format("d.m.Y") ?? 'без даты' }}
+
+                                                    @php $spec_proposals = \App\Modules\Pub\ContractSpecification\Services\SpecProposalService::attached($spec); @endphp
+                                                    @foreach($spec_proposals as $spec_proposal)
+                                                        <a href="{{ route('proposal.detail', [$spec_proposal, $spec_proposal->iteration]) }}"
+                                                           class="ms-2" title="Прикреплённое КП: {{ $spec_proposal->name }}">
+                                                            <x-ui.icon.regular icon="fa-file-lines" class="me-1"/>{{ $spec_proposal->number ?: 'б/н' }}
+                                                        </a>
+                                                    @endforeach
+                                                </div>
                                             </td>
                                             <td class="text-center">
                                                 @if($spec->is_signed)
@@ -198,7 +248,7 @@
 
                                                     @if($spec->contract_specification_scenarios->isNotEmpty())
 
-                                                        <div class="fs-1" data-container="body" data-bs-container="body" data-bs-toggle="popover" data-bs-html="true" data-bs-placement="top" data-bs-content="{{     $scenarioNames = $spec->contract_specification_scenarios
+                                                        <div class="fs-8" data-container="body" data-bs-container="body" data-bs-toggle="popover" data-bs-html="true" data-bs-placement="top" data-bs-content="{{     $scenarioNames = $spec->contract_specification_scenarios
                                                         ->map(fn($css) => '- ' . ($css->scenario?->name ?? $css->name))
                                                         ->implode('<br>') }}">
                                                             {{ tools()->num_rus($spec->contract_specification_scenarios->count(), ['сценария', 'сценарий', 'сценариев'], true) }}
@@ -267,7 +317,10 @@
                                                 <a href="javascript:void(0)" onclick="javascript:box({href:'{{ route('contract_spec.box_edit', $spec) }}'})">
                                                     <x-ui.icon.regular icon="fa-edit"/>
                                                 </a>
-                                                <a href="javascript:void(0)" onclick="javascript:box({href:'{{ route('payment.box_control', $spec) }}'})" class="ms-2" title="Управление оплатами">
+                                                <a href="javascript:void(0)" onclick="javascript:box({href:'{{ route('contract_spec.box_proposal', $spec) }}'})" title="Прикрепление КП">
+                                                    <x-ui.icon.regular icon="fa-link"/>
+                                                </a>
+                                                <a href="javascript:void(0)" onclick="javascript:box({href:'{{ route('payment.box_control', $spec) }}'})" title="Управление оплатами">
                                                     <x-ui.icon.regular icon="fa-coins"/>
                                                 </a>
                                             </td>
@@ -336,7 +389,7 @@
 {{--                                @php--}}
 {{--                                    $type_decorate = \App\Modules\Pub\Contract\Models\ContractType::from($contract->type)->data();--}}
 {{--                                @endphp--}}
-{{--                                <div class="card-body p-0">--}}
+{{--                                <div class="card-body p-1">--}}
 {{--                                    @if(0 && $contract->old)--}}
 {{--                                        <div class="m-1">--}}
 {{--                                            <mark>--}}
@@ -359,7 +412,7 @@
 {{--                                                    <div class="d-flex justify-content-end ms-2">--}}
 {{--                                                    <span class="text-center">--}}
 {{--                                                        <x-ui.badge.light type="secondary">{{ $contract->number ?? '-'}}</x-ui.badge.light>--}}
-{{--                                                        <div class="fs-1">{{ $contract->date?->format("d.m.Y") ?? '-' }}</div>--}}
+{{--                                                        <div class="fs-8">{{ $contract->date?->format("d.m.Y") ?? '-' }}</div>--}}
 {{--                                                    </span>--}}
 {{--                                                    </div>--}}
 {{--                                                @endif--}}
@@ -487,7 +540,7 @@
 {{--                                                    <div class="d-flex justify-content-end ms-2">--}}
 {{--                                                    <span class="text-center">--}}
 {{--                                                        <x-ui.badge.light type="secondary">{{ $contract->number ?? '-'}}</x-ui.badge.light>--}}
-{{--                                                        <div class="fs-1">{{ $contract->date?->format("d.m.Y") ?? '-' }}</div>--}}
+{{--                                                        <div class="fs-8">{{ $contract->date?->format("d.m.Y") ?? '-' }}</div>--}}
 {{--                                                    </span>--}}
 {{--                                                    </div>--}}
 {{--                                                @endif--}}
@@ -497,7 +550,7 @@
 {{--                                            <div class="d-flex justify-content-end">--}}
 {{--                                                <span class="text-center">--}}
 {{--                                                    <x-ui.badge.default type="{{ $type_decorate['color'] }}">{{ tools()->cost_normalize($contract->amount) }} ₽</x-ui.badge.default>--}}
-{{--                                                    <div class="fs-1">{{ $contract->organization->name }}</div>--}}
+{{--                                                    <div class="fs-8">{{ $contract->organization->name }}</div>--}}
 {{--                                                </span>--}}
 
 {{--                                                <a href="javascript:void(0)" onclick="javascript:box({href:'{{ route('contract.box_edit', $contract) }}'})" class="ms-2">--}}

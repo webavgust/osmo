@@ -19,13 +19,28 @@ use Illuminate\Support\Facades\DB;
  * миллион. Теперь главное — деньги подписанных спецификаций, остальное
  * уточняет картину:
  *
- *   сумма подписанных спецификаций   вес 50
+ *   размер ожидаемых платежей        вес 35
+ *   сумма подписанных спецификаций   вес 30
  *   конверсия решённых КП            вес 25
- *   доля просроченных платежей       вес 15 (чем меньше, тем выше балл)
- *   количество КП за последний год   вес 10
+ *   доля просроченных платежей       вес 5 (чем меньше, тем выше балл)
+ *   количество КП за год             вес 5
+ *
+ * Балл сглаживается по трём годам: текущий 75%, прошлый 20%, позапрошлый 5%.
+ * Иначе партнёр, подписавший крупный договор в прошлом году, в этом выглядел
+ * пустым — КП и спецификации остались в прошлом году, а деньги ещё идут.
+ *
+ * Ожидаемые платежи по той же причине считаются «от выбранного года и дальше»:
+ * график договора 2024 года, растянутый до 2026-го, даёт вес и в 2025-м.
  *
  * Сроки считаются по дате спецификации (`date_create`), а не по дате
  * прикрепления КП: прикрепление говорит о том, когда данные завели в портал.
+ *
+ * Патч v20: выигранным считается не только КП со статусом «Выиграно» в базе,
+ * но и любое КП, прикреплённое к спецификации (кроме проигранных и
+ * отменённых). Прикрепление — это и есть факт продажи, а статус в базе мог
+ * остаться старым (например, если КП заводили до патча v16 или статус не
+ * обновился). КП без даты отправки относится к году своей спецификации,
+ * иначе прикреплённые КП вываливались из отбора по году.
  *
  * Балл нормируется: у лучшего партнёра выборки всегда 100. Это шкала «кто
  * сильнее относительно остальных», а не абсолютная оценка — абсолютных
@@ -37,10 +52,14 @@ use Illuminate\Support\Facades\DB;
 class PartnerScoringService
 {
     /** Веса составляющих балла, в сумме 100 */
-    public const WEIGHT_SPECS = 50;
+    public const WEIGHT_EXPECTED = 35;
+    public const WEIGHT_SPECS = 30;
     public const WEIGHT_CONVERSION = 25;
-    public const WEIGHT_OVERDUE = 15;
-    public const WEIGHT_PROPOSALS = 10;
+    public const WEIGHT_OVERDUE = 5;
+    public const WEIGHT_PROPOSALS = 5;
+
+    /** Вклад года в итоговый балл: смещение назад → вес, в сумме 100 */
+    public const YEAR_WEIGHTS = [0 => 75, 1 => 20, 2 => 5];
 
     /** Сколько лет назад считать место в рейтинге для графика */
     public const HISTORY_YEARS = 5;
@@ -48,8 +67,11 @@ class PartnerScoringService
     /** Кэш курсов на запрос */
     protected static array $rates = [];
 
-    /** Кэш выборок по годам: год → строки со баллами */
+    /** Кэш готовых выборок по годам: год → строки с баллом и местом */
     protected static array $cache = [];
+
+    /** Кэш сырых баллов по годам (до сглаживания и нормировки) */
+    protected static array $raw_cache = [];
 
     /**
      * Партнёры с показателями и баллом
@@ -85,13 +107,88 @@ class PartnerScoringService
         $key = (string) ($year ?? 'all');
         if (isset(static::$cache[$key])) return static::$cache[$key];
 
-        $rows = static::score(static::metrics($year))->sortByDesc('score')->values();
+        $rows = static::blend(static::raw($year), $year);
+        $rows = static::normalize($rows)->sortByDesc('score')->values();
+
         $rows = $rows->map(function ($row, $i) {
             $row['place'] = $i + 1;
             return $row;
         });
 
         return static::$cache[$key] = $rows;
+    }
+
+    /**
+     * Сырые баллы за один год, без сглаживания и нормировки
+     *
+     * @param int|null $year
+     * @return Collection
+     */
+    public static function raw(?int $year = null): Collection
+    {
+        $key = (string) ($year ?? 'all');
+
+        return static::$raw_cache[$key] ??= static::components(static::metrics($year));
+    }
+
+    /**
+     * Сгладить балл по трём годам: текущий 75%, прошлый 20%, позапрошлый 5%.
+     *
+     * Показатели в строке остаются за выбранный год — меняется только балл.
+     * Без года (вся история) сглаживать нечего.
+     *
+     * @param Collection $rows
+     * @param int|null $year
+     * @return Collection
+     */
+    public static function blend(Collection $rows, ?int $year = null): Collection
+    {
+        if (empty($year)) {
+            return $rows->map(function ($row) {
+                $row['score_years'] = [];
+                $row['score_blended'] = $row['score_raw'];
+                return $row;
+            });
+        }
+
+        // прошлые годы: id партнёра → строка
+        $past = [];
+        foreach (static::YEAR_WEIGHTS as $offset => $weight) {
+            if ($offset === 0) continue;
+            $past[$offset] = static::raw($year - $offset)->keyBy(fn($row) => (int) $row['partner']->id);
+        }
+
+        return $rows->map(function ($row) use ($past, $year) {
+            $id = (int) $row['partner']->id;
+            $weight_now = static::YEAR_WEIGHTS[0];
+
+            $years = [[
+                'year' => $year,
+                'weight' => $weight_now,
+                'score' => $row['score_raw'],
+                'current' => true,
+            ]];
+
+            $blended = $row['score_raw'] * $weight_now / 100;
+
+            foreach ($past as $offset => $rows_past) {
+                $weight = static::YEAR_WEIGHTS[$offset];
+                $score = (float) ($rows_past->get($id)['score_raw'] ?? 0);
+                $blended += $score * $weight / 100;
+
+                $years[] = [
+                    'year' => $year - $offset,
+                    'weight' => $weight,
+                    'score' => $score,
+                    'current' => false,
+                ];
+            }
+
+            $row['score_years'] = $years;
+            $row['score_blended'] = $blended;
+
+            return $row;
+        });
     }
 
     /**
@@ -146,17 +243,20 @@ class PartnerScoringService
     {
         if (empty($partner)) return ['partner' => null];
 
+        // ожидаемые платежи смотрят вперёд, поэтому нужна невырезанная выборка
+        $payments_all = $payments;
+
         // отбор по году: КП — по дате отправки, спецификации — по своей дате
         // (если не заполнена, по дате рамочного договора)
         if ($year) {
-            $proposals = $proposals->filter(fn($row) => $row->sended_at?->year === $year);
+            $proposals = $proposals->filter(fn($row) => $row->year_ref === $year);
             $specs = $specs->filter(fn($row) => static::specYear($row) === $year);
             $payments = $payments->filter(fn($row) => ($row->date_fact ?? $row->date_plan)?->year === $year);
             $links = $links->filter(fn($row) => static::linkDate($row)?->year === $year);
         }
 
-        $won = $proposals->filter(fn($row) => (string) $row->status === ProposalStatus::WON->value);
-        $lost = $proposals->filter(fn($row) => (string) $row->status === ProposalStatus::LOST->value);
+        $won = $proposals->filter(fn($row) => (string) $row->status_effective === ProposalStatus::WON->value);
+        $lost = $proposals->filter(fn($row) => (string) $row->status_effective === ProposalStatus::LOST->value);
         $decided = $won->count() + $lost->count();
 
         $amount_won = $won->sum(fn($row) => (float) $row->cost_total * static::rate($row->currency_slug));
@@ -168,6 +268,13 @@ class PartnerScoringService
         $paid = $payments->where('state', 'paid');
         $overdue = $payments->where('state', 'overdue');
         $decided_payments = $paid->count() + $overdue->count();
+
+        // ожидаемые платежи: неоплаченное, что ещё должно прийти. Считаются не за
+        // год, а «от выбранного года и дальше»: график договора 2024-го, растянутый
+        // до 2026-го, должен давать вес и в 2025-м. Просрочка сюда не входит —
+        // у неё свой показатель
+        $expected = $payments_all->filter(fn($row) => in_array($row->state, ['planned', 'unknown'])
+            && (empty($year) || empty($row->date_plan) || $row->date_plan->year >= $year));
 
         // КП за последний год — отдельный показатель: он про активность сейчас,
         // а не про накопленную историю
@@ -209,6 +316,9 @@ class PartnerScoringService
             'overdue_sum' => $overdue->sum(fn($row) => (float) $row->amount_plan * static::rate($row->currency_slug)),
             'overdue_share' => $decided_payments > 0 ? $overdue->count() / $decided_payments * 100 : null,
 
+            'expected' => $expected->count(),
+            'expected_sum' => $expected->sum(fn($row) => (float) $row->amount_plan * static::rate($row->currency_slug)),
+
             'days_to_spec' => $days->isNotEmpty() ? (int) round($days->avg()) : null,
             'days_known' => $days->count(),
             'links' => $links->count(),
@@ -216,17 +326,20 @@ class PartnerScoringService
     }
 
     /**
-     * Балл 0–100 с нормализацией: у лучшего 100.
+     * Составляющие балла за один год: каждая приведена к 0–100 относительно
+     * лучшего результата выборки, `score_raw` — их взвешенная сумма.
      *
      * @param Collection $rows
      * @return Collection
      */
-    public static function score(Collection $rows): Collection
+    public static function components(Collection $rows): Collection
     {
+        $best_expected = (float) $rows->max('expected_sum');
         $best_specs = (float) $rows->max('specs_sum');
         $best_recent = (float) $rows->max('proposals_recent');
 
-        $rows = $rows->map(function ($row) use ($best_specs, $best_recent) {
+        return $rows->map(function ($row) use ($best_expected, $best_specs, $best_recent) {
+            $expected = $best_expected > 0 ? $row['expected_sum'] / $best_expected * 100 : 0;
             $specs = $best_specs > 0 ? $row['specs_sum'] / $best_specs * 100 : 0;
             $conversion = $row['conversion'] ?? 0;
 
@@ -235,6 +348,7 @@ class PartnerScoringService
             $recent = $best_recent > 0 ? $row['proposals_recent'] / $best_recent * 100 : 0;
 
             $row['parts'] = [
+                'expected' => ['label' => 'Размер ожидаемых платежей', 'weight' => static::WEIGHT_EXPECTED, 'value' => $expected],
                 'specs' => ['label' => 'Сумма подписанных спецификаций', 'weight' => static::WEIGHT_SPECS, 'value' => $specs],
                 'conversion' => ['label' => 'Конверсия решённых КП', 'weight' => static::WEIGHT_CONVERSION, 'value' => $conversion],
                 'overdue' => ['label' => 'Платежи без просрочки', 'weight' => static::WEIGHT_OVERDUE, 'value' => $overdue],
@@ -252,12 +366,20 @@ class PartnerScoringService
 
             return $row;
         });
+    }
 
-        // нормализация: лучший получает 100, остальные — доля от него
-        $best = (float) $rows->max('score_raw');
+    /**
+     * Нормировка на лидера выборки: у лучшего партнёра 100
+     *
+     * @param Collection $rows
+     * @return Collection
+     */
+    public static function normalize(Collection $rows): Collection
+    {
+        $best = (float) $rows->max('score_blended');
 
         return $rows->map(function ($row) use ($best) {
-            $row['score'] = $best > 0 ? (int) round($row['score_raw'] / $best * 100) : 0;
+            $row['score'] = $best > 0 ? (int) round($row['score_blended'] / $best * 100) : 0;
             $row['rank'] = static::rank($row['score']);
 
             foreach ($row['parts'] as $code => $part) {
@@ -283,7 +405,7 @@ class PartnerScoringService
             $score >= 65 => ['letter' => 'B', 'color' => 'primary', 'label' => 'Надёжный'],
             $score >= 50 => ['letter' => 'C', 'color' => 'info', 'label' => 'Рабочий'],
             $score >= 35 => ['letter' => 'D', 'color' => 'warning', 'label' => 'Слабый'],
-            default => ['letter' => 'E', 'color' => 'danger', 'label' => 'Ужасно'],
+            default => ['letter' => 'E', 'color' => 'danger', 'label' => 'Требует внимания'],
         };
     }
 
@@ -296,7 +418,7 @@ class PartnerScoringService
     {
         return [
             ['letter' => 'A', 'color' => 'success', 'label' => 'Опора', 'range' => '80–100',
-                'hint' => 'Основной канал: крупные подписанные спецификации, платят вовремя'],
+                'hint' => 'Основной канал: крупные ожидаемые платежи и подписанные спецификации'],
             ['letter' => 'B', 'color' => 'primary', 'label' => 'Надёжный', 'range' => '65–79',
                 'hint' => 'Стабильно доводит сделки до подписания, объём ниже лидера'],
             ['letter' => 'C', 'color' => 'info', 'label' => 'Рабочий', 'range' => '50–64',
@@ -350,19 +472,88 @@ class PartnerScoringService
         static $rows = null;
         if ($rows !== null) return $rows;
 
+        $attached = static::attachedGroups();
+        $dates = static::linkDates();
+        $final = [ProposalStatus::WON->value, ProposalStatus::LOST->value, ProposalStatus::CANCELED->value];
+
         return $rows = collect(DB::table('proposals as p')
+            ->leftJoin('companies as cm', 'cm.id', '=', 'p.company_id')
             ->whereNotNull('p.partner_id')
             ->whereIn('p.id', fn($query) => $query->selectRaw('MAX(id)')->from('proposals')->groupBy('group'))
             ->select([
                 'p.id', 'p.group', 'p.iteration', 'p.number', 'p.name', 'p.status',
                 'p.sended_at', 'p.currency_slug', 'p.partner_id', 'p.company_id',
+                'cm.name as company_name',
                 DB::raw('(SELECT v.cost_total FROM proposal_variants v WHERE v.proposal_id = p.id ORDER BY v.id DESC LIMIT 1) as cost_total'),
             ])
             ->get())
-            ->map(function ($row) {
+            ->map(function ($row) use ($attached, $dates, $final) {
                 $row->sended_at = $row->sended_at ? Carbon::parse($row->sended_at) : null;
+                $row->spec_date = $dates[(string) $row->group] ?? null;
+
+                // КП прикреплено к спецификации — значит продано
+                $row->is_attached = isset($attached[(string) $row->group]);
+                $row->status_effective = $row->is_attached && !in_array((string) $row->status, $final, true)
+                    ? ProposalStatus::WON->value
+                    : (string) $row->status;
+
+                // год, к которому относим КП: дата отправки, иначе дата спецификации
+                $row->year_ref = $row->sended_at?->year ?? $row->spec_date?->year;
+
                 return $row;
             });
+    }
+
+    /**
+     * Группы КП, прикреплённых хоть к одной спецификации.
+     * Отдельным лёгким запросом: links() сам опирается на proposals().
+     *
+     * @return array группа → true
+     */
+    public static function attachedGroups(): array
+    {
+        static $groups = null;
+        if ($groups !== null) return $groups;
+
+        $keys = DB::table('contract_specification_proposals')
+            ->pluck('proposal_group')
+            ->filter()
+            ->map(fn($value) => (string) $value)
+            ->unique()
+            ->all();
+
+        return $groups = array_fill_keys($keys, true);
+    }
+
+    /**
+     * Дата спецификации по группе КП: самая ранняя из прикреплённых
+     * (у спецификации нет даты — берём дату рамочного договора)
+     *
+     * @return array группа → Carbon
+     */
+    public static function linkDates(): array
+    {
+        static $dates = null;
+        if ($dates !== null) return $dates;
+
+        $dates = [];
+        $rows = DB::table('contract_specification_proposals as l')
+            ->join('contract_specifications as s', 's.id', '=', 'l.contract_specification_id')
+            ->join('contracts as c', 'c.id', '=', 's.contract_id')
+            ->select(['l.proposal_group', 's.date_create', 'c.date as contract_date'])
+            ->get();
+
+        foreach ($rows as $row) {
+            $raw = $row->date_create ?? $row->contract_date;
+            if (empty($raw)) continue;
+
+            $date = Carbon::parse($raw);
+            $key = (string) $row->proposal_group;
+
+            if (!isset($dates[$key]) || $date->lessThan($dates[$key])) $dates[$key] = $date;
+        }
+
+        return $dates;
     }
 
     /**
@@ -555,6 +746,7 @@ class PartnerScoringService
             'specs_sum' => (float) $rows->sum('specs_sum'),
             'amount_won' => (float) $rows->sum('amount_won'),
             'overdue' => (int) $rows->sum('payments_overdue'),
+            'expected_sum' => (float) $rows->sum('expected_sum'),
         ];
     }
 }

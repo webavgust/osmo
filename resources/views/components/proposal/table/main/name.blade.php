@@ -1,5 +1,5 @@
 <div class="cell">
-    <div class="fw-bolder fs-5 align-center d-flex justify-content-start">
+    <div class="fw-bolder fs-7 align-center d-flex justify-content-start">
         <a href="{{ route('proposal.detail', [$row, $row->iteration]) }}">
             {{ $row->name }}
         </a>
