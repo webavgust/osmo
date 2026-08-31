@@ -49,7 +49,7 @@
         callback="output"
         pre="pre"
         btn_type="light-info"
-        class="text-info p-1 fs-1"
+        class="text-info fs-6"
         :data="['num' => 1]"
     >
         <x-ui.icon.regular icon="fa-plus"/>

@@ -7,7 +7,7 @@
         /* сводные таблицы дашборда: компактнее и с читаемой шапкой */
         #dashboard .table > :not(caption) > * > * { padding: .4rem .5rem; }
         #dashboard .table thead th { background: var(--bs-gray-100); font-weight: 600; }
-        #dashboard .card { height: 100%; }
+        /*#dashboard .card { height: 100%; }*/
     </style>
 @endsection
 

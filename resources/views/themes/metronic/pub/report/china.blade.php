@@ -37,7 +37,7 @@
                                     <span class="input-group-text p-2">
                                         <div class="form-check">
                                             <input class="form-check-input" type="radio" name="currency" id="curRUB" value="RUB">
-                                            <label class="form-check-label mb-0 fs-5" for="curRUB">
+                                            <label class="form-check-label mb-0 fs-7" for="curRUB">
                                               RUB (₽)
                                             </label>
                                         </div>
@@ -56,14 +56,14 @@
                                         <span class="input-group-text p-1">
                                             <div class="form-check">
                                                 <input class="form-check-input" type="radio" name="currency" id="cur{{ $cur->slug }}" value="{{ $cur->slug }}" @checked($cur->slug == 'CNY')>
-                                                <label class="form-check-label mb-0 fs-5" for="cur{{ $cur->slug }}">
+                                                <label class="form-check-label mb-0 fs-7" for="cur{{ $cur->slug }}">
                                                   {{ $cur->slug }} ({{ $cur->symbol }}) =
                                                 </label>
                                             </div>
 
                                             <input name="rates[{{ $cur->slug }}]" currency="{{ $cur->slug }}" type="number"
                                                    class="currency form-control flex-grow-0 fs-5 p-1"
-                                                   value="{{ $rate }}" style="width: 100px">
+                                                   value="{{ $rate }}" style="width: 80px">
                                         </span>
                                     </div>
                                 <? endforeach; ?>

@@ -47,7 +47,15 @@
                     </div>
                     <div class="col-6 col-lg-3">
                         <div class="text-muted fs-7 fw-bold text-uppercase mb-1">Партнёр</div>
-                        <div class="fw-semibold fs-4">{{ $proposal->partner?->name ?: '—' }}</div>
+                        <div class="fw-semibold fs-4">
+                            @if($proposal->partner)
+                                <a href="{{ route('partner.detail', $proposal->partner) }}" class="text-gray-900 text-hover-primary">
+                                    {{ $proposal->partner?->name }}
+                                </a>
+                            @else
+                                —
+                            @endif
+                        </div>
                     </div>
                     <div class="col-6 col-lg-3">
                         <div class="text-muted fs-7 fw-bold text-uppercase mb-1">Менеджер</div>
