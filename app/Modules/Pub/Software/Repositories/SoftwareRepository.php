@@ -6,12 +6,9 @@ use App\Modules\Pub\Course\Models\Course;
 use App\Modules\Pub\EducationApplication\Softwares\EducationApplicationListFilterSoftware;
 use App\Modules\Pub\EducationTaskCourse\Models\EducationTaskCourse;
 use App\Modules\Pub\Software\Models\Contractor;
-use App\Modules\Pub\Order\Models\Order;
-use App\Modules\Pub\Order\Softwares\OrderListFilterSoftware;
 use App\Modules\Pub\Software\Services\SoftwareListFilterService;
 use App\Modules\Pub\Sector\Models\Sector;
 use App\Modules\Pub\User\Models\User;
-use App\Modules\Pub\UserGroup\Models\UserGroup;
 use App\Modules\Pub\Software\Models\Software;
 use Illuminate\Support\Facades\DB;
 

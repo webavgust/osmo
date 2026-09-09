@@ -5,7 +5,6 @@ namespace App\View\Components\Files;
 use App\Modules\Pub\Company\Models\Company;
 use App\Modules\Pub\EducationApplication\Models\EducationApplication;
 use App\Modules\Pub\EducationTask\Models\EducationTask;
-use App\Modules\Pub\Evaluation\Models\Evaluation;
 use App\Modules\Pub\Files\Models\File;
 use App\Modules\Pub\Files\Services\FileService;
 use App\Modules\Pub\Report\Models\Report;

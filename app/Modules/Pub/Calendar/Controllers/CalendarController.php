@@ -6,7 +6,6 @@ use App\Modules\Pub\Breadcrumbs\Traits\HasBreadcrumb;
 use App\Modules\Pub\Calendar\Models\Calendar;
 use App\Modules\Pub\Calendar\Repositories\CalendarRepository;
 use App\Modules\Pub\Calendar\Services\CalendarService;
-use App\Modules\Pub\Order\Services\OrderService;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\View;

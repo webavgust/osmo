@@ -8,7 +8,6 @@ use App\Modules\Pub\NeuroserviceGroup\Models\NeuroserviceGroup;
 use App\Modules\Pub\NeuroserviceGroup\Requests\NeuroserviceGroupCreateRequest;
 use App\Modules\Pub\NeuroserviceGroup\Requests\NeuroserviceGroupUpdateRequest;
 use App\Modules\Pub\Breadcrumbs\Traits\HasBreadcrumb;
-use App\Modules\Pub\UserGroup\Models\UserGroup;
 
 class NeuroserviceGroupController
 {

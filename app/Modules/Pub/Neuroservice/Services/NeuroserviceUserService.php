@@ -134,12 +134,7 @@ class NeuroserviceUserService
 
     public static function getUsersByNeuroservice(Neuroservice $neuroservice)
     {
-        $users = $neuroservice->users->pluck('id');
-
-        foreach ($neuroservice->user_groups as $group) {
-            $users = $users->merge($group->users->pluck('id'));
-        }
-
-        return $users->toArray();
+        // Группы доступа (UserGroup) удалены — остались прямые назначения.
+        return $neuroservice->users->pluck('id')->toArray();
     }
 }

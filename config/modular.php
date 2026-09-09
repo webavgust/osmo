@@ -70,8 +70,6 @@ return [
             'AccessGroup',
             'Menu',
             'Dashboard',
-            'UserDepartment',
-            'UserGroup',
             'User',
             'Project',
             'ProjectConfiguration',

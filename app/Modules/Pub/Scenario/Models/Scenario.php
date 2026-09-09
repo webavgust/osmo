@@ -7,8 +7,6 @@ use App\Modules\Pub\Neuroservice\Models\Neuroservice;
 use App\Modules\Pub\ScenarioGroup\Models\ScenarioGroup;
 use App\Modules\Pub\Menu\Models\Menu;
 use App\Modules\Pub\User\Models\User;
-use App\Modules\Pub\UserDepartment\Models\UserDepartment;
-use App\Modules\Pub\UserGroup\Models\UserGroup;
 use Illuminate\Database\Eloquent\Builder;
 
 class Scenario extends ModuleModel

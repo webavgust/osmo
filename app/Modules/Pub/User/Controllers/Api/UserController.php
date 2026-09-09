@@ -5,7 +5,6 @@ namespace App\Modules\Pub\User\Controllers\Api;
 use App\Jobs\AjaxProgress\UsersSync;
 use App\Modules\Pub\AjaxProgress\Models\AjaxProgress;
 use App\Modules\Pub\LabObject\Models\LabObject;
-use App\Modules\Pub\Order\Services\OrderService;
 use App\Modules\Pub\User\Models\User;
 use App\Modules\Pub\User\Request\SetSubUserRequest;
 use App\Modules\Pub\User\Services\UserService;

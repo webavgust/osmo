@@ -11,8 +11,6 @@ use App\Modules\Pub\LabMeasure\Models\LabMeasure;
 use App\Modules\Pub\LabMeasure\Repository\LabMeasureRepository;
 use App\Modules\Pub\LabObject\Models\LabObject;
 use App\Modules\Pub\LabObject\Repository\LabObjectRepository;
-use App\Modules\Pub\Order\Services\OrderService;
-use App\Modules\Pub\OrderTask\Models\OrderTask;
 use App\Modules\Pub\User\Models\User;
 use App\Modules\Pub\User\Repositories\UserRepository;
 use App\Modules\Pub\User\Request\AuthRequest;
@@ -210,32 +208,6 @@ class UserController extends Controller
         $template = View::make('pub.user.sidebars.sub_users_parent', ['title' => 'Управление руководителями', 'user' => $user, 'users' => $repo->getAll()]);
 
         return $template;
-    }
-
-    /**
-     * Sidebar группы пользователей
-     *
-     * @param User $user
-     * @return \Illuminate\Contracts\View\View
-     */
-    public function sidebar_groups(User $user)
-    {
-        if (empty($user)) abort(404);
-
-        return View::make('pub.user.sidebars.show_groups', ['title' => 'Группы пользователя', 'rows' => $user->groups]);
-    }
-
-    /**
-     * Sidebar подразделения пользователей
-     *
-     * @param User $user
-     * @return \Illuminate\Contracts\View\View
-     */
-    public function sidebar_departments(User $user)
-    {
-        if (empty($user)) abort(404);
-
-        return View::make('pub.user.sidebars.show_departments', ['title' => 'Подразделения пользователя', 'rows' => $user->departments]);
     }
 
     /**

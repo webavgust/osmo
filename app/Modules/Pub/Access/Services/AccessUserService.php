@@ -134,12 +134,8 @@ class AccessUserService
 
     public static function getUsersByAccess(Access $access)
     {
-        $users = $access->users->pluck('id');
-
-        foreach ($access->user_groups as $group) {
-            $users = $users->merge($group->users->pluck('id'));
-        }
-
-        return $users->toArray();
+        // Раньше к прямым назначениям добавлялись участники групп доступа;
+        // модуль UserGroup удалён, остались только прямые назначения.
+        return $access->users->pluck('id')->toArray();
     }
 }

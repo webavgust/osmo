@@ -16,7 +16,6 @@ use App\Modules\Pub\Work\Services\WorkService;
 use App\Modules\Pub\User\Models\User;
 use App\Modules\Pub\Work\Requests\WorkUpdateRequest;
 use App\Modules\Pub\User\Repositories\UserRepository;
-use App\Modules\Pub\UserGroup\Repositories\UserGroupRepository;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;

@@ -12,8 +12,6 @@ use App\Modules\Pub\Course\Models\Work;
 use App\Modules\Pub\EducationApplicationAgreement\Models\EvaluationDiscountAgreement;
 use App\Modules\Pub\EducationTask\Models\EducationTask;
 use App\Modules\Pub\LabObject\Models\LabObject;
-use App\Modules\Pub\Order\Models\Order;
-use App\Modules\Pub\OrderTask\Models\OrderTask;
 use App\Modules\Pub\OrderTaskAgreement\Models\OrderTaskAgreement;
 use App\Modules\Pub\Payment\Models\Payment;
 use App\Modules\Pub\PlanVisit\Models\PlanVisit;
@@ -22,12 +20,9 @@ use App\Modules\Pub\Reminder\Models\Reminder;
 use App\Modules\Pub\Salary\Models\Salary;
 use App\Modules\Pub\Sampler\Models\Sampler;
 use App\Modules\Pub\Teacher\Models\Teacher;
-use App\Modules\Pub\UserDepartment\Models\UserDepartment;
-use App\Modules\Pub\UserGroup\Models\UserGroup;
 use App\Modules\Pub\UserNote\Models\UserNote;
 use App\Modules\Pub\UserSettings\Models\UserSetting;
 use App\Modules\Pub\UserWorkCalendar\Models\UserWorkCalendar;
-use App\Modules\Pub\Visit\Models\Visit;
 use App\Modules\Pub\VisitMeasureWork\Models\VisitMeasureWork;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -90,16 +85,6 @@ class User extends Authenticatable
         return $this->hasMany(Proposal::class, 'manager_id');
     }
 
-    public function groups()
-    {
-        return $this->belongsToMany(UserGroup::class);
-    }
-
-    public function departments()
-    {
-        return $this->belongsToMany(UserDepartment::class);
-    }
-
     public function setting()
     {
         return $this->hasOne(UserSetting::class);
@@ -151,17 +136,6 @@ class User extends Authenticatable
     public function silentAdmin()
     {
         return Session::has('mask_admin');
-    }
-
-    /**
-     * принадлежность к группе
-     *
-     * @param $group_id
-     * @return bool
-     */
-    public function hasGroup($group_id)
-    {
-        return !empty($this->groups()->find($group_id));
     }
 
     /**

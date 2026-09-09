@@ -4,7 +4,6 @@ namespace App\Modules\Pub\Company\Services;
 
 use App\Modules\Pub\Education\Requests\ListFilterRequest;
 use App\Modules\Pub\User\Models\User;
-use App\Modules\Pub\UserGroup\Models\UserGroup;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder as BuilderAlias;
 use Illuminate\Database\Query\Builder;

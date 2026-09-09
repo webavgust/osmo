@@ -8,7 +8,6 @@ use App\Modules\Pub\ScenarioGroup\Models\ScenarioGroup;
 use App\Modules\Pub\ScenarioGroup\Requests\ScenarioGroupCreateRequest;
 use App\Modules\Pub\ScenarioGroup\Requests\ScenarioGroupUpdateRequest;
 use App\Modules\Pub\Breadcrumbs\Traits\HasBreadcrumb;
-use App\Modules\Pub\UserGroup\Models\UserGroup;
 
 class ScenarioGroupController
 {

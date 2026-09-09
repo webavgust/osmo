@@ -4,20 +4,11 @@ use App\Modules\Pub\Calendar\Repositories\CalendarRepository;
 use App\Modules\Pub\Company\Repositories\CompanyRepository;
 use App\Modules\Pub\Currency\Repository\CurrencyRepository;
 use App\Modules\Pub\DocumentNumber\Services\DocumentNumberService;
-use App\Modules\Pub\Evaluation\Events\EvaluationChangeStatus;
-use App\Modules\Pub\Evaluation\Events\EvaluationUpdateEvent;
-use App\Modules\Pub\OrderTask\Events\OrderTaskStartWorking;
-use App\Modules\Pub\OrderTask\Models\OrderTask;
 use App\Modules\Pub\Proposal\Models\Proposal;
 use App\Modules\Pub\Proposal\Repositories\ProposalRepository;
 use App\Modules\Pub\Report\Services\ReportSpecService;
 use App\Modules\Pub\User\Models\User;
 use App\Modules\Pub\User\Repositories\UserRepository;
-use App\Modules\Pub\Visit\Jobs\VisitCheckExpiredJob;
-use App\Modules\Pub\Visit\Models\Visit;
-use App\Modules\Pub\Visit\Repository\VisitRepository;
-use App\Modules\Pub\Visit\Services\VisitService;
-use App\Services\Portal\Events;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redirect;
@@ -441,10 +432,6 @@ if (config('app.env') == 'development') {
     });
 }
 
-
-Route::prefix('api')->group(function () {
-    Route::post('/hook', [\App\Services\Portal\Hook::class, 'hook'])->name('portal.hook');
-});
 
 Route::middleware('auth')->group(function () {
     Route::get('/', function () {

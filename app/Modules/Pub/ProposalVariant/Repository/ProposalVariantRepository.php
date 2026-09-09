@@ -9,12 +9,9 @@ use App\Modules\Pub\Hardware\Models\Hardware;
 use App\Modules\Pub\Proposal\Models\Proposal;
 use App\Modules\Pub\ProposalVariant\Models\ProposalVariant;
 use App\Modules\Pub\Software\Models\Contractor;
-use App\Modules\Pub\Order\Models\Order;
-use App\Modules\Pub\Order\Softwares\OrderListFilterSoftware;
 use App\Modules\Pub\Software\Services\SoftwareListFilterService;
 use App\Modules\Pub\Sector\Models\Sector;
 use App\Modules\Pub\User\Models\User;
-use App\Modules\Pub\UserGroup\Models\UserGroup;
 use App\Modules\Pub\Software\Models\Software;
 use Illuminate\Support\Facades\DB;
 

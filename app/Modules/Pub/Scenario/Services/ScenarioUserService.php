@@ -134,12 +134,7 @@ class ScenarioUserService
 
     public static function getUsersByScenario(Scenario $scenario)
     {
-        $users = $scenario->users->pluck('id');
-
-        foreach ($scenario->user_groups as $group) {
-            $users = $users->merge($group->users->pluck('id'));
-        }
-
-        return $users->toArray();
+        // Группы доступа (UserGroup) удалены — остались прямые назначения.
+        return $scenario->users->pluck('id')->toArray();
     }
 }

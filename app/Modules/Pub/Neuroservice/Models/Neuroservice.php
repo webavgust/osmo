@@ -9,8 +9,6 @@ use App\Modules\Pub\Menu\Models\Menu;
 use App\Modules\Pub\ProposalVariantScenario\Models\ProposalVariantScenario;
 use App\Modules\Pub\Scenario\Models\Scenario;
 use App\Modules\Pub\User\Models\User;
-use App\Modules\Pub\UserDepartment\Models\UserDepartment;
-use App\Modules\Pub\UserGroup\Models\UserGroup;
 use Illuminate\Database\Eloquent\Builder;
 
 class Neuroservice extends ModuleModel

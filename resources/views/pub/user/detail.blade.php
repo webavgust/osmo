@@ -48,29 +48,6 @@
                                 <h6>{{ _date($user->personal_birthday) }}</h6>
                             @endif
 
-                            @if(is_admin())
-                                <small class="text-muted pt-1 d-inline-block">Группы</small>
-                                <div>
-                                    @forelse($user->groups as $group)
-                                        <x-ui.a href="{{ route('user_group.detail', $group) }}">
-                                            <x-ui.badge.default type="primary">{{ $group->name }}</x-ui.badge.default>
-                                        </x-ui.a>
-                                    @empty
-                                        Нет назначенных групп
-                                    @endforelse
-                                </div>
-
-                                <small class="text-muted pt-1 mt-2 d-inline-block">Подразделения</small>
-                                <div>
-                                    @forelse($user->departments as $department)
-                                        <x-ui.a href="{{ route('user_department.detail', $department) }}">
-                                            <x-ui.badge.default type="info">{{ $department->name }}</x-ui.badge.default>
-                                        </x-ui.a>
-                                    @empty
-                                        Нет назначенных подразделений
-                                    @endforelse
-                                </div>
-                            @endif
                         </div>
 
                     </div>

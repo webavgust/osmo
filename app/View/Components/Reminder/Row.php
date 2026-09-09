@@ -2,8 +2,6 @@
 
 namespace App\View\Components\Reminder;
 
-use App\Modules\Pub\Order\Models\Order;
-use App\Modules\Pub\OrderTask\Models\OrderTask;
 use App\Modules\Pub\Reminder\Models\Reminder;
 use Illuminate\Support\Str;
 use Illuminate\View\Component;

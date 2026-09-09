@@ -3,12 +3,6 @@
 namespace App\Providers;
 
 use App\Facades\Tools;
-use App\Modules\Pub\OrderTask\FileGenerators\Interfaces\OrderTaskFileGeneratorInterface;
-use App\Modules\Pub\OrderTask\FileGenerators\OrderTaskFileGeneratorDOCX;
-use App\Modules\Pub\OrderTask\Models\OrderTask;
-use App\Modules\Pub\OrderTask\Observers\OrderTaskObserver;
-use App\Modules\Pub\UserGroup\Models\UserGroup;
-use App\Modules\Pub\UserGroup\Repositories\UserDepartmentPortalRepository;
 use App\View\Components\Reminder\Row;
 use http\Client\Request;
 use Illuminate\Support\Facades\App;
@@ -25,7 +19,6 @@ class AppServiceProvider extends ServiceProvider
      * @var array
      */
     public $bindings = [
-        OrderTaskFileGeneratorInterface::class => OrderTaskFileGeneratorDOCX::class,
     ];
 
 
@@ -46,17 +39,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-
-        // Observers
-        OrderTask::observe(OrderTaskObserver::class);
-
         App::bind('tools', function()
         {
             return new Tools();
         });
-
-        $this->app->bind(OrderTaskFileGeneratorInterface::class, OrderTaskFileGeneratorDOCX::class);
-
-
     }
 }

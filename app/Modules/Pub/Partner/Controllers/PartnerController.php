@@ -18,7 +18,6 @@ use App\Modules\Pub\Partner\Services\PartnerService;
 use App\Modules\Pub\User\Models\User;
 use App\Modules\Pub\Partner\Requests\PartnerUpdateRequest;
 use App\Modules\Pub\User\Repositories\UserRepository;
-use App\Modules\Pub\UserGroup\Repositories\UserGroupRepository;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;

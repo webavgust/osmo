@@ -119,46 +119,6 @@
             return str;
         }
 
-        function groupFormatter(value, row, index) {
-            if(!value) return '-';
-            str = '';
-            $.each(row.groups, function(index, item) {
-                if(str) str += '  ';
-                str += "[" + item.id + "] " + item.name
-            });
-
-            return `
-                    <a type="button" class="
-                        btn btn-light-danger
-                        text-danger
-                        font-weight-medium
-                        w-100
-                      " onclick='javascript:sidebar({href: \"{{ route('users.sidebar_groups') }}/` + row.id + `\"})'>
-                      ` + value + `
-                    </a>
-            `;
-        }
-
-        function depFormatter(value, row, index) {
-            if(!value) return '-';
-            str = '';
-            $.each(row.departments, function(index, item) {
-                if(str) str += '  ';
-                str += "[" + item.id + "] " + item.name
-            });
-
-            return `
-                    <a type="button" class="
-                        btn btn-light-danger
-                        text-danger
-                        font-weight-medium
-                        w-100
-                      " onclick='javascript:sidebar({href: \"{{ route('users.sidebar_departments') }}/` + row.id + `\"})'>
-                      ` + value + `
-                    </a>
-            `;
-        }
-
 
         $("#table_users").bootstrapTable("destroy").bootstrapTable({
             height: 800,
@@ -225,22 +185,6 @@
                         width: 1,
                         sortable: true,
                         formatter: dateFormatter
-                    },
-                    {
-                        title: "Группы",
-                        field: "groups_count",
-                        align: "center",
-                        valign: "middle",
-                        width: 70,
-                        formatter: groupFormatter
-                    },
-                    {
-                        title: "Отделы",
-                        field: "departments_count",
-                        align: "center",
-                        valign: "middle",
-                        width: 70,
-                        formatter: depFormatter
                     },
                 ]
             ]

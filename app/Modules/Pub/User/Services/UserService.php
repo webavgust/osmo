@@ -7,7 +7,6 @@ namespace App\Modules\Pub\User\Services;
 use App\Modules\Pub\LabObject\Models\LabObject;
 use App\Modules\Pub\User\Models\User;
 use App\Modules\Pub\User\Repositories\UserRepository;
-use App\Modules\Pub\UserDepartment\Models\UserDepartment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -63,23 +62,23 @@ class UserService
     }
 
     /**
-     * Группировка по подразделению
+     * Группы сотрудников для select2.
+     *
+     * Раньше здесь была группировка по подразделениям; модуль UserDepartment
+     * удалён вместе с кластером прошлого проекта, поэтому отдаём одну группу.
+     * Формат — тот, что ждёт tools()->select2_optgroup(): объект с полем name
+     * и коллекцией users.
      *
      * @param $users
-     * @return \App\Models\ModuleModel[]|UserDepartment[]|\Illuminate\Database\Eloquent\Builder[]|\Illuminate\Database\Eloquent\Collection|\LaravelIdea\Helper\App\Models\_IH_ModuleModel_C|\LaravelIdea\Helper\App\Models\_IH_ModuleModel_QB[]|\LaravelIdea\Helper\App\Modules\Pub\UserDepartment\Models\_IH_UserDepartment_C|\LaravelIdea\Helper\App\Modules\Pub\UserDepartment\Models\_IH_UserDepartment_QB[]
+     * @return \Illuminate\Support\Collection
      */
-    public function groupByDepartment($users)
+    public function groupForSelect($users)
     {
-        // TODO: оптимизировать
+        $group = new \stdClass();
+        $group->name = 'Сотрудники';
+        $group->users = $users;
 
-        // получим модель + связь
-        $result = UserDepartment::whereHas('users', function ($query) use ($users) {
-            $query->whereIn('users.id', $users->pluck('id'));
-        })->with('users', function ($builder) use ($users) {
-            $builder->whereIn('id', $users->pluck('id'));
-        })->get();
-
-        return $result;
+        return collect([$group]);
     }
 
 

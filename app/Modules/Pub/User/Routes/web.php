@@ -14,8 +14,6 @@ Route::group(['prefix' => 'user', 'middleware' => ['auth']], function () {
     Route::get('/box/mask', [\App\Modules\Pub\User\Controllers\UserController::class, 'box_mask'])->name('users.box_mask');
 
     // sidebars
-    Route::get('/sidebar/groups/{user?}', [UserController::class, 'sidebar_groups'])->name('users.sidebar_groups');
-    Route::get('/sidebar/departments/{user?}', [UserController::class, 'sidebar_departments'])->name('users.sidebar_departments');
     Route::get('/{user}/sidebar/work_calendar_set_time/{date?}', [\App\Modules\Pub\User\Controllers\UserController::class, 'work_calendar_set_time'])->name('users.sidebar_work_calendar_set_time');
     Route::group(['middleware' => ['can:users_sub_users_control']], function () {
         Route::get('/{user}/sidebar/sub_users/sub', [UserController::class, 'sidebar_sub_users_sub'])->name('users.sidebar_sub_users_sub');

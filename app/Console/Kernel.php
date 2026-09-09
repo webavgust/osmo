@@ -4,7 +4,6 @@ namespace App\Console;
 
 use App\Jobs\Portal\Orders\SyncAll;
 use App\Modules\Pub\LabObject\Services\LabOjectService;
-use App\Modules\Pub\Visit\Jobs\VisitCheckExpiredJob;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 use Illuminate\Support\Facades\Log;

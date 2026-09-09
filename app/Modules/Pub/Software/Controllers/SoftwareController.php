@@ -16,7 +16,6 @@ use App\Modules\Pub\Software\Services\SoftwareService;
 use App\Modules\Pub\User\Models\User;
 use App\Modules\Pub\Software\Requests\SoftwareUpdateRequest;
 use App\Modules\Pub\User\Repositories\UserRepository;
-use App\Modules\Pub\UserGroup\Repositories\UserGroupRepository;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;

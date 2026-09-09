@@ -8,7 +8,6 @@ use App\Modules\Pub\AccessGroup\Models\AccessGroup;
 use App\Modules\Pub\AccessGroup\Requests\AccessGroupCreateRequest;
 use App\Modules\Pub\AccessGroup\Requests\AccessGroupUpdateRequest;
 use App\Modules\Pub\Breadcrumbs\Traits\HasBreadcrumb;
-use App\Modules\Pub\UserGroup\Models\UserGroup;
 
 class AccessGroupController
 {
