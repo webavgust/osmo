@@ -18,3 +18,4 @@ yarn-error.log
 /resources/assets
 /resources/dist
 /storage/logs/
+.env.production
