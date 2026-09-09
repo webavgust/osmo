@@ -1,12 +1,12 @@
-<ul class="breadcrumb breadcrumb-separatorless fw-semibold fs-7 mb-1">
-    <li class="breadcrumb-item text-gray-600 lh-1">
-        <a href="/" class="text-gray-600 text-hover-primary">
-            <i class="ki-duotone ki-home fs-6 text-gray-500"></i>
+<ul class="breadcrumb breadcrumb-separatorless fw-semibold fs-7 my-0 pt-1">
+    <li class="breadcrumb-item text-muted">
+        <a href="{{ route('dashboard.index') }}" class="text-muted text-hover-primary">
+            <i class="fa-light fa-house fs-8"></i>
         </a>
     </li>
     @foreach($data->getList() as $item)
         <li class="breadcrumb-item">
-            <i class="ki-duotone ki-right fs-8 text-gray-500 mx-n1 lh-0"></i>
+            <i class="fa-light fa-angle-right fs-8 text-muted mx-n1"></i>
         </li>
         <x-breadcrumb_item :item="$item"></x-breadcrumb_item>
     @endforeach
