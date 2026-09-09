@@ -34,6 +34,7 @@ return [
         'Admin' => [
         ],
         'Pub' => [
+            'ExternalProposal',
             'Analytics',
             'CrmMonitor',
             'ProposalTools',

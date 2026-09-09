@@ -144,6 +144,15 @@ class Proposal extends ModuleModel
         return $this->belongsTo(User::class, 'status_changed_by');
     }
 
+    /**
+     * Запись внешней системы (OSMOVIEW CP), из которой перенесено КП (patch v21).
+     * Связь по group — относится ко всем итерациям.
+     */
+    public function external()
+    {
+        return $this->hasOne(\App\Modules\Pub\ExternalProposal\Models\ExternalProposal::class, 'proposal_group', 'group');
+    }
+
 
     /**
      * Scope search для поиска

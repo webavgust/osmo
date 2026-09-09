@@ -274,6 +274,13 @@
                                                                     </sup>
                                                                 @endif
                                                             </h4>
+                                                            @if(!empty($proposal->external))
+                                                                {{-- перенесённое КП: облачко справа от номера, подробности — в попапе --}}
+                                                                <a href="{{ route('external_proposal.box_detail', $proposal->external) }}" onclick="javascript:box({href: this.href}); return false;"
+                                                                   class="text-info ms-2 fs-4" title="{{ $proposal->external->source_label }} {{ $proposal->external->external_number }}@if($proposal->external->transferred_at) · перенесено {{ $proposal->external->transferred_at->format('d.m.Y H:i') }}@endif">
+                                                                    <i class="fa-light fa-cloud-arrow-down"></i>
+                                                                </a>
+                                                            @endif
                                                         </div>
                                                         <div class="d-flex align-items-center justify-content-end fs-6">
                                                             <div>

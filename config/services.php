@@ -30,4 +30,11 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    // OSMOVIEW CP Generator — КП Алексея (patch v21)
+    'osmoview_cp' => [
+        'base_url' => rtrim((string) env('OSMOVIEW_CP_URL', ''), '/'),
+        'api_key' => env('OSMOVIEW_CP_KEY', ''),
+        'timeout' => (int) env('OSMOVIEW_CP_TIMEOUT', 20),
+    ],
+
 ];

@@ -775,7 +775,7 @@ class ProposalRepository
             $builder->orderBy('sended_at', 'desc');
         }
 
-        $builder->with(['company', 'partner', 'variants'])
+        $builder->with(['company', 'partner', 'variants', 'external'])
         ->withCount('variants');
 
 

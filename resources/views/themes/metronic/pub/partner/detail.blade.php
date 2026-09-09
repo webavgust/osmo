@@ -112,6 +112,57 @@
                         @endif
                     </div>
                 </div>
+
+                {{-- Сопоставление с Битрикс24 (patch v23) --}}
+                @php
+                    $crm_deals_year = \Illuminate\Support\Str::before(
+                        \App\Modules\Pub\Partner\Services\PartnerCrmCompanyService::DEALS_FROM, '-'
+                    );
+                @endphp
+                <div class="card mt-5">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h3 class="m-0">Битрикс24</h3>
+                        <x-ui.badge.light type="secondary" class="fs-6">{{ $crm_links->count() }}</x-ui.badge.light>
+                    </div>
+                    <div class="card-body p-1">
+                        @if($crm_links->isEmpty())
+                            <div class="p-4 text-muted">
+                                Партнёр не сопоставлен с компаниями Битрикс24 — сопоставьте
+                                в <a href="{{ route('partner.edit', $partner) }}">редактировании</a>
+                            </div>
+                        @else
+                            <div class="card-table m-4">
+                                @foreach($crm_links as $crm_link)
+                                    <div class="tr">
+                                        <span class="th">
+                                            <a href="https://osmoview.bitrix24.ru/crm/company/details/{{ $crm_link['id'] }}/" target="_blank">
+                                                <x-ui.icon.light icon="fa-building" class="me-1"/>
+                                                @if(!empty($crm_link['title']))
+                                                    {{ $crm_link['title'] }}
+                                                @else
+                                                    компания #{{ $crm_link['id'] }}
+                                                @endif
+                                            </a>
+                                            @if(empty($crm_link['title']))
+                                                <div class="fs-8 text-danger">нет в зеркале Битрикса</div>
+                                            @endif
+                                        </span>
+                                        <span class="td ps-3">
+                                            @if($crm_link['deals_count'] > 0)
+                                                {{ $crm_link['deals_count'] }}
+                                            @else
+                                                <span class="text-muted">-</span>
+                                            @endif
+                                        </span>
+                                    </div>
+                                @endforeach
+                            </div>
+                            <div class="px-4 pb-3 fs-8 text-muted">
+                                Справа — число сделок компании с {{ $crm_deals_year }} года
+                            </div>
+                        @endif
+                    </div>
+                </div>
             </div>
             <div class="col-9" id="payments" mode="summary">
 

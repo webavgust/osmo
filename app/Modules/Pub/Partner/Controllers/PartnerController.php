@@ -13,6 +13,7 @@ use App\Modules\Pub\Partner\Models\Partner;
 use App\Modules\Pub\Partner\Models\PartnerGrade;
 use App\Modules\Pub\Partner\Models\PartnerType;
 use App\Modules\Pub\Partner\Repositories\PartnerRepository;
+use App\Modules\Pub\Partner\Services\PartnerCrmCompanyService;
 use App\Modules\Pub\Partner\Services\PartnerListFilterService;
 use App\Modules\Pub\Partner\Services\PartnerService;
 use App\Modules\Pub\User\Models\User;
@@ -48,6 +49,8 @@ class PartnerController extends Controller
         return view('pub.partner.detail', [
             'breadcrumbs' => $this->breadcrumb,
             'partner' => $partner,
+            // сопоставление с Битрикс24 (patch v23)
+            'crm_links' => (new PartnerCrmCompanyService())->linked($partner),
         ]);
     }
 
@@ -112,6 +115,8 @@ class PartnerController extends Controller
             'breadcrumbs' => $this->breadcrumb,
             'grades' => $grades,
             'types' => $types,
+            // компании Битрикс24 для сопоставления (patch v23)
+            'crm_companies' => (new PartnerCrmCompanyService())->options(),
         ]);
     }
 
@@ -145,7 +150,9 @@ class PartnerController extends Controller
             'breadcrumbs' => $this->breadcrumb,
             'grades' => $grades,
             'types' => $types,
-            'row' => $partner
+            'row' => $partner,
+            // компании Битрикс24 для сопоставления (patch v23)
+            'crm_companies' => (new PartnerCrmCompanyService())->options($partner),
         ]);
     }
 

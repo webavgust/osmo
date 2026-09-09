@@ -1137,10 +1137,10 @@
                                                                                 class="form-select p-1 flex-grow-0 work_group"
                                                                                 style="max-width: 300px; font-size: 0.7rem">
                                                                             <option value="0" static>Без группы</option>
-                                                                                <? if (!empty($work->group)): ?>
-                                                                            <option value="<?=$work->group?>"
-                                                                                    selected><?= $work->group ?></option>
-                                                                            <?endif; ?>
+                                                                            @if(!empty($work?->group))
+                                                                                <option value="{{ $work->group }}"
+                                                                                        selected>{{ $work->group }}</option>
+                                                                            @endif
                                                                             <option value="new" static>[+] Добавить
                                                                                 группу
                                                                             </option>

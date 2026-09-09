@@ -7,9 +7,11 @@ use App\Modules\Pub\Partner\Models\PartnerGrade;
 use App\Modules\Pub\Partner\Models\PartnerType;
 use App\Modules\Pub\Partner\Repositories\PartnerRepository;
 use App\Modules\Pub\Partner\Requests\ListFilterRequest;
+use App\Modules\Pub\Partner\Services\PartnerCrmCompanyService;
 use App\Modules\Pub\Partner\Services\PartnerListFilterService;
 use App\Modules\Pub\Partner\Services\PartnerService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class ApiPartnerController
 {
@@ -44,12 +46,21 @@ class ApiPartnerController
             'contact' => 'nullable|string',
             'phone' => 'nullable|string',
             'region' => 'nullable',
+            'crm_companies' => 'nullable|array',
+            'crm_companies.*' => 'integer',
         ]);
 
         if(!PartnerType::from($request->input('type'))) return ['result' => 'error'];
         if(!PartnerGrade::from($request->input('grade'))) return ['result' => 'error'];
 
         $partner = PartnerRepository::create($request);
+
+        // сопоставление с Битрикс24 (patch v23)
+        try {
+            (new PartnerCrmCompanyService())->sync($partner, $request->input('crm_companies', []));
+        } catch (ValidationException $e) {
+            return ['result' => 'error', 'message' => $e->validator->errors()->first()];
+        }
 
         return ['result' => 'success', 'url' => route('partner.detail', $partner)];
     }
@@ -65,10 +76,20 @@ class ApiPartnerController
             'contact' => 'nullable|string',
             'phone' => 'nullable|string',
             'region' => 'nullable',
+            'crm_companies' => 'nullable|array',
+            'crm_companies.*' => 'integer',
         ]);
 
         if(!PartnerType::from($request->input('type'))) return ['result' => 'error'];
         if(!PartnerGrade::from($request->input('grade'))) return ['result' => 'error'];
+
+        // сопоставление с Битрикс24 (patch v23): проверяем до сохранения партнёра,
+        // чтобы занятая компания не давала «наполовину сохранённую» форму
+        try {
+            (new PartnerCrmCompanyService())->sync($partner, $request->input('crm_companies', []));
+        } catch (ValidationException $e) {
+            return ['result' => 'error', 'message' => $e->validator->errors()->first()];
+        }
 
         PartnerRepository::update($partner, $request);
 

@@ -24,6 +24,30 @@ class Partner extends ModuleModel
         return $this->hasMany(Contract::class)->orderBy('type');
     }
 
+    /**
+     * Сопоставление с компаниями Битрикс24 (patch v23)
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function crm_companies()
+    {
+        return $this->hasMany(PartnerCrmCompany::class, 'partner_id')->orderBy('crm_company_id');
+    }
+
+    /**
+     * Id компаний Битрикса, сопоставленных партнёру
+     *
+     * Ими ограничиваются выборки сделок: crm_deal.company_id IN (...).
+     * Пустой массив — партнёр ещё не сопоставлен.
+     *
+     * @return array
+     */
+    public function crmCompanyIds(): array
+    {
+        return $this->relationLoaded('crm_companies')
+            ? $this->crm_companies->pluck('crm_company_id')->all()
+            : $this->crm_companies()->pluck('crm_company_id')->all();
+    }
 
 
     /**

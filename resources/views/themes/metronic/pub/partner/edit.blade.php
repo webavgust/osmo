@@ -78,6 +78,27 @@
                                 </div>
                             </div>
 
+                            {{-- Сопоставление с Битрикс24 (patch v23) --}}
+                            <div class="mb-3 row">
+                                <label for="crm_companies"
+                                       class="col-sm-4 col-form-label fw-semibold text-lg-end">Компании в Битрикс24</label>
+                                <div class="col-4">
+                                    <select name="crm_companies[]" id="crm_companies" class="form-select" multiple="multiple">
+                                        @foreach($crm_companies as $crm_company)
+                                            <option value="{{ $crm_company['id'] }}"
+                                                    @selected($crm_company['selected'])
+                                                    @if(!empty($crm_company['taken_by'])) disabled @endif>
+                                                {{ $crm_company['title'] }} #{{ $crm_company['id'] }}@if(!empty($crm_company['taken_by'])) — занята: {{ $crm_company['taken_by'] }}@endif
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <div class="form-text">
+                                        Сделки этих компаний считаются сделками партнёра.
+                                        Компания с пометкой «занята» уже сопоставлена другому партнёру.
+                                    </div>
+                                </div>
+                            </div>
+
 
                             <div class="row justify-content-center">
                                 <div class="col-sm-4 col-ml">
@@ -121,6 +142,12 @@
                 form_check();
             }) ;
             form_check();
+
+            // Компании Битрикс24 (patch v23)
+            $("#crm_companies").select2({
+                width: '100%',
+                placeholder: 'Компании не сопоставлены'
+            });
         });
 
         function form_check() {
@@ -156,7 +183,7 @@
                     if (response.result == 'success') {
                         location.replace(response.url);
                     } else {
-                        toastr.error("Не получилось сохранить данные", "Это провал!", {
+                        toastr.error(response.message || "Не получилось сохранить данные", "Это провал!", {
                             progressBar: true,
                             "timeOut": 3000,
                         });
