@@ -240,38 +240,16 @@ class User extends Authenticatable
             return $access->admin_invert == 0;
         }
 
-        # USER
-        $a = DB::table('users')
+        // Персональное назначение. Раньше следом шли ветки GROUP и DEPARTMENT,
+        // причём результат этого запроса они затирали, и метод всегда возвращал
+        // null. Модули UserGroup и UserDepartment удалены, ветки убраны —
+        // возвращается сохранённый режим самого пользователя.
+        return DB::table('users')
             ->select('mode')
             ->where('id', $this->id)
             ->leftJoin('access_user', 'id', '=', 'user_id')
             ->where('access_id', $access->id)
             ->value('mode');
-
-        #GROUP
-        $a = DB::table('users')
-            ->select('mode')
-            ->where('users.id', $this->id)
-            ->leftJoin('user_user_group', 'users.id', '=', 'user_id')
-            ->leftJoin('user_groups', 'user_groups.id', '=', 'user_user_group.user_group_id')
-            ->leftJoin('access_user_group', 'user_user_group.user_group_id', '=', 'access_user_group.user_group_id')
-            ->where('access_id', $access->id)
-            ->value('mode');
-        if ($a) {
-            return $a;
-        }
-
-        #DEPARTMENT
-        $a = DB::table('users')
-            ->select('mode')
-            ->where('users.id', $this->id)
-            ->leftJoin('user_user_department', 'users.id', '=', 'user_id')
-            ->leftJoin('user_departments', 'user_departments.id', '=', 'user_user_department.user_department_id')
-            ->leftJoin('access_user_department', 'user_user_department.user_department_id', '=', 'access_user_department.user_department_id')
-            ->where('access_id', $access->id)
-            ->value('mode');
-
-        return $a;
     }
 
     /**

@@ -36,26 +36,6 @@
                                     Назначение доступов для пользователя "{{ $user->fullname }}"
                                 </h6>
 
-                                <a href="javascript:void(0)" onclick="javascript:$(this).remove(); $('#detail').removeClass('d-none');">Показать подразделения и группы</a>
-                                <div class="row d-none" id="detail">
-                                    <div class="col-12">
-                                        <h6>Подразделения:</h6>
-                                        <div>
-                                            @foreach($user->departments as $dep)
-                                                <a href="{{ route('access_set.department', $dep) }}"><span class="mb-1 badge bg-danger">{{ $dep->name }}</span></a>
-                                            @endforeach
-                                        </div>
-                                    </div>
-
-                                    <div class="col-12 mt-2">
-                                        <h6>Группы:</h6>
-                                        <div>
-                                            @foreach($user->groups as $group)
-                                                <a href="{{ route('access_set.group', $group) }}"><span class="mb-1 badge bg-secondary">{{ $group->name }}</span></a>
-                                            @endforeach
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
                             <form method="post" id="access">
                                 <div class="accordion accordion-flush bg-warning">

@@ -63,35 +63,11 @@ class NeuroserviceUserService
             }
         }
 
-        #GROUP
-        $a = DB::table('users')
-            ->select('mode')
-            ->where('users.id', $this->user->id ?? 0)
-            ->leftJoin('user_user_group', 'users.id', '=', 'user_id')
-            ->leftJoin('user_groups', 'user_groups.id', '=', 'user_user_group.user_group_id')
-            ->leftJoin('neuroservice_user_group', 'user_user_group.user_group_id', '=', 'neuroservice_user_group.user_group_id')
-            ->where('neuroservice_id', $neuroservice->id)
-            ->value('mode');
-        if (empty($from)) {
-            if (abs($a) == 1) return $a == 1;
-        } elseif ($a) {
-            return $a;
-        }
-
-        #DEPARTMENT
-        $a = DB::table('users')
-            ->select('mode')
-            ->where('users.id', $this->user->id ?? 0)
-            ->leftJoin('user_user_department', 'users.id', '=', 'user_id')
-            ->leftJoin('user_departments', 'user_departments.id', '=', 'user_user_department.user_department_id')
-            ->leftJoin('neuroservice_user_department', 'user_user_department.user_department_id', '=', 'neuroservice_user_department.user_department_id')
-            ->where('neuroservice_id', $neuroservice->id)
-            ->value('mode');
-        if (empty($from)) {
-            return $a == 1;
-        } else {
-            return $a;
-        }
+        // Ветки GROUP и DEPARTMENT убраны вместе с модулями UserGroup
+        // и UserDepartment. Они и так были нерабочими: таблиц
+        // neuroservice_user_group и neuroservice_user_department в базе нет,
+        // и любое обращение сюда падало бы SQL-ошибкой.
+        return false;
     }
 
     /**

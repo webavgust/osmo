@@ -63,35 +63,11 @@ class AccessUserService
             }
         }
 
-        #GROUP
-        $a = DB::table('users')
-            ->select('mode')
-            ->where('users.id', $this->user->id ?? 0)
-            ->leftJoin('user_user_group', 'users.id', '=', 'user_id')
-            ->leftJoin('user_groups', 'user_groups.id', '=', 'user_user_group.user_group_id')
-            ->leftJoin('access_user_group', 'user_user_group.user_group_id', '=', 'access_user_group.user_group_id')
-            ->where('access_id', $access->id)
-            ->value('mode');
-        if (empty($from)) {
-            if (abs($a) == 1) return $a == 1;
-        } elseif ($a) {
-            return $a;
-        }
-
-        #DEPARTMENT
-        $a = DB::table('users')
-            ->select('mode')
-            ->where('users.id', $this->user->id ?? 0)
-            ->leftJoin('user_user_department', 'users.id', '=', 'user_id')
-            ->leftJoin('user_departments', 'user_departments.id', '=', 'user_user_department.user_department_id')
-            ->leftJoin('access_user_department', 'user_user_department.user_department_id', '=', 'access_user_department.user_department_id')
-            ->where('access_id', $access->id)
-            ->value('mode');
-        if (empty($from)) {
-            return $a == 1;
-        } else {
-            return $a;
-        }
+        // Дальше шли ветки GROUP и DEPARTMENT: доступ мог прийти через группу
+        // или подразделение пользователя. Модули UserGroup и UserDepartment
+        // удалены, назначать такие права стало нечем, а таблицы связей пусты —
+        // обе ветки всё равно доходили до `null == 1`, то есть до false.
+        return false;
     }
 
     /**
