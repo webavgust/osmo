@@ -1,0 +1,31 @@
+.form-control.form-control-solid { border-color: var(--bs-gray-300); background: white }
+.form-select.form-select-solid { border-color: var(--bs-gray-300); background-color: white }
+.form-check.form-check-solid .form-check-input:not(:checked) { border: 1px solid var(--bs-gray-300); background-color: white }
+.fixed-table-toolbar { display: flex; justify-content: space-between }
+.fixed-table-toolbar .bs-bars { flex-grow: 1 }
+.nav-line-tabs .nav-item .nav-link.active { color: var(--bs-primary)}
+
+.btn.btn-light-secondary i { color: var(--bs-gray-600) }
+
+.btn-active-light-success:hover { border-color: var(--bs-success) }
+.card + .card { margin-top: 1rem }
+
+
+.btn-active-light-dark:not(.active):hover,.btn-active-light-dark.active { border-color: var(--bs-dark)!important }
+.btn-active-light-success:not(.active):hover,.btn-active-light-success.active { border-color: var(--bs-success)!important }
+.btn-active-light-danger:not(.active):hover,.btn-active-light-danger.active { border-color: var(--bs-danger)!important }
+.btn-active-light-warning:not(.active):hover,.btn-active-light-warning.active { border-color: var(--bs-warning)!important }
+
+.border-bottom-danger { border-bottom-color: rgba(255, 0, 0, .2)!important; }
+.badge-light-warning { color: #ef9504 }
+
+.select2-container { z-index: 999!important; }
+:root {
+    --bs-text-warning: #ef9504;
+    --bs-warning: #ef9504;
+}
+.card .card-header { min-height: 50px!important; padding: 0 1.25rem }
+.card-table .tr .th,
+.card-table .tr .td {
+    background: white!important;
+}

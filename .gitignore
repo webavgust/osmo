@@ -14,7 +14,25 @@ yarn-error.log
 /.idea
 /.vscode
 /public/temp
-/public
+
+# Каталог public целиком вне git, кроме наших собственных файлов.
+# Git не заходит внутрь исключённого каталога, поэтому родительские
+# каталоги разигнорируются по шагам, а вендорные файлы — обратно.
+/public/*
+
+# Наши правки поверх старой темы
+!/public/css/
+/public/css/*
+!/public/css/fix.css
+
+# Наши стили и скрипты темы Metronic.
+# public/metronic/assets — дистрибутив Metronic (2271 файл, 75 МБ),
+# он остаётся вне git и возится отдельно.
+!/public/metronic/
+/public/metronic/*
+!/public/metronic/css/
+!/public/metronic/js/
+
 /resources/assets
 /resources/dist
 /storage/logs/
