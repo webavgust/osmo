@@ -77,6 +77,9 @@
             <!-- Right side toggle and nav items -->
             <!-- ============================================================== -->
             <ul class="navbar-nav">
+
+                {{-- Переключатель оформления --}}
+                @include('components.ui.theme_switch')
 {{--                    @if(!\Illuminate\Support\Facades\Session::has('mask_admin'))--}}
 {{--                        @can('super_user')--}}
 {{--                            <li class="nav-item dropdown">--}}

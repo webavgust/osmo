@@ -39,11 +39,15 @@ class Kernel extends HttpKernel
             // \App\Http\Middleware\EncryptCookies::class,
             \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
             \Illuminate\Session\Middleware\StartSession::class,
+            \App\Http\Middleware\LocalAutoLogin::class, // локальный автологин, обёрнут защитой от срабатывания на сервере
             AfterSessionInit::class,
             // \Illuminate\Session\Middleware\AuthenticateSession::class,
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
+
+            // UI Kit: активная тема оформления (MaterialPro / Metronic)
+            \App\Http\Middleware\ResolveUiTheme::class,
         ],
 
         'api' => [

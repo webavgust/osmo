@@ -182,6 +182,7 @@ return [
         App\Providers\ModularProvider::class,
         App\Providers\FacadeServiceProvider::class,
         App\Providers\ComposerServiceProvider::class,
+        App\Providers\UiThemeServiceProvider::class,
         Barryvdh\LaravelIdeHelper\IdeHelperServiceProvider::class,
         Intervention\Image\ImageServiceProvider::class,
 

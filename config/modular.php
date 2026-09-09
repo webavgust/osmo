@@ -1,10 +1,10 @@
 <?php
 
 return [
-    'path' => '/var/www/www-root/data/www/osmo-avg.ru/app/Modules',
+    'path' => app_path('Modules'),
     'base_namespace' => 'App\Modules',
     'groupWithoutPrefix' => 'Pub',
-    'groupMidleware' => [
+    'groupMiddleware' => [
         'Admin' => [
             'web' => [
                 'auth',
