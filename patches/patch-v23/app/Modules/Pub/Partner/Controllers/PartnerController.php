@@ -2,6 +2,7 @@
 
 namespace App\Modules\Pub\Partner\Controllers;
 
+use App\Modules\Bitrix\CrmDeal\Services\CrmDealRegistryService;
 use App\Modules\Pub\AccessGroup\Models\AccessGroup;
 use App\Modules\Pub\Breadcrumbs\Traits\HasBreadcrumb;
 use App\Modules\Pub\Company\Models\Company;
@@ -53,6 +54,36 @@ class PartnerController extends Controller
             'crm_links' => (new PartnerCrmCompanyService())->linked($partner),
         ]);
     }
+
+    /**
+     * Вкладка «Сделки Битрикс» карточки партнёра (patch v23).
+     *
+     * Отдаёт кусок разметки — фильтр и таблицу реестра из patch v22,
+     * ограниченные компаниями Битрикса этого партнёра. Вкладка грузится
+     * ajax'ом и тем же способом перезагружается после смены фильтра,
+     * поэтому макет страницы здесь не нужен.
+     *
+     * @param Request $request
+     * @param Partner $partner
+     * @return \Illuminate\Contracts\View\View
+     */
+    public function deals(Request $request, Partner $partner)
+    {
+        $params = CrmDealRegistryService::params($request);
+
+        return view('bitrix.deal._tab', array_merge(CrmDealRegistryService::options(), [
+            'params' => $params,
+            'rows' => CrmDealRegistryService::rows($params, $partner),
+            'partner' => $partner,
+            'action' => route('partner.deals', $partner),
+            'prefix' => 'partner_deal',
+            'table_id' => 'partner_deal_table',
+            'ajax' => true,
+            // задел под вкладки «Проекты» и «Архив проектов» (patch v24)
+            'mode' => (string) $request->input('mode', 'all'),
+        ]));
+    }
+
 
     /**
      * Страница со списком

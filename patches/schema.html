@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html { color-scheme: light dark; }
+  body { margin: 0; font-family: system-ui, sans-serif; font-size: 14px; }
+  img { max-width: 100%; }
+  [hidden] { display: none !important; }
+</style>
+<title>Схема данных osmo</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<style>
+  :root {
+    --paper:      #f2f5f7;
+    --surface:    #ffffff;
+    --surface-2:  #e8edf1;
+    --ink:        #16202b;
+    --muted:      #5d6b7a;
+    --line:       #ccd6de;
+    --line-soft:  #dde5eb;
+
+    --portal:     #0d7d72;
+    --portal-bg:  rgba(13, 125, 114, .07);
+    --bitrix:     #5a6b7f;
+    --bitrix-bg:  rgba(90, 107, 127, .09);
+    --bridge:     #b3660b;
+    --bridge-bg:  rgba(179, 102, 11, .09);
+    --ext:        #7449c4;
+    --ext-bg:     rgba(116, 73, 196, .08);
+
+    --edge:       #9aa8b5;
+
+    --w: 1180px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:      #0e141a;
+      --surface:    #161d25;
+      --surface-2:  #1d262f;
+      --ink:        #e3ebf2;
+      --muted:      #93a2b1;
+      --line:       #2c3742;
+      --line-soft:  #232d37;
+
+      --portal:     #34c8b8;
+      --portal-bg:  rgba(52, 200, 184, .11);
+      --bitrix:     #9fb0c2;
+      --bitrix-bg:  rgba(159, 176, 194, .11);
+      --bridge:     #f0a83c;
+      --bridge-bg:  rgba(240, 168, 60, .12);
+      --ext:        #b195ec;
+      --ext-bg:     rgba(177, 149, 236, .12);
+
+      --edge:       #6b7c8c;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:      #0e141a;
+    --surface:    #161d25;
+    --surface-2:  #1d262f;
+    --ink:        #e3ebf2;
+    --muted:      #93a2b1;
+    --line:       #2c3742;
+    --line-soft:  #232d37;
+
+    --portal:     #34c8b8;
+    --portal-bg:  rgba(52, 200, 184, .11);
+    --bitrix:     #9fb0c2;
+    --bitrix-bg:  rgba(159, 176, 194, .11);
+    --bridge:     #f0a83c;
+    --bridge-bg:  rgba(240, 168, 60, .12);
+    --ext:        #b195ec;
+    --ext-bg:     rgba(177, 149, 236, .12);
+
+    --edge:       #6b7c8c;
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 15px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: var(--w);
+    margin: 0 auto;
+    padding: 56px 24px 80px;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+  }
+
+  /* ——— шапка ——— */
+  header { display: flex; flex-direction: column; gap: 16px; }
+
+  .eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  h1 {
+    font-family: Archivo, system-ui, sans-serif;
+    font-weight: 700;
+    font-size: clamp(30px, 4.4vw, 46px);
+    line-height: 1.06;
+    letter-spacing: -.022em;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .lede {
+    max-width: 66ch;
+    color: var(--muted);
+    font-size: 16px;
+    margin: 0;
+  }
+  .lede strong { color: var(--ink); font-weight: 600; }
+
+  .dbs { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+
+  .db {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 9px 14px;
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    background: var(--surface);
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 12.5px;
+  }
+  .db b { font-weight: 600; letter-spacing: -.01em; }
+  .db span { color: var(--muted); font-size: 11.5px; }
+  .db.portal { border-left: 3px solid var(--portal); }
+  .db.mirror { border-left: 3px solid var(--bitrix); }
+
+  /* ——— легенда ——— */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 26px;
+    align-items: center;
+    padding: 14px 0;
+    border-top: 1px solid var(--line-soft);
+    border-bottom: 1px solid var(--line-soft);
+    font-size: 12.5px;
+    color: var(--muted);
+  }
+  .key { display: inline-flex; align-items: center; gap: 8px; }
+  .chip {
+    width: 26px; height: 13px; border-radius: 2px;
+    border: 1px solid currentColor; flex: none;
+  }
+  .chip.portal { color: var(--portal); background: var(--portal-bg); }
+  .chip.bitrix { color: var(--bitrix); background: var(--bitrix-bg); }
+  .chip.bridge { color: var(--bridge); background: var(--bridge-bg); }
+  .chip.ext    { color: var(--ext);    background: var(--ext-bg); }
+  .key b { color: var(--ink); font-weight: 600; }
+
+  .rule { width: 30px; height: 0; border-top: 2px solid var(--edge); flex: none; }
+  .rule.dashed { border-top-style: dashed; border-color: var(--bridge); }
+
+  /* ——— диаграмма ——— */
+  figure { margin: 0; display: flex; flex-direction: column; gap: 14px; }
+
+  .canvas {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 22px 18px;
+    overflow-x: auto;
+  }
+  .mermaid { min-width: 900px; }
+  .mermaid svg { max-width: none !important; height: auto; }
+
+  figcaption { color: var(--muted); font-size: 13px; max-width: 72ch; }
+
+  /* мермейд под палитру страницы */
+  .mermaid .nodeLabel,
+  .mermaid .edgeLabel,
+  .mermaid .cluster-label .nodeLabel { color: var(--ink) !important; }
+
+  .mermaid .nodeLabel { font-size: 13px; line-height: 1.35; }
+  .mermaid .nodeLabel .sub {
+    display: block;
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 10.5px;
+    line-height: 1.35;
+    color: var(--muted);
+    font-weight: 400;
+    padding-top: 2px;
+  }
+  .mermaid .cluster-label .nodeLabel {
+    font-family: Archivo, sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+  }
+  .mermaid .edgeLabel {
+    font-size: 10.5px;
+    background: var(--surface) !important;
+  }
+  .mermaid .edgeLabel rect,
+  .mermaid .edgeLabel .labelBkg { fill: var(--surface) !important; opacity: .92 !important; }
+  .mermaid .flowchart-link { stroke: var(--edge); stroke-width: 1.3px; }
+  .mermaid .edge-pattern-dashed { stroke: var(--bridge) !important; stroke-width: 1.7px; }
+  .mermaid .marker { fill: var(--edge) !important; stroke: var(--edge) !important; }
+
+  /* ——— мосты ——— */
+  h2 {
+    font-family: Archivo, system-ui, sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -.012em;
+    margin: 0 0 6px;
+  }
+  .section-note { color: var(--muted); font-size: 14px; margin: 0 0 20px; max-width: 68ch; }
+
+  .bridges {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1px;
+    background: var(--line-soft);
+    border: 1px solid var(--line-soft);
+  }
+  .bridge-card {
+    background: var(--surface);
+    padding: 20px 20px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .bridge-card h3 {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 13px;
+    font-weight: 600;
+    margin: 0;
+    color: var(--bridge);
+    word-break: break-word;
+  }
+  .arrowline {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11.5px;
+    color: var(--muted);
+  }
+  .arrowline i { font-style: normal; color: var(--ink); }
+  .bridge-card p { margin: 0; font-size: 13.5px; }
+  .bridge-card .why {
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px dashed var(--line);
+    font-size: 12.5px;
+    color: var(--muted);
+  }
+  .bridge-card .why b { color: var(--ink); font-weight: 600; }
+
+  /* ——— таблица цифр ——— */
+  .counts { overflow-x: auto; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 13.5px;
+    font-variant-numeric: tabular-nums;
+  }
+  caption {
+    text-align: left;
+    color: var(--muted);
+    font-size: 12.5px;
+    padding-bottom: 10px;
+  }
+  th, td {
+    text-align: left;
+    padding: 9px 14px 9px 0;
+    border-bottom: 1px solid var(--line-soft);
+    vertical-align: baseline;
+  }
+  th {
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+    border-bottom-color: var(--line);
+  }
+  td.name { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 12.5px; white-space: nowrap; }
+  td.num  { text-align: right; padding-right: 22px; white-space: nowrap; font-weight: 500; }
+  td.note { color: var(--muted); }
+  tbody tr:last-child td { border-bottom: 0; }
+
+  .tag {
+    display: inline-block;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 10px;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 2px;
+    border: 1px solid currentColor;
+    white-space: nowrap;
+  }
+  .tag.portal { color: var(--portal); background: var(--portal-bg); }
+  .tag.bitrix { color: var(--bitrix); background: var(--bitrix-bg); }
+  .tag.bridge { color: var(--bridge); background: var(--bridge-bg); }
+  .tag.ext    { color: var(--ext);    background: var(--ext-bg); }
+
+  footer {
+    color: var(--muted);
+    font-size: 12.5px;
+    border-top: 1px solid var(--line-soft);
+    padding-top: 18px;
+  }
+  footer code {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11.5px;
+    color: var(--ink);
+  }
+
+  @media (max-width: 640px) {
+    .wrap { padding: 36px 16px 60px; gap: 32px; }
+  }
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Портал руководителя проектов · 10.09.2026</div>
+    <h1>Схема данных osmo</h1>
+    <p class="lede">
+      Данные живут в <strong>двух базах</strong>. Портал пишет в свою, зеркало Битрикс24
+      перезаливается дампом целиком — колонок туда не добавить и внешних ключей не поставить.
+      Поэтому каждая связь между мирами вынесена в отдельную <strong>таблицу-мост</strong>
+      на нашей стороне, и целостность держим мы, а не СУБД.
+    </p>
+    <div class="dbs">
+      <div class="db portal"><b>avgmom</b> <span>портал · пишем и читаем</span></div>
+      <div class="db mirror"><b>avgbitrix</b> <span>зеркало Битрикс24 · только чтение, перезаливается дампом</span></div>
+    </div>
+  </header>
+
+  <div class="legend">
+    <span class="key"><span class="chip portal"></span><b>Портал</b></span>
+    <span class="key"><span class="chip ext"></span><b>Внешний источник</b></span>
+    <span class="key"><span class="chip bridge"></span><b>Мосты</b></span>
+    <span class="key"><span class="chip bitrix"></span><b>Зеркало Битрикса</b></span>
+    <span class="key"><span class="rule"></span>ключ внутри одной базы</span>
+    <span class="key"><span class="rule dashed"></span>ссылка через границу баз</span>
+    <span class="key">стрелка ведёт от таблицы к той, на которую она ссылается</span>
+  </div>
+
+  <figure>
+    <div class="canvas">
+<pre class="mermaid">
+%%{init: {"flowchart": {"curve": "basis", "nodeSpacing": 30, "rankSpacing": 78, "padding": 6, "useMaxWidth": false}, "themeVariables": {"fontFamily": "'IBM Plex Mono', ui-monospace, monospace", "fontSize": "13px", "lineColor": "#9aa8b5"}}}%%
+flowchart LR
+
+  subgraph G_EXT["OSMOVIEW CP · система Алексея"]
+    direction TB
+    ep["external_proposals · 27<br><span class='sub'>сырой payload КП, external_number AK…</span>"]
+    esm["external_scenario_map<br><span class='sub'>его сценарий → наш scenario_id</span>"]
+  end
+
+  subgraph G_KP["Коммерческие предложения"]
+    direction TB
+    items["позиции варианта<br><span class='sub'>_scenarios · _platforms · _works<br>_software · _extra_pays</span>"]
+    hw["hardware<br><span class='sub'>оборудование варианта</span>"]
+    cat["proposal_works · proposal_software<br><span class='sub'>состав КП, по proposal_id</span>"]
+    var["proposal_variants · 589<br><span class='sub'>расчёт: суммы, скидки, НДС</span>"]
+    prop["proposals · 430<br><span class='sub'>205 групп · group + iteration</span>"]
+    sc["scenarios · 105<br><span class='sub'>справочник нейросервисов, cost_rules</span>"]
+  end
+
+  subgraph G_MONEY["Договоры и деньги"]
+    direction TB
+    csp["contract_specification_proposals · 11<br><span class='sub'>спецификация ↔ группа КП</span>"]
+    spec["contract_specifications · 68<br><span class='sub'>сумма, подпись, статус</span>"]
+    contr["contracts · 26<br><span class='sub'>рамочный договор партнёра</span>"]
+  end
+
+  subgraph G_PROJ["Проекты по сделкам"]
+    direction TB
+    dps["deal_project_specifications · 6<br><span class='sub'>from_proposal — пришла из КП</span>"]
+    dpd["deal_project_deals · 21<br><span class='sub'>UNIQUE crm_deal_id</span>"]
+    proj["deal_projects · 21<br><span class='sub'>партнёр + компания, пилот, архив</span>"]
+  end
+
+  subgraph G_CORE["Партнёры и компании"]
+    direction TB
+    comp["companies · 165<br><span class='sub'>заказчик партнёра</span>"]
+    part["partners · 58<br><span class='sub'>партнёр портала, грейд, тип</span>"]
+  end
+
+  subgraph G_BRIDGE["Мосты портал ↔ Битрикс"]
+    direction TB
+    pcd["proposal_crm_deals · 61<br><span class='sub'>UNIQUE crm_deal_id · is_main</span>"]
+    pcc["partner_crm_companies · 39<br><span class='sub'>UNIQUE crm_company_id</span>"]
+  end
+
+  subgraph G_BX["Зеркало Битрикс24 · avgbitrix"]
+    direction TB
+    cdealuf["crm_deal_uf<br><span class='sub'>заказчик, квартал, суммы по видам</span>"]
+    cdeal["crm_deal · 406<br><span class='sub'>стадия, сумма, менеджер</span>"]
+    ccouf["crm_company_uf<br><span class='sub'>страна получения средств</span>"]
+    cco["crm_company · 383<br><span class='sub'>компания-партнёр в CRM</span>"]
+  end
+
+  %% —— внутри КП ——
+  items -->|proposal_variant_id| var
+  items -->|scenario_id| sc
+  items -->|proposal_work_id / _software_id| cat
+  hw -->|proposal_variant_id| var
+  cat -->|proposal_id| prop
+  var -->|proposal_id| prop
+
+  %% —— партнёры и заказчики ——
+  comp -->|partner_id| part
+  prop -->|partner_id| part
+  prop -->|company_id| comp
+  contr -->|partner_id| part
+  contr -->|company_id| comp
+
+  %% —— деньги ——
+  contr -->|proposal_id — одна итерация| prop
+  spec -->|contract_id| contr
+  spec -->|company_id| comp
+  csp -->|contract_specification_id| spec
+  csp -->|proposal_group — вся группа| prop
+
+  %% —— внешний источник ——
+  ep -->|proposal_group — после переноса| prop
+  esm -->|scenario_id| sc
+
+  %% —— проекты ——
+  proj -->|partner_id| part
+  proj -->|company_id| comp
+  dpd -->|deal_project_id| proj
+  dps -->|deal_project_id| proj
+  dps -->|contract_specification_id| spec
+
+  %% —— мосты через границу баз ——
+  pcc -->|partner_id| part
+  pcd -->|proposal_group| prop
+  pcc -.->|crm_company_id| cco
+  pcd -.->|crm_deal_id| cdeal
+  dpd -.->|crm_deal_id| cdeal
+
+  %% —— внутри зеркала ——
+  cdealuf -->|deal_id| cdeal
+  cdeal -->|company_id| cco
+  ccouf -->|company_id| cco
+
+  classDef ext fill:#7449c41f,stroke:#7449c4,stroke-width:1.1px;
+  classDef portal fill:#0d7d7217,stroke:#0d7d72,stroke-width:1.1px;
+  classDef bridge fill:#b3660b26,stroke:#b3660b,stroke-width:1.7px;
+  classDef bitrix fill:#5a6b7f1f,stroke:#5a6b7f,stroke-width:1.1px;
+
+  class ep,esm ext;
+  class items,hw,cat,var,prop,sc,csp,spec,contr,dps,dpd,proj,comp,part portal;
+  class pcd,pcc bridge;
+  class cdealuf,cdeal,ccouf,cco bitrix;
+
+  style G_EXT fill:#7449c40d,stroke:#7449c466,stroke-width:1px
+  style G_KP fill:#0d7d720d,stroke:#0d7d7266,stroke-width:1px
+  style G_MONEY fill:#0d7d720d,stroke:#0d7d7266,stroke-width:1px
+  style G_PROJ fill:#0d7d720d,stroke:#0d7d7266,stroke-width:1px
+  style G_CORE fill:#0d7d720d,stroke:#0d7d7266,stroke-width:1px
+  style G_BRIDGE fill:#b3660b14,stroke:#b3660b80,stroke-width:1px
+  style G_BX fill:#5a6b7f14,stroke:#5a6b7f80,stroke-width:1px
+</pre>
+    </div>
+    <figcaption>
+      Оранжевым пунктиром — три места, где портал ссылается в чужую базу. Всё остальное держится
+      обычными ключами внутри одной базы. Цифры — фактические строки локальной копии на 10.09.2026.
+      Обратите внимание на две стрелки от денег к КП: договор ссылается на <b>одну итерацию</b>
+      (<code>contracts.proposal_id</code>), а спецификация — на <b>всю группу</b>
+      (<code>contract_specification_proposals.proposal_group</code>).
+    </figcaption>
+  </figure>
+
+  <section>
+    <h2>Три моста</h2>
+    <p class="section-note">
+      Уникальность в мостах — это не украшение схемы, а правило учёта: она не даёт одной строке
+      Битрикса попасть в два места портала и раздвоить деньги.
+    </p>
+
+    <div class="bridges">
+      <div class="bridge-card">
+        <h3>partner_crm_companies</h3>
+        <div class="arrowline"><i>partners</i> → crm_company</div>
+        <p>
+          Партнёр портала ↔ компании в CRM. У партнёра компаний может быть несколько —
+          в Битриксе одна фирма нередко заведена под разными названиями.
+          Обратное запрещено.
+        </p>
+        <div class="why"><b>UNIQUE crm_company_id.</b> Иначе одна сделка досталась бы двум партнёрам, и скоринг посчитал бы её дважды. Сопоставлено 39 компаний.</div>
+      </div>
+
+      <div class="bridge-card">
+        <h3>proposal_crm_deals</h3>
+        <div class="arrowline"><i>proposals.group</i> → crm_deal</div>
+        <p>
+          Привязка живёт на группе КП, то есть сразу на всех итерациях. У КП сделок бывает
+          несколько: этапы поставки, лицензии и услуги ведут отдельно. Главная дублируется
+          в <code>proposals.crm_deal_id</code> для старого кода.
+        </p>
+        <div class="why"><b>UNIQUE crm_deal_id.</b> Одна сделка принадлежит одному КП — иначе сверка сумм с CRM начнёт двоить выручку.</div>
+      </div>
+
+      <div class="bridge-card">
+        <h3>deal_project_deals</h3>
+        <div class="arrowline"><i>deal_projects</i> → crm_deal</div>
+        <p>
+          Проект собирает сделки одного партнёра и одной компании. Спецификации проекта
+          частью приходят из КП его сделок (<code>from_proposal</code>) и руками не снимаются,
+          частью отмечаются вручную.
+        </p>
+        <div class="why"><b>UNIQUE crm_deal_id.</b> Так гарантируется «у сделки ровно один проект» — на этом же держится значок проекта в реестре.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="counts">
+    <table>
+      <caption>Что где лежит — по строкам локальной копии, 10.09.2026</caption>
+      <thead>
+        <tr>
+          <th>Таблица</th>
+          <th style="text-align:right; padding-right:22px">Строк</th>
+          <th>Где</th>
+          <th>Чем держится</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="name">partners</td><td class="num">58</td><td><span class="tag portal">портал</span></td><td class="note">корень справочника контрагентов</td></tr>
+        <tr><td class="name">companies</td><td class="num">165</td><td><span class="tag portal">портал</span></td><td class="note">partner_id → partners</td></tr>
+        <tr><td class="name">proposals</td><td class="num">430</td><td><span class="tag portal">портал</span></td><td class="note">205 групп; связи вешаются на group, не на id</td></tr>
+        <tr><td class="name">proposal_variants</td><td class="num">589</td><td><span class="tag portal">портал</span></td><td class="note">proposal_id → proposals</td></tr>
+        <tr><td class="name">contracts</td><td class="num">26</td><td><span class="tag portal">портал</span></td><td class="note">partner_id → partners</td></tr>
+        <tr><td class="name">contract_specifications</td><td class="num">68</td><td><span class="tag portal">портал</span></td><td class="note">contract_id → contracts, company_id → companies</td></tr>
+        <tr><td class="name">contract_specification_proposals</td><td class="num">11</td><td><span class="tag portal">портал</span></td><td class="note">спецификация ↔ группа КП</td></tr>
+        <tr><td class="name">external_proposals</td><td class="num">27</td><td><span class="tag ext">внешние</span></td><td class="note">proposal_group заполняется при переносе</td></tr>
+        <tr><td class="name">deal_projects</td><td class="num">21</td><td><span class="tag portal">портал</span></td><td class="note">partner_id, company_id; архив через archived_at</td></tr>
+        <tr><td class="name">partner_crm_companies</td><td class="num">39</td><td><span class="tag bridge">мост</span></td><td class="note">UNIQUE crm_company_id</td></tr>
+        <tr><td class="name">proposal_crm_deals</td><td class="num">61</td><td><span class="tag bridge">мост</span></td><td class="note">UNIQUE crm_deal_id, is_main</td></tr>
+        <tr><td class="name">deal_project_deals</td><td class="num">21</td><td><span class="tag bridge">мост</span></td><td class="note">UNIQUE crm_deal_id</td></tr>
+        <tr><td class="name">crm_deal</td><td class="num">406</td><td><span class="tag bitrix">зеркало</span></td><td class="note">перезаливается дампом; свои колонки не добавлять</td></tr>
+        <tr><td class="name">crm_company</td><td class="num">383</td><td><span class="tag bitrix">зеркало</span></td><td class="note">то же самое</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <footer>
+    Кросс-базовые сравнения строк требуют <code>COLLATE utf8mb4_unicode_ci</code>: у зеркала
+    коллация <code>utf8mb4_0900_ai_ci</code>. Поля <code>crm_deal_uf</code> и
+    <code>crm_company_uf</code> — пользовательские, с машинными именами вида
+    <code>uf_crm_1717755645</code> (конечный заказчик); расшифровки собраны
+    в <code>CrmDealRegistryService</code> и <code>CrmDealExportService</code>.
+  </footer>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({ startOnLoad: true, securityLevel: 'loose', flowchart: { htmlLabels: true } });
+</script>
+</body>
+</html>

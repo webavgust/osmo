@@ -1,5 +1,20 @@
 @extends('layouts.layout')
 
+@section('styles')
+    @parent
+    {{-- таблица вкладки «Сделки Битрикс» (patch v23) --}}
+    <link rel="stylesheet" href="/assets/libs/bootstrap-table/dist/bootstrap-table.min.css"/>
+
+    <style>
+        /* панель инструментов bootstrap-table — как в реестре сделок */
+        .fixed-table-toolbar .bs-bars { padding-top: 0; }
+        .fixed-table-toolbar .search .form-control { min-width: 240px; }
+        .bootstrap-table .fixed-table-container .table thead th .th-inner { padding: .75rem 1.25rem .75rem .5rem; }
+        .fixed-table-container thead th .desc { background-position-y: 8px; }
+        .fixed-table-container thead th .asc { background-position-y: 17px; }
+    </style>
+@endsection
+
 @section('breadcrumb_right')
     <x-ui.a.default btn_type="info" href="{{ route('partner.edit', $partner) }}">
         Редактировать
@@ -166,9 +181,23 @@
             </div>
             <div class="col-9" id="payments" mode="summary">
 
-                <div class="d-flex justify-content-between mb-2">
-                    <h2>Договоры</h2>
-                </div>
+                {{-- Вкладки карточки партнёра (patch v23). Активная запоминается
+                     в адресе (#deals), чтобы ссылка открывала нужную. --}}
+                <ul class="nav nav-tabs nav-line-tabs nav-line-tabs-2x fs-5 fw-semibold mb-5" id="partner_tabs">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-bs-toggle="tab" href="#partner_tab_contracts">
+                            Договоры
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#partner_tab_deals">
+                            Сделки Битрикс
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="partner_tab_contracts" role="tabpanel">
 
 
                 <div class="table-responsive bg-white">
@@ -731,12 +760,29 @@
 {{--                    </div>--}}
 {{--                </div>--}}
 
+                    </div>
+
+                    {{-- Сделки Битрикс: реестр из patch v22 в области партнёра,
+                         приезжает ajax'ом при первом открытии вкладки --}}
+                    <div class="tab-pane fade" id="partner_tab_deals" role="tabpanel">
+                        <div data-deal-tab="partner_deal" data-deal-url="{{ route('partner.deals', $partner) }}">
+                            <div class="text-center text-muted py-15">
+                                <span class="spinner-border spinner-border-sm align-middle me-2"></span>
+                                Загружаем сделки…
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 @endsection
 
 @section('js')
+    @parent
+    <script src="/assets/libs/bootstrap-table/dist/bootstrap-table.min.js"></script>
+    <script src="/assets/libs/bootstrap-table/dist/bootstrap-table-locale-all.min.js"></script>
+
     <script>
         $(document).ready(function() {
             $("#payments button[mode]").on("click", function() {
@@ -748,5 +794,70 @@
 
             });
         });
+
+        // Вкладки карточки партнёра (patch v23).
+        //
+        // Содержимое вкладки со сделками приезжает ajax'ом: сам реестр — кусок
+        // разметки из patch v22, и он же перерисовывается после смены фильтра
+        // или поиска. Контейнер помечен data-deal-tab, поэтому в патче v24
+        // тем же способом добавятся вкладки «Проекты» и «Архив проектов».
+        (function () {
+            /**
+             * Загрузить содержимое вкладки
+             *
+             * @param {string} url    адрес с фильтром
+             * @param {string} prefix префикс блока (он же ключ контейнера)
+             */
+            window.dealTabLoad = function (url, prefix) {
+                var $box = $('[data-deal-tab="' + prefix + '"]');
+                if (!$box.length) return location.href = url;
+
+                // модалка фильтра уезжает в body — прежнюю убираем, иначе
+                // на странице окажутся два блока с одним id
+                $('#' + prefix + '_filter_modal').remove();
+
+                $box.html('<div class="text-center text-muted py-15">' +
+                    '<span class="spinner-border spinner-border-sm align-middle me-2"></span>' +
+                    'Загружаем сделки…</div>');
+
+                $.get(url)
+                    .done(function (html) {
+                        $box.html(html);
+                        $box.data('loaded', true);
+                    })
+                    .fail(function () {
+                        $box.html('<div class="text-center text-danger py-15">Не удалось загрузить сделки</div>');
+                        toastr.error('Не удалось загрузить сделки', 'Это провал!');
+                    });
+            };
+
+            $(document).ready(function () {
+                var $tabs = $('#partner_tabs');
+                if (!$tabs.length) return;
+
+                // вкладку грузим один раз — при первом открытии
+                var load = function ($pane) {
+                    var $box = $pane.find('[data-deal-tab]');
+                    if (!$box.length || $box.data('loaded')) return;
+
+                    window.dealTabLoad($box.data('deal-url'), $box.data('deal-tab'));
+                };
+
+                $tabs.on('shown.bs.tab', 'a[data-bs-toggle="tab"]', function () {
+                    var hash = $(this).attr('href');
+
+                    load($(hash));
+                    history.replaceState(null, '', hash === '#partner_tab_contracts' ? location.pathname : hash);
+                });
+
+                // адрес со вкладкой открывает её сразу
+                var link = $tabs.find('a[href="' + location.hash + '"]')[0];
+                if (location.hash && link) {
+                    // у бандла Metronic плагин jQuery может быть не подключён
+                    if (window.bootstrap && bootstrap.Tab) bootstrap.Tab.getOrCreateInstance(link).show();
+                    else $(link).tab('show');
+                }
+            });
+        })();
     </script>
 @endsection
