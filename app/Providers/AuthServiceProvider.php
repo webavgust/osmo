@@ -31,6 +31,13 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
 
+        // patch v28: админ-панель — только по признаку users.is_admin (без super_user).
+        // Объявляем до блока ниже: он может выйти через return
+        Gate::define('admin_panel', fn($user) => method_exists($user, 'isPanelAdmin') && $user->isPanelAdmin());
+
+        // patch v29: журнал изменений видят администраторы панели и пользователи с флагом users.log_view
+        Gate::define('entity_log_view', fn($user) => method_exists($user, 'canViewEntityLog') && $user->canViewEntityLog());
+
         if(empty($_SERVER['USERNAME']) || $_SERVER['USERNAME'] != 'avg.den') {
             if (!Schema::hasTable('accesses')) return false;
             Access::all()->each(fn($item) => Gate::define($item->code, [$item->class, $item->method]));

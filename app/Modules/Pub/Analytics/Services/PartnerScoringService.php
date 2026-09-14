@@ -2,6 +2,7 @@
 
 namespace App\Modules\Pub\Analytics\Services;
 
+use App\Modules\Pub\Constant\Models\Constant;
 use App\Modules\Pub\ContractSpecification\Services\SpecProposalService;
 use App\Modules\Pub\Currency\Services\CurrencyService;
 use App\Modules\Pub\Partner\Models\Partner;
@@ -67,17 +68,23 @@ use Illuminate\Support\Facades\DB;
  */
 class PartnerScoringService
 {
-    /** Веса составляющих балла, в сумме 100 */
-    public const WEIGHT_SPECS = 35;
-    public const WEIGHT_PROJECTS = 25;
-    public const WEIGHT_CONVERSION = 25;
-    public const WEIGHT_DEALS = 10;
-    public const WEIGHT_OVERDUE = 5;
+    /** Веса составляющих балла, в сумме 100. Читать через weights() */
+    public const WEIGHT_SPECS = 35;      // по умолчанию; рабочее значение — consts.scoring_weight_specs
+    public const WEIGHT_PROJECTS = 25;   // по умолчанию; рабочее значение — consts.scoring_weight_projects
+    public const WEIGHT_CONVERSION = 25; // по умолчанию; рабочее значение — consts.scoring_weight_conversion
+    public const WEIGHT_DEALS = 10;      // по умолчанию; рабочее значение — consts.scoring_weight_deals
+    public const WEIGHT_OVERDUE = 5;     // по умолчанию; рабочее значение — consts.scoring_weight_overdue
 
-    /** Вклад года в итоговый балл: смещение назад → вес, в сумме 100 */
+    /**
+     * Вклад года в итоговый балл: смещение назад → вес, в сумме 100.
+     * По умолчанию; рабочее значение — consts.scoring_year_weights (читать через yearWeights())
+     */
     public const YEAR_WEIGHTS = [0 => 75, 1 => 20, 2 => 5];
 
-    /** Сколько лет назад считать место в рейтинге для графика */
+    /**
+     * Сколько лет назад считать место в рейтинге для графика.
+     * По умолчанию; рабочее значение — consts.scoring_history_years (читать через historyYears())
+     */
     public const HISTORY_YEARS = 5;
 
     /** Кэш курсов на запрос */
@@ -88,6 +95,54 @@ class PartnerScoringService
 
     /** Кэш сырых баллов по годам (до сглаживания и нормировки) */
     protected static array $raw_cache = [];
+
+    /**
+     * Веса составляющих балла (consts.scoring_weight_*, по умолчанию WEIGHT_*)
+     *
+     * @return array ['specs' => int, 'projects' => int, 'conversion' => int, 'deals' => int, 'overdue' => int]
+     */
+    public static function weights(): array
+    {
+        return [
+            'specs' => Constant::int('scoring_weight_specs', static::WEIGHT_SPECS),
+            'projects' => Constant::int('scoring_weight_projects', static::WEIGHT_PROJECTS),
+            'conversion' => Constant::int('scoring_weight_conversion', static::WEIGHT_CONVERSION),
+            'deals' => Constant::int('scoring_weight_deals', static::WEIGHT_DEALS),
+            'overdue' => Constant::int('scoring_weight_overdue', static::WEIGHT_OVERDUE),
+        ];
+    }
+
+    /**
+     * Вклад года в итоговый балл: смещение назад → вес
+     * (consts.scoring_year_weights, по умолчанию YEAR_WEIGHTS).
+     *
+     * Без веса текущего года (ключ 0) значение считается испорченным — берём YEAR_WEIGHTS.
+     *
+     * @return array [0 => вес текущего года, 1 => прошлого, …]
+     */
+    public static function yearWeights(): array
+    {
+        $ret = [];
+
+        foreach (Constant::json('scoring_year_weights', static::YEAR_WEIGHTS) as $offset => $weight) {
+            if (!is_numeric($offset) || !is_numeric($weight) || (int) $offset < 0) continue;
+            $ret[(int) $offset] = $weight + 0;
+        }
+
+        ksort($ret);
+
+        return isset($ret[0]) ? $ret : static::YEAR_WEIGHTS;
+    }
+
+    /**
+     * Сколько лет показывать на графике места (consts.scoring_history_years, по умолчанию HISTORY_YEARS)
+     *
+     * @return int
+     */
+    public static function historyYears(): int
+    {
+        return max(1, Constant::int('scoring_history_years', static::HISTORY_YEARS));
+    }
 
     /**
      * Партнёры с показателями и баллом
@@ -167,16 +222,18 @@ class PartnerScoringService
             });
         }
 
+        $year_weights = static::yearWeights();
+
         // прошлые годы: id партнёра → строка
         $past = [];
-        foreach (static::YEAR_WEIGHTS as $offset => $weight) {
+        foreach ($year_weights as $offset => $weight) {
             if ($offset === 0) continue;
             $past[$offset] = static::raw($year - $offset)->keyBy(fn($row) => (int) $row['partner']->id);
         }
 
-        return $rows->map(function ($row) use ($past, $year) {
+        return $rows->map(function ($row) use ($past, $year, $year_weights) {
             $id = (int) $row['partner']->id;
-            $weight_now = static::YEAR_WEIGHTS[0];
+            $weight_now = $year_weights[0];
 
             $years = [[
                 'year' => $year,
@@ -188,7 +245,7 @@ class PartnerScoringService
             $blended = $row['score_raw'] * $weight_now / 100;
 
             foreach ($past as $offset => $rows_past) {
-                $weight = static::YEAR_WEIGHTS[$offset];
+                $weight = $year_weights[$offset];
                 $score = (float) ($rows_past->get($id)['score_raw'] ?? 0);
                 $blended += $score * $weight / 100;
 
@@ -370,8 +427,9 @@ class PartnerScoringService
         $best_specs = (float) $rows->max('specs_sum');
         $best_projects = (float) $rows->max('projects');
         $best_deals = (float) $rows->max('deals');
+        $weights = static::weights();
 
-        return $rows->map(function ($row) use ($best_specs, $best_projects, $best_deals) {
+        return $rows->map(function ($row) use ($best_specs, $best_projects, $best_deals, $weights) {
             $specs = $best_specs > 0 ? $row['specs_sum'] / $best_specs * 100 : 0;
             $projects = $best_projects > 0 ? $row['projects'] / $best_projects * 100 : 0;
             $conversion = $row['conversion'] ?? 0;
@@ -381,11 +439,11 @@ class PartnerScoringService
             $overdue = 100 - ($row['overdue_share'] ?? 50);
 
             $row['parts'] = [
-                'specs' => ['label' => 'Сумма подписанных спецификаций', 'weight' => static::WEIGHT_SPECS, 'value' => $specs],
-                'projects' => ['label' => 'Количество проектов', 'weight' => static::WEIGHT_PROJECTS, 'value' => $projects],
-                'conversion' => ['label' => 'Конверсия решённых КП', 'weight' => static::WEIGHT_CONVERSION, 'value' => $conversion],
-                'deals' => ['label' => 'Кол-во сделок битрикс', 'weight' => static::WEIGHT_DEALS, 'value' => $deals],
-                'overdue' => ['label' => 'Платежи без просрочки', 'weight' => static::WEIGHT_OVERDUE, 'value' => $overdue],
+                'specs' => ['label' => 'Сумма подписанных спецификаций', 'weight' => $weights['specs'], 'value' => $specs],
+                'projects' => ['label' => 'Количество проектов', 'weight' => $weights['projects'], 'value' => $projects],
+                'conversion' => ['label' => 'Конверсия решённых КП', 'weight' => $weights['conversion'], 'value' => $conversion],
+                'deals' => ['label' => 'Кол-во сделок Битрикс24', 'weight' => $weights['deals'], 'value' => $deals],
+                'overdue' => ['label' => 'Платежи без просрочки', 'weight' => $weights['overdue'], 'value' => $overdue],
             ];
 
             $raw = 0.0;
@@ -438,7 +496,7 @@ class PartnerScoringService
             $score >= 65 => ['letter' => 'B', 'color' => 'primary', 'label' => 'Надёжный'],
             $score >= 50 => ['letter' => 'C', 'color' => 'info', 'label' => 'Рабочий'],
             $score >= 35 => ['letter' => 'D', 'color' => 'warning', 'label' => 'Слабый'],
-            default => ['letter' => 'E', 'color' => 'danger', 'label' => 'Требует внимания'],
+            default => ['letter' => 'E', 'color' => 'danger', 'label' => 'Плохо'],
         };
     }
 
@@ -458,7 +516,7 @@ class PartnerScoringService
                 'hint' => 'Сделки есть, но объём или конверсия заметно отстают'],
             ['letter' => 'D', 'color' => 'warning', 'label' => 'Слабый', 'range' => '35–49',
                 'hint' => 'Много КП, мало подписанного — стоит разобраться, где встаёт'],
-            ['letter' => 'E', 'color' => 'danger', 'label' => 'Требует внимания', 'range' => '0–34',
+            ['letter' => 'E', 'color' => 'danger', 'label' => 'Плохо', 'range' => '0–34',
                 'hint' => 'Подписанных спецификаций почти нет либо копится просрочка'],
         ];
     }
@@ -475,7 +533,7 @@ class PartnerScoringService
     {
         $years = !empty($years)
             ? $years
-            : range((int) now()->year - static::HISTORY_YEARS + 1, (int) now()->year);
+            : range((int) now()->year - static::historyYears() + 1, (int) now()->year);
 
         $ret = [];
         foreach ($years as $year) {
@@ -507,7 +565,7 @@ class PartnerScoringService
 
         $attached = static::attachedGroups();
         $dates = static::linkDates();
-        $final = [ProposalStatus::WON->value, ProposalStatus::LOST->value, ProposalStatus::CANCELED->value];
+        $final = [ProposalStatus::WON->value, ProposalStatus::LOST->value];
 
         return $rows = collect(DB::table('proposals as p')
             ->leftJoin('companies as cm', 'cm.id', '=', 'p.company_id')

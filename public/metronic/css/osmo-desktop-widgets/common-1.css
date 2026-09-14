@@ -1,0 +1,237 @@
+/*
+ * Рабочий стол (patch v30): поведение виджетов группы common-1 в блоке любого размера.
+ * banner, button, changes, chart, compare, currency, embed, heading.
+ *
+ * Каждый селектор начинается с .desk-widget[data-widget="{id}"], кегль — только
+ * контейнерными единицами (cqw, cqh) в clamp(). Прогон — patches/patch-v30/grid/common-1.md.
+ */
+
+/* ================= banner — Баннер ================= */
+
+/*
+ * Широкая полоса (шире 420 px и вытянута больше чем 5:2) — текст слева, кнопка справа.
+ * Остальные блоки — колонка: заголовок, текст, кнопка под ними; кегль растёт с блоком,
+ * чтобы крупный баннер не пустовал. Высокий блок (уже 3:4) — текст сверху, кнопка снизу.
+ */
+.desk-widget[data-widget="banner"] .desk-banner-headline {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    font-size: calc(clamp(15px, min(5cqw, 30cqh), 64px) * var(--desk-font-scale));
+}
+.desk-widget[data-widget="banner"] .desk-banner-sub {
+    font-size: calc(clamp(11px, min(2.6cqw, 16cqh), 28px) * var(--desk-font-scale));
+}
+/* текст — от второй ячейки высоты, не больше трёх строк */
+@container dw (min-height: 110px) {
+    .desk-widget[data-widget="banner"] .desk-banner-sub {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 3;
+        overflow: hidden;
+        overflow-wrap: anywhere;
+    }
+}
+
+@container dw (max-width: 420px) or (max-aspect-ratio: 5/2) {
+    .desk-widget[data-widget="banner"] .desk-banner {
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: center !important;
+        gap: clamp(.4rem, 4cqh, 2.5rem);
+    }
+    .desk-widget[data-widget="banner"] .desk-banner.text-center { align-items: center; }
+    .desk-widget[data-widget="banner"] .desk-banner-text { max-width: 100%; }
+    .desk-widget[data-widget="banner"] .desk-banner-headline {
+        -webkit-line-clamp: 4;
+        font-size: calc(clamp(13px, min(10cqw, 16cqh), 96px) * var(--desk-font-scale));
+    }
+    .desk-widget[data-widget="banner"] .desk-banner-sub {
+        -webkit-line-clamp: 4;
+        font-size: calc(clamp(11px, min(4.5cqw, 7cqh), 36px) * var(--desk-font-scale));
+    }
+    .desk-widget[data-widget="banner"] .desk-banner-btn {
+        max-width: 100%;
+        white-space: normal;
+        padding: .55em 1.2em;
+        font-size: calc(clamp(12px, min(3.2cqw, 4cqh), 26px) * var(--desk-font-scale));
+    }
+}
+/* высокий блок: текст в верхней части, кнопка в нижней */
+@container dw (max-aspect-ratio: 3/4) {
+    .desk-widget[data-widget="banner"] .desk-banner { justify-content: space-evenly !important; }
+}
+/* узкий блок: отступы меньше; кнопка — только если хватает высоты */
+@container dw (max-width: 170px) {
+    .desk-widget[data-widget="banner"] .desk-banner { padding: 0 .5rem; }
+}
+@container dw (max-width: 170px) and (max-height: 229px) {
+    .desk-widget[data-widget="banner"] .desk-banner-btn { display: none; }
+}
+
+/* ================= button — Действие ================= */
+
+/*
+ * Кнопка-плитка на всё тело блока. По умолчанию значок над подписью, кегль растёт с
+ * блоком, с высоты 150 px внизу подсказка «что случится». Низкая широкая полоса (ниже
+ * 150 px, вытянута больше 5:2) — значок и подпись в строку, от 340 px справа подсказка.
+ * В узком или низком блоке заголовок виджета скрыт: подпись кнопки и есть заголовок.
+ */
+.desk-widget[data-widget="button"] .desk-action {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: .4em;
+    padding: .5em .6em;
+    min-width: 0;
+    overflow: hidden;
+    line-height: 1.25;
+    font-size: calc(clamp(12px, min(9cqw, 18cqh), 40px) * var(--desk-font-scale));
+}
+.desk-widget[data-widget="button"] .desk-action-main {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: .35em;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+}
+.desk-widget[data-widget="button"] .desk-action .desk-action-icon {
+    flex: none;
+    padding: 0;
+    line-height: 1;
+    color: inherit;
+    font-size: calc(clamp(16px, min(40cqw, 22cqh), 120px) * var(--desk-font-scale));
+}
+.desk-widget[data-widget="button"] .desk-action-label {
+    min-width: 0;
+    max-width: 100%;
+    font-weight: 600;
+    text-align: center;
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+}
+.desk-widget[data-widget="button"] .desk-action-hint {
+    display: none;
+    width: 100%;
+    min-width: 0;
+    text-align: center;
+    font-weight: 400;
+    opacity: .8;
+    font-size: calc(clamp(11px, min(3cqw, 4cqh), 16px) * var(--desk-font-scale));
+}
+@container dw (min-height: 150px) {
+    .desk-widget[data-widget="button"] .desk-action-hint { display: block; }
+}
+@container dw (max-width: 170px) {
+    .desk-widget[data-widget="button"] .desk-action { padding-left: .25em; padding-right: .25em; }
+}
+@container dw (max-width: 170px) or (max-height: 96px) {
+    .desk-widget[data-widget="button"] .desk-widget-head { display: none; }
+}
+
+/* низкая широкая полоса: значок и подпись в строку */
+@container dw (max-height: 149.98px) and (min-aspect-ratio: 5/2) {
+    .desk-widget[data-widget="button"] .desk-action {
+        flex-direction: row;
+        /* подсказке не хватает места справа — переносится под подпись, а не режется */
+        flex-wrap: wrap;
+        align-content: center;
+        gap: .1em .8em;
+        padding: 0 .8em;
+        font-size: calc(clamp(12px, min(9cqw, 30cqh), 30px) * var(--desk-font-scale));
+    }
+    .desk-widget[data-widget="button"] .desk-action-main {
+        flex: 0 1 auto;
+        flex-direction: row;
+        width: auto;
+        gap: .5em;
+    }
+    .desk-widget[data-widget="button"] .desk-action .desk-action-icon { font-size: 1.1em; }
+    .desk-widget[data-widget="button"] .desk-action-hint {
+        width: auto;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        text-align: right;
+        font-size: calc(clamp(11px, min(2.4cqw, 13cqh), 14px) * var(--desk-font-scale));
+    }
+}
+@container dw (max-height: 149.98px) and (min-aspect-ratio: 5/2) and (min-width: 340px) {
+    .desk-widget[data-widget="button"] .desk-action { justify-content: space-between; }
+    .desk-widget[data-widget="button"] .desk-action-hint { display: block; }
+}
+
+/* ================= changes — Журнал изменений ================= */
+
+/* узкий блок: в шапке только значок — название виджета не помещается */
+@container dw (max-width: 170px) {
+    .desk-widget[data-widget="changes"] .desk-widget-title { visibility: hidden; }
+}
+/* строка списка: название и автор режутся многоточием по отдельности, автор уступает первым */
+.desk-widget[data-widget="changes"] .changes-title { flex: 0 1 auto; min-width: 0; }
+.desk-widget[data-widget="changes"] .changes-user { flex: 0 100 auto; min-width: 0; }
+
+/* ================= chart — График показателя ================= */
+
+/* узкий блок: в шапке только значок — название виджета не помещается */
+@container dw (max-width: 170px) {
+    .desk-widget[data-widget="chart"] .desk-widget-title { visibility: hidden; }
+}
+/* шапка графика: подпись, итог, последнее значение в строку */
+.desk-widget[data-widget="chart"] .chart-head { display: flex; align-items: baseline; gap: .5rem; min-width: 0; }
+/* узкий блок (ширина 2–4) или высокий не широкий: подпись до двух строк над значением */
+@container dw (max-width: 229.98px) or ((max-width: 419.98px) and (min-height: 230px)) {
+    .desk-widget[data-widget="chart"] .chart-head { flex-wrap: wrap; row-gap: .1rem; }
+    .desk-widget[data-widget="chart"] .chart-label {
+        flex-basis: 100%;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+    }
+}
+/* низкий узкий блок (высота 2, ширина 2–4): вместо графика — значение с подписью */
+@container dw (max-height: 96px) and (max-width: 229.98px) {
+    .desk-widget[data-widget="chart"] .desk-stack { justify-content: center; gap: 0; }
+    .desk-widget[data-widget="chart"] .desk-stack-grow { display: none; }
+    .desk-widget[data-widget="chart"] .chart-label { -webkit-line-clamp: 1; }
+    .desk-widget[data-widget="chart"] .chart-last {
+        line-height: 1.15;
+        font-size: calc(clamp(11px, min(12cqw, 20cqh), 28px) * var(--desk-font-scale));
+    }
+}
+/* ширина 2 и высота 2: только значение */
+@container dw (max-height: 96px) and (max-width: 170px) {
+    .desk-widget[data-widget="chart"] .chart-label { display: none; }
+}
+/* низкая полоса от 230 px: подпись и значение слева, спарклайн справа */
+@container dw (max-height: 96px) and (min-width: 230px) {
+    .desk-widget[data-widget="chart"] .desk-stack { flex-direction: row; align-items: stretch; gap: .85rem; }
+    .desk-widget[data-widget="chart"] .chart-head {
+        display: flex;
+        flex: 0 1 auto;
+        flex-direction: column;
+        justify-content: center;
+        align-items: flex-start;
+        gap: 0;
+        max-width: 45%;
+    }
+    .desk-widget[data-widget="chart"] .chart-head .desk-grow { flex: none; max-width: 100%; }
+    .desk-widget[data-widget="chart"] .chart-head .chart-total { display: none; }
+    .desk-widget[data-widget="chart"] .desk-stack-grow { flex: 1 1 auto; min-width: 0; }
+}
+/* огромный блок: разбивка по отрезкам под графиком, не больше 45 % высоты блока */
+.desk-widget[data-widget="chart"] .chart-table { flex: none; max-height: 45cqh; }

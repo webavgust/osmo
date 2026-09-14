@@ -13,25 +13,6 @@
         $totals_payments = \App\Modules\Pub\Analytics\Services\PartnerStatsService::paymentTotals($payments);
     @endphp
 
-    {{-- Кто это и за какой период смотрим --}}
-    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-        <div>
-            <a href="{{ route('partner.detail', $partner) }}" class="fs-3 fw-bold"
-               style="color: {{ $grade['color']['medal'] ?? '#7e8299' }}">
-                <x-ui.icon.solid icon="fa-medal" class="me-1"/>{{ $partner->name }}
-            </a>
-            <div class="fs-8 text-muted">{{ $grade['label'] ?? '—' }} · {{ $grade['description'] ?? '' }}</div>
-        </div>
-
-        <div class="text-end fs-8 text-muted" style="max-width: 340px">
-            @if($year)
-                Расшифровки показаны за {{ $year }} год. Разбивка по годам — за всю историю.
-            @else
-                Показана вся история партнёра.
-            @endif
-        </div>
-    </div>
-
     <ul class="nav nav-tabs nav-line-tabs mb-4 fs-6">
         @php
             $tabs = [
@@ -59,7 +40,7 @@
             <table class="table table-row-bordered align-middle m-0">
                 <thead>
                     <tr class="fw-bold fs-8 text-muted text-uppercase">
-                        <th width="70">Год</th>
+                        <th width="70" class="ps-3">Год</th>
                         <th width="110" class="text-center">Место</th>
                         <th width="90" class="text-center">Балл</th>
                         <th class="text-center">КП</th>
@@ -76,11 +57,8 @@
                     @forelse($years as $item)
                         @php $row = $item['row']; @endphp
                         <tr @class(['bg-light-primary' => $item['current']])>
-                            <td class="fw-bold">
+                            <td class="fw-bold ps-3">
                                 {{ $item['year'] }}
-                                @if($item['current'])
-                                    <div class="fs-8 text-muted">на сегодня</div>
-                                @endif
                             </td>
                             <td class="text-center">
                                 @if($item['place'])
@@ -147,11 +125,11 @@
 
             <div class="fs-8 text-muted mt-3">
                 Место считается среди всех партнёров, у кого в этом году было хоть одно КП,
-                спецификация, сделка Битрикса или проект. Сделки считаются по сопоставлению
+                спецификация, сделка Битрикс24 или проект. Сделки считаются по сопоставлению
                 партнёра с Битрикс24 — без сопоставления их ноль.
                 Балл каждый год нормируется на лидера этого года, поэтому 100 в
                 разные годы — это разные деньги, а сам балл года сглажен двумя предыдущими
-                ({{ implode('/', \App\Modules\Pub\Analytics\Services\PartnerScoringService::YEAR_WEIGHTS) }}%).
+                ({{ implode('/', \App\Modules\Pub\Analytics\Services\PartnerScoringService::yearWeights()) }}%).
                 Спецификации относятся к году по своей дате.
             </div>
         </div>
@@ -174,15 +152,14 @@
                         @php $status = $statuses[(string) $row->status_effective] ?? null; @endphp
                         <tr>
                             <td>
-                                <a href="{{ route('proposal.detail', [$row->group, $row->iteration]) }}" target="_blank" class="fw-bold">
-                                    {{ $row->number ?: 'б/н' }}
-                                </a>
-                                <div class="fs-8 text-muted">редакция {{ $row->iteration }}</div>
+                                {{-- редакция — надстрочно рядом с номером, только если она не первая --}}
+                                <a href="{{ route('proposal.detail', [$row->group, $row->iteration]) }}" target="_blank" class="fw-bold fs-5">
+                                    {{ $row->number ?: 'б/н' }}</a>@if((int) $row->iteration > 1)<sup class="text-muted fw-bold ms-1">{{ $row->iteration }}</sup>@endif
                             </td>
                             <td>{{ $row->name }}</td>
                             <td>
                                 @if(!empty($row->company_id))
-                                    <a href="{{ route('company.detail', $row->company_id) }}" target="_blank" class="text-secondary">
+                                    <a href="{{ route('company.detail', $row->company_id) }}" target="_blank" class="text-secondary text-hover-primary">
                                         <x-ui.icon.light icon="fa-building" class="me-1"/>{{ $row->company_name ?: 'без названия' }}
                                     </a>
                                 @else
@@ -239,7 +216,7 @@
                             <td>{{ $row->name }}</td>
                             <td>
                                 @if(!empty($row->company_id))
-                                    <a href="{{ route('company.detail', $row->company_id) }}" target="_blank" class="text-secondary">
+                                    <a href="{{ route('company.detail', $row->company_id) }}" target="_blank" class="text-secondary text-hover-primary">
                                         <x-ui.icon.light icon="fa-building" class="me-1"/>{{ $row->company_name ?: 'без названия' }}
                                     </a>
                                 @else
@@ -376,7 +353,8 @@
                 <tbody>
                     @forelse($payments as $row)
                         @php $state = $states[$row->state] ?? $states['unknown']; @endphp
-                        <tr>
+                        {{-- просроченный платёж — строка подсвечена --}}
+                        <tr @class(['bg-light-danger' => $row->state === 'overdue'])>
                             <td>
                                 {{ $row->spec_name }}
                                 <div class="fs-8 text-muted">договор {{ $row->contract_number ?: 'б/н' }}</div>
@@ -427,8 +405,9 @@
                                 <a href="{{ $url }}" target="_blank" class="fw-bold">{{ $row->id }}</a>
                             </td>
                             <td>
-                                <a href="{{ $url }}" target="_blank" class="text-dark">
-                                    <x-ui.icon.light icon="fa-handshake" class="me-1"/>{{ $row->title ?: 'без названия' }}
+                                {{-- ссылка уводит в Битрикс24: значок новой вкладки — как в реестре сделок --}}
+                                <a href="{{ $url }}" target="_blank" class="text-dark text-hover-primary">
+                                    {{ $row->title ?: 'без названия' }}<i class="fa-light fa-arrow-up-right-from-square fs-8 ms-2 text-muted"></i>
                                 </a>
                                 <div class="fs-8 text-muted">{{ $row->company_name ?: 'без компании' }}</div>
                             </td>
@@ -480,7 +459,7 @@
                             </td>
                             <td>
                                 @if(!empty($row->company_id))
-                                    <a href="{{ route('company.detail', $row->company_id) }}" target="_blank" class="text-secondary">
+                                    <a href="{{ route('company.detail', $row->company_id) }}" target="_blank" class="text-secondary text-hover-primary">
                                         <x-ui.icon.light icon="fa-building" class="me-1"/>{{ $row->company_name ?: 'без названия' }}
                                     </a>
                                 @else
@@ -527,5 +506,17 @@
         <a href="{{ route('partner.detail', $partner) }}" class="btn btn-primary">
             <i class="fas fa-arrow-right me-1"></i>Карточка партнёра
         </a>
+    </div>
+@endsection
+
+{{-- Кто это — справа от заголовка бокса (секция header_right обёртки). Стоит после body:
+     $grade объявлен в php-блоке внутри body --}}
+@section('header_right')
+    <div class="text-end">
+        <a href="{{ route('partner.detail', $partner) }}" class="fs-4 fw-bold"
+           style="color: {{ $grade['color']['medal'] ?? '#7e8299' }}">
+            <x-ui.icon.solid icon="fa-medal" class="me-1"/>{{ $partner->name }}
+        </a>
+        <div class="fs-8 text-muted">{{ $grade['label'] ?? '—' }} · {{ $grade['description'] ?? '' }}</div>
     </div>
 @endsection

@@ -234,7 +234,7 @@
                             ({{ $from_row['currency'] }} и {{ $to_row['currency'] }}) —
                             суммы приведены к рублям по курсу на сегодня.
                         @else
-                            Обе редакции в {{ $diff_currency }}, пересчёт не нужен.
+                            Обе редакции имеют одинаковую валюту, поэтому пересчёт не нужен.
                         @endif
                     </span>
                 </div>
@@ -296,7 +296,7 @@
                                         </div>
                                     @endif
                                 </th>
-                                <th class="text-end" width="150">Δ</th>
+                                <th class="text-end" width="150">Δ ДЕЛЬТА</th>
                                 <th class="pe-5" width="150">Изменение</th>
                             </tr>
                             </thead>
@@ -311,7 +311,16 @@
                                     };
                                 @endphp
                                 <tr @class(['fs-6', 'opacity-75' => $item['state'] === 'same'])>
-                                    <td class="ps-5 text-muted">{{ $blocks[$item['block']]['label'] ?? $item['block'] }}</td>
+                                    <td class="ps-5">
+                                        @if(!empty($blocks[$item['block']]))
+                                            <span class="fw-bold text-{{ $blocks[$item['block']]['color'] }} text-nowrap">
+                                                <x-ui.icon.regular :icon="$blocks[$item['block']]['icon']" class="me-1"/>
+                                                {{ $blocks[$item['block']]['label'] }}
+                                            </span>
+                                        @else
+                                            <span class="text-muted">{{ $item['block'] }}</span>
+                                        @endif
+                                    </td>
 
                                     <td>
                                         <div class="fw-semibold" style="word-break: break-word;">{{ $item['label'] }}</div>

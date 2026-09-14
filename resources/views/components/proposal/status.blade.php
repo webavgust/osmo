@@ -5,14 +5,17 @@
      * <x-proposal.status :proposal="$proposal" />
      * <x-proposal.status :proposal="$proposal" editable="1" />
      * <x-proposal.status :proposal="$proposal" editable="1" as="btn" />
+     * <x-proposal.status :proposal="$proposal" stacked="1" />
      *
      * as="btn" — вид кнопки: нужен там, где статус стоит в ряду кнопок
      * и должен совпадать с ними по высоте.
+     * stacked — статус и причина столбиком: для узких колонок таблиц.
      */
     $status = $proposal->status_decorate;
     $reason = $proposal->reason_decorate;
     $editable = !empty($editable);
     $as_btn = ($as ?? '') === 'btn';
+    $stacked = !empty($stacked);
 
     // secondary в Metronic — светло-серый: светлый текст на светлом фоне не читается
     $palette = fn($color) => in_array($color, ['secondary', 'light', 'white', '', null], true) ? 'dark' : $color;
@@ -21,7 +24,7 @@
     $class = $as_btn ? 'btn btn-sm btn-light-' . $color : 'badge badge-light-' . $color;
 @endphp
 
-<span class="d-inline-flex align-items-center gap-2 mb-1">
+<span @class(['d-inline-flex align-items-center mb-1', 'flex-column gap-1' => $stacked, 'gap-2' => !$stacked])>
     @if($editable)
         <a href="javascript:box({href: '{{ route('proposal.box_status', [$proposal, $proposal->iteration]) }}'})"
            class="{{ $class }} d-inline-flex align-items-center text-decoration-none text-nowrap fs-7"

@@ -5,6 +5,10 @@
     <link rel="stylesheet" href="/assets/libs/bootstrap-table/dist/bootstrap-table.min.css"/>
 
     <style>
+        /* панель bootstrap-table не нужна: «Фильтр» — в тулбаре страницы, поиск — в шапке карточки.
+           Только на странице реестра: во вкладке партнёра панель остаётся */
+        .fixed-table-toolbar { display: none; }
+
         /* панель инструментов bootstrap-table — как в списке КП */
         .fixed-table-toolbar .bs-bars { padding-top: 0; }
         .fixed-table-toolbar .search .form-control { min-width: 240px; }
@@ -38,9 +42,15 @@
         };
     @endphp
 
+    {{-- Модалка фильтра; кнопки «Фильтр» и «Убрать» — в тулбаре страницы (breadcrumb_right),
+         поэтому тулбар для панели таблицы не рисуем --}}
+    @include('bitrix.deal._filter', ['toolbar' => false])
+
     <div class="card">
-        <div class="card-header pt-4 min-h-auto">
-            <div class="card-toolbar m-0">
+        {{-- вкладки прижаты к нижней границе шапки, отступ сверху — у них самих;
+             поле поиска по высоте шапки центрируется, отступы сверху и снизу равны --}}
+        <div class="card-header min-h-auto">
+            <div class="card-toolbar m-0 pt-4">
                 <ul class="nav nav-tabs nav-line-tabs nav-line-tabs-2x border-0 fs-6 fw-semibold" role="tablist">
                     @foreach($tabs as $code => $label)
                         <li class="nav-item">
@@ -53,34 +63,72 @@
                         </li>
                     @endforeach
                 </ul>
+            </div>
 
-                {{-- кнопка «Фильтр» и модалка; тулбар bootstrap-table заберёт
-                     себе, поэтому в шапке останутся только вкладки --}}
-                @include('bitrix.deal._filter')
+            <div class="card-toolbar m-0 d-flex align-items-center gap-4">
+                {{-- поиск серверный, как был в панели таблицы: Enter уводит на тот же
+                     адрес с q (CrmDealRegistryService::searchBase), отбор виден в ссылке --}}
+                <input type="search" id="deal_search" class="form-control form-control-sm w-250px"
+                       placeholder="Поиск" autocomplete="off" value="{{ $params['q'] }}"/>
             </div>
         </div>
 
-        <div class="card-body pt-2">
+        <div class="card-body p-2">
             @include('bitrix.deal._table')
         </div>
     </div>
 @endsection
 
 @section('breadcrumb_right')
-    {{-- href передаём привязкой: интерполяция {{ }} экранировала бы «&» второй раз
-         (компонент подставляет ссылку внутрь onclick) и фильтр в попап не доехал бы --}}
-    <x-ui.a.box :href="route('crm-deal.box.export', array_merge(
-                    \App\Modules\Bitrix\CrmDeal\Services\CrmDealRegistryService::query($params),
-                    $mode === \App\Modules\Bitrix\CrmDeal\Services\CrmDealRegistryService::MODE_ALL ? [] : ['mode' => $mode]
-                ))"
-                btn_type="light-success" class="fw-bold">
-        <i class="fa-light fa-file-excel fs-5 me-2"></i>
-        Выгрузить в Excel
-    </x-ui.a.box>
+    @php
+        // выгрузка берёт тот же отбор и режим вкладки, что сейчас на экране
+        $export_url = route('crm-deal.box.export', array_merge(
+            \App\Modules\Bitrix\CrmDeal\Services\CrmDealRegistryService::query($params),
+            $mode === \App\Modules\Bitrix\CrmDeal\Services\CrmDealRegistryService::MODE_ALL ? [] : ['mode' => $mode]
+        ));
+    @endphp
+
+    {{-- «Фильтр» и «Убрать» — рядом с «Действиями», как на странице КП OSMOVIEW CP;
+         модалка подключена в content (_filter без тулбара) --}}
+    @include('bitrix.deal._filter_buttons')
+
+    {{-- «Действия»: как на странице КП OSMOVIEW CP --}}
+    <div class="dropdown">
+        <button type="button" class="btn btn-primary" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="fa-light fa-ellipsis-vertical fs-5 me-2"></i>
+            Действия
+        </button>
+
+        <div class="dropdown-menu dropdown-menu-end">
+            {{-- ссылка уходит в onclick через @js: «&» и кавычки экранируются один раз --}}
+            <a href="javascript:void(0);" class="dropdown-item" onclick="box({href: @js($export_url)})">
+                <i class="fa-light fa-file-excel text-success me-2"></i> Выгрузить в Excel
+            </a>
+        </div>
+    </div>
 @endsection
 
 @section('js')
     @parent
     <script src="/assets/libs/bootstrap-table/dist/bootstrap-table.min.js"></script>
     <script src="/assets/libs/bootstrap-table/dist/bootstrap-table-locale-all.min.js"></script>
+
+    @php
+        // адрес без q — тот же CrmDealRegistryService::searchBase, что и в _table.
+        // В переменную, а не прямо в @json: @json режет выражение по запятым
+        $deal_search_base = \App\Modules\Bitrix\CrmDeal\Services\CrmDealRegistryService::searchBase($action, $params, $mode);
+    @endphp
+
+    <script>
+        // Поиск из шапки карточки — серверный, как был в панели таблицы:
+        // Enter уводит на страницу с q в адресе, отбор и вкладка сохраняются
+        $(document).ready(function () {
+            $('#deal_search').on('keydown', function (event) {
+                if (event.which !== 13) return;
+
+                event.preventDefault();
+                location.href = @json($deal_search_base) + encodeURIComponent($.trim($(this).val()));
+            });
+        });
+    </script>
 @endsection

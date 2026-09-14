@@ -36,7 +36,7 @@
                "minDate": "01/01/2022"
            }).on('apply.daterangepicker', function(obj, instance) {
                $.ajax({
-                   url: '{{ route('dashboard.set_dates') }}',
+                   url: '{{ route('notify.set_dates') }}',
                    data: {
                        "_token": "{{ csrf_token() }}",
                        start: instance.startDate.format('DD.MM.YYYY'),

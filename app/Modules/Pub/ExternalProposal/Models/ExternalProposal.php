@@ -18,6 +18,18 @@ class ExternalProposal extends ModuleModel
 {
     public const SOURCE_OSMOVIEW_CP = 'osmoview_cp';
 
+    /**
+     * Типы лицензий (значения аксессора `license_type`): подпись и цвет плашки.
+     *
+     * Общий источник для ячейки таблицы и фильтра страницы, чтобы подписи с
+     * цветами в них не разъехались (попап «Подробнее» пока со своим match()).
+     */
+    public const LICENSE_TYPES = [
+        'unlimited' => ['label' => 'бессрочные', 'color' => 'success'],
+        'year' => ['label' => 'годовые', 'color' => 'primary'],
+        'mixed' => ['label' => 'смешанные', 'color' => 'warning'],
+    ];
+
     protected $fillable = [
         'source', 'external_id', 'external_number', 'name', 'customer', 'cameras',
         'created_at_remote', 'updated_at_remote', 'list_payload', 'payload', 'fetched_at',
@@ -48,7 +60,8 @@ class ExternalProposal extends ModuleModel
      */
     public function transferred_user()
     {
-        return $this->belongsTo(User::class, 'transferred_by');
+        // withTrashed: имя не пропадает у мягко удалённого пользователя
+        return $this->belongsTo(User::class, 'transferred_by')->withTrashed();
     }
 
     /*** SCOPES ***/

@@ -9,7 +9,7 @@
             <div class="col-12 col-lg-3">
                 <div class="card">
                     <div class="card-body d-flex justify-content-between">
-                        <h4 class="card-title mb-0">Информация о договоре</h4>
+                          <h4 class="card-title mb-0">Информация о договоре</h4>
                     </div>
                     <div class="card-body">
                         <div class="card-table">
@@ -23,7 +23,7 @@
             <div class="col-12 col-lg-9">
                 <div class="card">
                     <div class="card-body d-flex justify-con    tent-between">
-                        <h4 class="card-title mb-0">Версии договоров и ТЗ</h4>
+                          <h4 class="card-title mb-0">Версии договоров и ТЗ</h4>
                     </div>
 
 

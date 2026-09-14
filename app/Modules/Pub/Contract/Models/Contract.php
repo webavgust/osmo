@@ -3,6 +3,7 @@
 namespace App\Modules\Pub\Contract\Models;
 
 use App\Models\ModuleModel;
+use App\Models\Traits\HasLogger;
 use App\Modules\Pub\Company\Models\Company;
 use App\Modules\Pub\Company\Repositories\CompanyRepository;
 use App\Modules\Pub\ContractSpecification\Models\ContractSpecification;
@@ -16,6 +17,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Contract extends ModuleModel
 {
+    use HasLogger;
+
     public $timestamps = false;
     protected $fillable = ['type', 'uuid', 'cb_signed', 'date', 'number', 'proposal_name'];
     protected $casts = ['cb_signed' => 'bool', 'date' => 'date'];
@@ -130,5 +133,46 @@ class Contract extends ModuleModel
         if(!empty($this->proposal))
             $ret .= ' - КП: ' . $this->proposal->name;
         return $ret;
+    }
+
+    /*** ЖУРНАЛ ИЗМЕНЕНИЙ (patch v29) ***/
+
+    public static function logParentRelation(): ?string
+    {
+        return 'partner';
+    }
+
+    public static function logLabel(): string
+    {
+        return 'Договор';
+    }
+
+    public function logTitle(?int $index = null): string
+    {
+        $number = trim((string) $this->number);
+
+        return $number !== '' ? 'Договор № ' . $number : 'Договор б/н (' . $this->id . ')';
+    }
+
+    public static function logChildren(): array
+    {
+        return ['contract_specifications' => ContractSpecification::class];
+    }
+
+    public static function logFields(): array
+    {
+        return [
+            'type' => ['label' => 'Тип', 'enum' => ContractType::class],
+            'number' => ['label' => 'Номер договора'],
+            'date' => ['label' => 'Дата договора', 'type' => 'date'],
+            'cb_signed' => ['label' => 'Подписан', 'type' => 'bool'],
+            'organization_id' => ['label' => 'Организация', 'relation' => 'organization'],
+            'company_id' => ['label' => 'Компания', 'relation' => 'company'],
+            'proposal_id' => ['label' => 'КП', 'relation' => 'proposal'],
+            'proposal_name' => ['label' => 'Название КП'],
+            'currency_slug' => ['label' => 'Валюта', 'relation' => 'currency', 'title' => 'name'],
+            'uuid' => ['label' => 'UUID'],
+            'old' => ['label' => 'Старый договор', 'type' => 'bool'],
+        ];
     }
 }

@@ -5,11 +5,11 @@
 @endsection
 
 @section('body')
-    <div class="alert alert-light-primary d-flex align-items-center mb-5">
+    <div class="alert alert-light-primary d-flex align-items-center mb-5 px-0 py-2">
         <i class="fa-light fa-circle-info fs-2 text-primary me-4"></i>
         <div class="fs-7">
             Копия станет <b>отдельным КП</b> с первой редакцией: перенесём платформу, сценарии,
-            ПО, работы, скидки и дополнительные платежи. Статус, сделки Битрикса, договоры,
+            ПО, работы, скидки и дополнительные платежи. Статус, сделки Битрикс24, договоры,
             спецификации и платежи не переносятся.
         </div>
     </div>

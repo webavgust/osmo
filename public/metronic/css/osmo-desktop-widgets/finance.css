@@ -1,0 +1,123 @@
+/*
+ * Рабочий стол (patch v30): стили виджетов группы «Финансы».
+ * Каждый селектор начинается с .desk-widget[data-widget="{id}"], кегль — классами тел
+ * и контейнерными единицами (общие правила — osmo-desktop.css).
+ */
+
+/*** Общие приёмы группы ***/
+
+/* .fin-line — строка «число + сумма» или строка бейджей: в одну линию, лишнее прячет подгон по ширине */
+.desk-widget[data-widget="contracts_unsigned"] .fin-line,
+.desk-widget[data-widget="payment_calendar"] .fin-line,
+.desk-widget[data-widget="payment_summary"] .fin-line,
+.desk-widget[data-widget="payments_fact"] .fin-line,
+.desk-widget[data-widget="payments_overdue"] .fin-line,
+.desk-widget[data-widget="payments_plan"] .fin-line,
+.desk-widget[data-widget="specs_reconcile"] .fin-line,
+.desk-widget[data-widget="specs_status"] .fin-line { display: flex; flex-shrink: 0; align-items: baseline; gap: .25rem .6rem; flex-wrap: nowrap; }
+.desk-widget[data-widget="contracts_unsigned"] .fin-line > *,
+.desk-widget[data-widget="payment_calendar"] .fin-line > *,
+.desk-widget[data-widget="payment_summary"] .fin-line > *,
+.desk-widget[data-widget="payments_fact"] .fin-line > *,
+.desk-widget[data-widget="payments_overdue"] .fin-line > *,
+.desk-widget[data-widget="payments_plan"] .fin-line > *,
+.desk-widget[data-widget="specs_reconcile"] .fin-line > *,
+.desk-widget[data-widget="specs_status"] .fin-line > * { flex-shrink: 0; white-space: nowrap; }
+
+/* .fin-thermo — самый узкий блок: вертикальный столбик доли (исполнение, закрыто фактом) на всю оставшуюся высоту */
+.desk-widget[data-widget="payment_summary"] .fin-thermo,
+.desk-widget[data-widget="payments_plan"] .fin-thermo {
+    position: relative;
+    width: .9rem;
+    align-self: center;
+    border-radius: 99px;
+    background: var(--bs-gray-200);
+    overflow: hidden;
+}
+.desk-widget[data-widget="payment_summary"] .fin-thermo > i,
+.desk-widget[data-widget="payments_plan"] .fin-thermo > i { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 99px; }
+
+/* график под числом занимает только остаток высоты и не выталкивает шапку */
+.desk-widget[data-widget="payments_fact"] .pf-chart { flex-basis: 0; }
+
+/* .fin-amount — сумма в строке списка: не сжимается и не переносится */
+.desk-widget[data-widget="contracts_unsigned"] .fin-amount,
+.desk-widget[data-widget="payment_calendar"] .fin-amount,
+.desk-widget[data-widget="payments_overdue"] .fin-amount,
+.desk-widget[data-widget="specs_reconcile"] .fin-amount { flex-shrink: 0; white-space: nowrap; }
+
+/* самый узкий блок: название над датой и суммой, сумма может переноситься по пробелу */
+@container dw (max-width: 120px) {
+    .desk-widget[data-widget="contracts_unsigned"] .fin-list > li,
+    .desk-widget[data-widget="payment_calendar"] .fin-list > li,
+    .desk-widget[data-widget="payments_overdue"] .fin-list > li,
+    .desk-widget[data-widget="specs_reconcile"] .fin-list > li { flex-wrap: wrap; gap: 0 .4rem; }
+    .desk-widget[data-widget="contracts_unsigned"] .fin-list > li > .desk-grow,
+    .desk-widget[data-widget="payment_calendar"] .fin-list > li > .desk-grow,
+    .desk-widget[data-widget="payments_overdue"] .fin-list > li > .desk-grow,
+    .desk-widget[data-widget="specs_reconcile"] .fin-list > li > .desk-grow { flex-basis: 100%; order: -1; }
+    .desk-widget[data-widget="contracts_unsigned"] .fin-amount,
+    .desk-widget[data-widget="payment_calendar"] .fin-amount,
+    .desk-widget[data-widget="payments_overdue"] .fin-amount,
+    .desk-widget[data-widget="specs_reconcile"] .fin-amount { flex-shrink: 1; min-width: 0; white-space: normal; }
+}
+
+/*** Оплаты: план и факт — payment_summary ***/
+
+/* плитки: 1 колонка в узком блоке, 2 — от 230 px, 4 — от 560 px */
+.desk-widget[data-widget="payment_summary"] .ps-tiles { display: grid; grid-template-columns: minmax(0, 1fr); gap: .3rem .75rem; align-content: start; }
+@container dw (min-width: 230px) {
+    .desk-widget[data-widget="payment_summary"] .ps-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container dw (min-width: 560px) {
+    .desk-widget[data-widget="payment_summary"] .ps-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+/* число в плитке: кегль от ширины колонки, а не всего блока (иначе сумма уходит в многоточие) */
+.desk-widget[data-widget="payment_summary"] .ps-num {
+    font-weight: 700;
+    line-height: 1.15;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    font-size: calc(clamp(13px, min(10cqw, 9cqh), 32px) * var(--desk-font-scale));
+}
+@container dw (min-width: 230px) {
+    .desk-widget[data-widget="payment_summary"] .ps-num { font-size: calc(clamp(13px, min(6cqw, 9cqh), 32px) * var(--desk-font-scale)); }
+}
+@container dw (min-width: 560px) {
+    .desk-widget[data-widget="payment_summary"] .ps-num { font-size: calc(clamp(13px, min(3.4cqw, 11cqh), 36px) * var(--desk-font-scale)); }
+}
+
+/* график занимает только остаток высоты и не выталкивает плитки */
+.desk-widget[data-widget="payment_summary"] .ps-chart { flex-basis: 0; }
+
+/*** Оплаты: план на период — payments_plan ***/
+
+/* график под таблицей занимает только остаток высоты */
+.desk-widget[data-widget="payments_plan"] .pp-chart { flex-basis: 0; }
+
+/*** Спецификации по статусам — specs_status ***/
+
+/* плитки статусов: всегда три равные колонки — раньше плитки переносились и обрезались снизу */
+.desk-widget[data-widget="specs_status"] .ss-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .2rem .75rem; flex-shrink: 0; }
+
+/* полоска долей не сжимается в ноль, когда блок низкий */
+.desk-widget[data-widget="specs_status"] .ss-split { flex-shrink: 0; }
+
+/* кольцо сумм занимает только остаток высоты */
+.desk-widget[data-widget="specs_status"] .ss-chart { flex-basis: 0; }
+
+/* самый узкий блок: счётчики столбиком без лишних отступов */
+.desk-widget[data-widget="specs_status"] .ss-counts > div { line-height: 1.1; white-space: nowrap; }
+
+/* самый узкий высокий блок: вертикальная полоска долей, сегменты делят высоту по числу спецификаций */
+.desk-widget[data-widget="specs_status"] .fin-vsplit {
+    display: flex;
+    flex-direction: column;
+    width: .9rem;
+    align-self: center;
+    border-radius: 99px;
+    overflow: hidden;
+    background: var(--bs-gray-200);
+}
+.desk-widget[data-widget="specs_status"] .fin-vsplit > i { display: block; min-height: 0; }

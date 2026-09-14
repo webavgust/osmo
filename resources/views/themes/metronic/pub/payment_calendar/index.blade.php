@@ -62,6 +62,32 @@
     </style>
 @endsection
 
+{{-- Год — главный селектор страницы: в тулбаре рядом с хлебными крошками.
+     Отбор списка платежей едет вместе с годом скрытыми полями. --}}
+@section('breadcrumb_right')
+    <form method="get" class="d-flex align-items-center gap-2">
+        @foreach(['q'] as $keep)
+            @if(!empty($params[$keep]))
+                <input type="hidden" name="{{ $keep }}" value="{{ $params[$keep] }}" />
+            @endif
+        @endforeach
+
+        @foreach(['state', 'age', 'partner', 'company', 'spec_status'] as $keep)
+            {{-- статус по умолчанию не передаём: иначе смена года делает отбор строгим --}}
+            @continue($keep === 'spec_status' && empty($params['spec_status_strict']))
+            @foreach($params[$keep] as $value)
+                <input type="hidden" name="{{ $keep }}[]" value="{{ $value }}" />
+            @endforeach
+        @endforeach
+
+        <select name="year" class="form-select form-select-solid w-auto fw-bold" onchange="this.form.submit()">
+            @foreach($years as $item)
+                <option value="{{ $item }}" @selected($item == $year)>{{ $item }} год</option>
+            @endforeach
+        </select>
+    </form>
+@endsection
+
 @section('content')
     @php
         /**
@@ -70,6 +96,13 @@
          */
         $link = function (array $extra = []) use ($params, $year) {
             $query = array_merge($params, ['year' => $year], $extra);
+
+            // Отбор по умолчанию («в работе + оплаченные») в адрес не пишем: статус
+            // в адресе контроллер считает ручным выбором и оплаченные по закрытым
+            // спецификациям пропадают — сумма в разбивке есть, а платежей нет
+            if (empty($params['spec_status_strict']) && !array_key_exists('spec_status', $extra)) {
+                unset($query['spec_status']);
+            }
             unset($query['spec_status_strict']);
             $query = array_filter($query, fn($value) => $value !== null && $value !== '' && $value !== false && $value !== []);
 
@@ -79,6 +112,11 @@
         /** Убрать одно значение из отбора (крестик на плашке) */
         $unlink = function (string $key, $value) use ($params, $year) {
             $query = array_merge($params, ['year' => $year]);
+
+            // сняли другое условие — статус по умолчанию в адрес не переносим (см. $link)
+            if (empty($params['spec_status_strict']) && $key !== 'spec_status') {
+                unset($query['spec_status']);
+            }
             unset($query['spec_status_strict']);
 
             if (is_array($query[$key] ?? null)) {
@@ -100,7 +138,7 @@
         {{-- Показатели: каждая цифра ведёт в таблицу платежей с тем же отбором --}}
         <div class="row g-4">
             <div class="col-6 col-xl-3">
-                <div class="card h-100 border-0 bg-light-danger">
+                <div class="card h-100 border-2 border-danger bg-light-danger">
                     <div class="card-body p-5">
                         <div class="d-flex align-items-center justify-content-between mb-2">
                             <span class="fw-semibold text-gray-700 fs-4">Просрочено</span>
@@ -113,7 +151,7 @@
                             {{ tools()->cost_normalize(round($summary['overdue']['amount'])) }} ₽
                         </a>
 
-                        <div class="fs-5 text-gray-700">
+                        <div class="fs-7 text-gray-700">
                             {{ $summary['overdue']['count'] }} {{ tools()->num_rus($summary['overdue']['count'], ["платежа", "платёж", "платежей"]) }} за все годы
                             @if($summary['overdue']['max_days'])
                                 · до {{ $summary['overdue']['max_days'] }} дн
@@ -124,13 +162,12 @@
                         @if(!empty($summary['overdue']['buckets']))
                             <div class="d-flex flex-wrap gap-2 mt-3">
                                 @foreach($summary['overdue']['buckets'] as $bucket)
-
                                     <a href="{{ $link(['state' => ['overdue'], 'age' => [$bucket['code']], 'month' => null, 'all_years' => 1]) }}"
                                        title="{{ $bucket['count'] }} {{ tools()->num_rus($bucket['count'], ["платежа", "платёж", "платежей"]) }}">
                                         <x-ui.badge.default type="danger">
                                             {{ $bucket['label'] }}:
                                             <span class="fw-bold ms-1">
-                                                {{ tools()->cost_normalize(round($bucket['amount'])) }}
+                                                {{ tools()->cost_normalize(round($bucket['amount'])) }} ₽
                                             </span>
                                             <span class="ms-1">({{ $bucket['count'] }})</span>
                                         </x-ui.badge.default>
@@ -147,7 +184,7 @@
                 <div class="card h-100 border-0 bg-light-warning">
                     <div class="card-body p-5">
                         <div class="d-flex align-items-center justify-content-between mb-2">
-                            <span class="fw-semibold text-gray-700 fs-4">Ждём в ближайшие {{ \App\Modules\Pub\PaymentCalendar\Services\PaymentCalendarService::SOON_DAYS }} дней</span>
+                            <span class="fw-semibold text-gray-700 fs-4">Ждём в ближайшие {{ \App\Modules\Pub\PaymentCalendar\Services\PaymentCalendarService::soonDays() }} дней</span>
                             <i class="fa-light fa-hourglass-half fs-2 text-warning"></i>
                         </div>
 
@@ -232,29 +269,6 @@
                         Любая цифра — ссылка на платежи, из которых она сложилась.
                     </span>
                 </div>
-
-                <div class="card-toolbar">
-                    <form method="get" class="d-flex align-items-center gap-2">
-                        @foreach(['q'] as $keep)
-                            @if(!empty($params[$keep]))
-                                <input type="hidden" name="{{ $keep }}" value="{{ $params[$keep] }}" />
-                            @endif
-                        @endforeach
-
-                        @foreach(['state', 'age', 'partner', 'company', 'spec_status'] as $keep)
-                            @foreach($params[$keep] as $value)
-                                <input type="hidden" name="{{ $keep }}[]" value="{{ $value }}" />
-                            @endforeach
-                        @endforeach
-
-                        <select name="year" class="form-select form-select-sm form-select-solid w-125px fs-5"
-                                onchange="this.form.submit()">
-                            @foreach($years as $item)
-                                <option value="{{ $item }}" @selected($item == $year)>{{ $item }} год</option>
-                            @endforeach
-                        </select>
-                    </form>
-                </div>
             </div>
 
             <div class="card-body p-0">
@@ -264,7 +278,8 @@
                         <tr class="fw-bold text-muted bg-light">
                             <th class="ps-5" width="180">МЕСЯЦ</th>
                             <th class="text-end">ПЛАН, ₽</th>
-                            <th class="text-end">ФАКТ, ₽</th>
+                            {{-- факт — поступления по дате оплаты: план апреля, оплаченный в июне, попадает в июнь --}}
+                            <th class="text-end" title="Деньги по дате оплаты: платёж, запланированный на один месяц и оплаченный в другом, попадает в месяц оплаты">ФАКТ (ПО ДАТЕ ОПЛАТЫ), ₽</th>
                             <th class="text-end">ПРОСРОЧЕНО, ₽</th>
                             <th class="text-end pe-5" width="160">РАЗНИЦА</th>
                         </tr>
@@ -384,95 +399,37 @@
 
         {{-- Платежи --}}
         <div class="card" id="payments">
-            <div class="card-header min-h-auto py-5 border-bottom flex-column align-items-stretch">
-                <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 pt-2">
-                    <div class="card-title flex-column align-items-start m-0">
-                        <h4 class="fw-bold mb-1">Платежи</h4>
-                        <span class="text-muted fs-7">Найдено: {{ $rows->count() }}</span>
-                    </div>
+            <div class="card-header min-h-auto py-5 border-bottom">
+                <div class="card-title flex-column align-items-start m-0">
+                    @php
+                            // период выборки в заголовке: месяц, год или все годы
+                            $payments_period = match (true) {
+                                !empty($params['all_years']) => 'все годы',
+                                !empty($params['month']) => \Illuminate\Support\Str::ucfirst(
+                                        \Illuminate\Support\Carbon::create($year, $params['month'], 1)->locale('ru')->isoFormat('MMMM')
+                                    ) . ' ' . $year,
+                                default => $year . ' год',
+                            };
+                        @endphp
+                    <h4 class="fw-bold mb-1">Платежи за {{ $payments_period }}</h4>
+                    <span class="text-muted fs-7">Найдено: {{ $rows->count() }}</span>
+                </div>
+
+                {{-- «Фильтр» и «Убрать» — как на КП и в реестре сделок; поля — в модалке ниже --}}
+                <div class="card-toolbar m-0 d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-light-info"
+                            data-bs-toggle="modal" data-bs-target="#calendar_filter_modal">
+                        <i class="fa-light fa-filter fs-5 me-2"></i>
+                        Фильтр <span class="count filter-count @if(empty($chips)) d-none @endif">{{ count($chips) }}</span>
+                    </button>
 
                     @if(!empty($chips))
                         <a href="{{ route('payment_calendar.index', ['year' => $year, 'spec_status' => ['all']]) }}"
-                           class="btn btn-sm btn-light-danger">
-                            <x-ui.icon.regular icon="fa-xmark" class="me-2"/>
-                            Сбросить всё
+                           class="me-2 text-dark-500 text-hover-dark">
+                            <i class="fa-light fa-xmark fs-5 me-2" aria-hidden="true"></i> Убрать
                         </a>
                     @endif
                 </div>
-
-                {{-- Фильтр: в каждом поле можно выбрать несколько значений --}}
-                <form method="get" class="row g-3 mt-1 pb-2">
-                    <input type="hidden" name="year" value="{{ $year }}" />
-                    @if($params['month'])
-                        <input type="hidden" name="month" value="{{ $params['month'] }}" />
-                    @endif
-                    @if($params['all_years'])
-                        <input type="hidden" name="all_years" value="1" />
-                    @endif
-                    @foreach($params['age'] as $value)
-                        <input type="hidden" name="age[]" value="{{ $value }}" />
-                    @endforeach
-
-                    <div class="col-12 col-lg-3">
-                        <div class="position-relative">
-                            <i class="fa-light fa-magnifying-glass position-absolute top-50 translate-middle-y ms-4 text-gray-500"></i>
-                            <input type="text" name="q" value="{{ $params['q'] }}"
-                                   class="form-control form-control-sm form-control-solid ps-11 fs-7 py-3"
-                                   placeholder="КП, компания, партнёр, спецификация, договор"
-                                   style="border-color: #e9ecef!important"
-                            />
-                        </div>
-                    </div>
-
-                    <div class="col-12 col-lg-3">
-                        <select name="company[]" class="form-select form-select-sm form-select-solid calendar-select2"
-                                multiple data-placeholder="Все компании">
-                            @foreach($companies as $company)
-                                <option value="{{ $company->id }}" @selected(in_array($company->id, $params['company']))>
-                                    {{ $company->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div class="col-6 col-lg-2">
-                        <select name="partner[]" class="form-select form-select-sm form-select-solid calendar-select2"
-                                multiple data-placeholder="Все партнёры">
-                            @foreach($partners as $partner)
-                                <option value="{{ $partner->id }}" @selected(in_array($partner->id, $params['partner']))>
-                                    {{ $partner->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div class="col-6 col-lg-2">
-                        <select name="state[]" class="form-select form-select-sm form-select-solid calendar-select2"
-                                multiple data-placeholder="Все состояния">
-                            @foreach($states as $code => $state)
-                                <option value="{{ $code }}" @selected(in_array($code, $params['state']))>
-                                    {{ $state['label'] }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div class="col-12 col-lg-2 d-flex justify-content-between">
-                        <select name="spec_status[]" class="form-select form-select-sm form-select-solid calendar-select2 flex-grow-1"
-                                multiple data-placeholder="Статус спец."
-                                title="По умолчанию — спецификации в работе. Оплаченные платежи видны при любом статусе.">
-                            @foreach($spec_statuses as $code => $label)
-                                <option value="{{ $code }}" @selected(in_array($code, $params['spec_status']))>
-                                    {{ $label }}
-                                </option>
-                            @endforeach
-                        </select>
-
-                        <button type="submit" class="btn btn-sm btn-primary text-nowrap ms-2">
-                            <i class="fa-light fa-filter fs-6 me-1"></i>Найти
-                        </button>
-                    </div>
-                </form>
             </div>
 
             {{-- что сейчас на экране --}}
@@ -492,6 +449,131 @@
                 </div>
             @endif
 
+            {{-- Фильтр платежей: обычная GET-форма, отбор виден в адресе и переживает F5.
+                 В каждом списке можно выбрать несколько значений. --}}
+            <div id="calendar_filter_modal" class="modal fade" tabindex="-1" aria-hidden="true">
+                <form method="get" action="{{ route('payment_calendar.index') }}#payments">
+                    <input type="hidden" name="year" value="{{ $year }}" />
+
+                    <div class="modal-dialog modal-lg modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h3 class="modal-title fw-bold">Фильтр платежей</h3>
+                                <button type="button" class="btn btn-icon btn-sm btn-active-light-primary"
+                                        data-bs-dismiss="modal" aria-label="Закрыть">
+                                    <i class="fa-light fa-xmark fs-2"></i>
+                                </button>
+                            </div>
+
+                            <div class="modal-body py-8">
+                                {{-- всё, что попадает в бейджи отбора, можно поменять здесь --}}
+                                <div class="row mb-5">
+                                    <label class="col-sm-3 col-form-label fw-semibold text-sm-end">Период</label>
+                                    <div class="col-sm-9 d-flex flex-wrap align-items-center gap-5">
+                                        <select name="month" class="form-select w-200px">
+                                            <option value="">весь {{ $year }} год</option>
+                                            @for($m = 1; $m <= 12; $m++)
+                                                <option value="{{ $m }}" @selected((int) $params['month'] === $m)>
+                                                    {{ \Illuminate\Support\Str::ucfirst(\Illuminate\Support\Carbon::create($year, $m, 1)->locale('ru')->isoFormat('MMMM')) }} {{ $year }}
+                                                </option>
+                                            @endfor
+                                        </select>
+
+                                        <label class="form-check form-switch form-check-custom form-check-solid">
+                                            <input class="form-check-input" type="checkbox" name="all_years" value="1" @checked($params['all_years'])/>
+                                            <span class="form-check-label fw-semibold text-gray-700">за все годы</span>
+                                        </label>
+                                    </div>
+                                    <div class="col-sm-9 offset-sm-3 form-text">«За все годы» — без отбора по году и месяцу: так видна просрочка прошлых лет и платежи без дат.</div>
+                                </div>
+
+                                <div class="row mb-5">
+                                    <label class="col-sm-3 col-form-label fw-semibold text-sm-end">Поиск</label>
+                                    <div class="col-sm-9">
+                                        <input type="text" name="q" value="{{ $params['q'] }}" class="form-control"
+                                               placeholder="КП, компания, партнёр, спецификация, договор"/>
+                                    </div>
+                                </div>
+
+                                <div class="row mb-5">
+                                    <label class="col-sm-3 col-form-label fw-semibold text-sm-end">Компании</label>
+                                    <div class="col-sm-9">
+                                        <select name="company[]" class="form-select calendar-select2" multiple data-placeholder="Все компании">
+                                            @foreach($companies as $company)
+                                <option value="{{ $company->id }}" @selected(in_array($company->id, $params['company']))>
+                                    {{ $company->name }}
+                                </option>
+                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="row mb-5">
+                                    <label class="col-sm-3 col-form-label fw-semibold text-sm-end">Партнёры</label>
+                                    <div class="col-sm-9">
+                                        <select name="partner[]" class="form-select calendar-select2" multiple data-placeholder="Все партнёры">
+                                            @foreach($partners as $partner)
+                                <option value="{{ $partner->id }}" @selected(in_array($partner->id, $params['partner']))>
+                                    {{ $partner->name }}
+                                </option>
+                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="row mb-5">
+                                    <label class="col-sm-3 col-form-label fw-semibold text-sm-end">Состояние</label>
+                                    <div class="col-sm-9">
+                                        <select name="state[]" class="form-select calendar-select2" multiple data-placeholder="Все состояния">
+                                            @foreach($states as $code => $state)
+                                <option value="{{ $code }}" @selected(in_array($code, $params['state']))>
+                                    {{ $state['label'] }}
+                                </option>
+                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="row mb-5">
+                                    <label class="col-sm-3 col-form-label fw-semibold text-sm-end">Срок просрочки</label>
+                                    <div class="col-sm-9">
+                                        <select name="age[]" class="form-select calendar-select2" multiple data-placeholder="Любой">
+                                            @foreach($ages as $code => $age)
+                                                <option value="{{ $code }}" @selected(in_array($code, $params['age']))>
+                                                    {{ $age['label'] }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <label class="col-sm-3 col-form-label fw-semibold text-sm-end">Статус спецификации</label>
+                                    <div class="col-sm-9">
+                                        {{-- отбор по умолчанию в поле не подставляем: иначе «Применить» на нетронутом фильтре
+                                             отправит статус, контроллер сочтёт его ручным выбором и оплаченные пропадут --}}
+                                        <select name="spec_status[]" class="form-select calendar-select2" multiple
+                                                data-placeholder="{{ $params['spec_status_strict'] ? 'Статус спец.' : 'В процессе + оплаченные' }}">
+                                            @foreach($spec_statuses as $code => $label)
+                                <option value="{{ $code }}" @selected($params['spec_status_strict'] && in_array($code, $params['spec_status']))>
+                                    {{ $label }}
+                                </option>
+                            @endforeach
+                                        </select>
+                                        <div class="form-text">По умолчанию — спецификации в работе. Оплаченные платежи видны при любом статусе.</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Отменить</button>
+                                <button type="submit" class="btn btn-primary">Применить</button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
             <div class="card-body p-0">
                 @if($rows->isEmpty())
                     <div class="text-center text-muted py-10">
@@ -506,11 +588,11 @@
                                 <th width="170">КП</th>
                                 <th>КОМПАНИЯ</th>
                                 <th>ДОГОВОР И СПЕЦИФИКАЦИЯ</th>
-                                <th width="105">ОПТАЛА, ПЛАН И ФАКТ</th>
+                                <th class="text-end" width="105">ОПЛАТА, ПЛАН И ФАКТ</th>
                                 <th class="text-end" width="150">ОПЛАТА</th>
                                 <th class="text-end" width="130">КУРС</th>
                                 <th class="text-end" width="140">ИТОГО, ₽</th>
-                                <th class="text-end pe-5" width="70">СВОДНАЯ</th>
+                                <th class="text-end pe-5" width="1"></th>
                             </tr>
                             </thead>
                             <tbody>
@@ -589,8 +671,8 @@
                                         </div>
                                     </td>
 
-                                    <td class="text-nowrap fs-6">
-                                        <div class="d-flex justift-content-start">
+                                    <td class="text-nowrap fs-6 text-end">
+                                        <div class="d-flex justify-content-end">
                                             <span>{{ $row->date_plan?->format('d.m.Y') ?: '—' }}</span>
 
                                             @if($row->date_fact)
@@ -600,7 +682,7 @@
                                         </div>
 
                                         @if($row->delay)
-                                            <div class="fs-8 text-muted">отсрочка {{ $row->delay }} дн</div>
+                                            <div class="fs-8 text-muted">просрочка {{ $row->delay }} дн</div>
                                         @endif
                                     </td>
 
@@ -668,9 +750,30 @@
                             @endforeach
                             </tbody>
 
+                            @php
+                                // Итог берёт у оплаченных факт по курсу оплаты, а разбивка по месяцам
+                                // показывает план по курсу на сегодня — по валютным платежам числа
+                                // расходятся. Поэтому под итогом те же величины, что в разбивке.
+                                // Период — как в разбивке: план по дате плана, факт по дате оплаты
+                                // в выбранном году и месяце (в выборку месяца попадают и платежи,
+                                // у которых в этом месяце только одна из дат).
+                                $in_period = function ($date) use ($params, $year) {
+                                    if (!$date) return false;
+                                    if (!empty($params['all_years'])) return true;
+                                    if ((int) $date->year !== (int) $year) return false;
+
+                                    return empty($params['month']) || (int) $date->month === (int) $params['month'];
+                                };
+
+                                $live_rows = $rows->where('state', '!=', 'canceled');
+                                $rows_plan = $live_rows->filter(fn($row) => $in_period($row->date_plan))->sum(fn($row) => (float) $row->amount_plan_rub);
+                                $rows_fact = $live_rows->filter(fn($row) => $in_period($row->date_fact))->sum(fn($row) => (float) $row->amount_fact_rub);
+                            @endphp
+
                             <tfoot>
                             <tr class="fw-bold border-top border-gray-300 fs-5">
-                                <td class="ps-5" colspan="8">ИТОГО по выборке</td>
+                                {{-- 9 колонок: подпись на первые 7, сумма — под «Итого, ₽», последняя — под «Сводная» --}}
+                                <td class="ps-5" colspan="7">ИТОГО по выборке</td>
                                 <td class="text-end text-nowrap">
                                     {{ tools()->cost_normalize(round($rows->sum(fn($row) => (float) $row->amount_rub))) }}
                                     <span class="text-muted fs-7 ms-1">₽</span>
@@ -691,10 +794,26 @@
     @parent
     <script>
         $(document).ready(function () {
+            // модалка фильтра живёт в карточке — уводим в body, чтобы её не обрезал
+            // контекст наложения; select2 открываем внутри неё, иначе список уйдёт под backdrop
+            var $filter_modal = $('#calendar_filter_modal');
+            if ($filter_modal.length && !$filter_modal.parent().is('body')) $filter_modal.appendTo('body');
+
+            // «за все годы» отменяет месяц: поле прячем и отключаем, чтобы оно не ушло с формой
+            var $all_years = $filter_modal.find('input[name="all_years"]');
+            var $month = $filter_modal.find('select[name="month"]');
+            var sync_period = function () {
+                var all = $all_years.is(':checked');
+                $month.toggleClass('d-none', all).prop('disabled', all);
+            };
+            $all_years.on('change', sync_period);
+            sync_period();
+
             var $selects = $(".calendar-select2");
 
             $selects.select2({
                 width: '100%',
+                dropdownParent: $filter_modal,
                 allowClear: true,
                 closeOnSelect: false,
                 placeholder: function () {

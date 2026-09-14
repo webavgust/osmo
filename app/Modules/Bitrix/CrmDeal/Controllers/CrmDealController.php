@@ -25,7 +25,7 @@ class CrmDealController extends Controller
 
     public function __construct()
     {
-        $this->breadcrumb_add(null, 'Реестр сделок');
+        $this->breadcrumb_add(null, 'Реестр сделок Битрикс24');
     }
 
     /**
@@ -43,7 +43,7 @@ class CrmDealController extends Controller
         $params = CrmDealRegistryService::params($request, $defaults);
 
         return view('bitrix.deal.index', array_merge(CrmDealRegistryService::options(), [
-            'title' => 'Реестр сделок Bitrix',
+            'title' => 'Реестр сделок Битрикс24',
             'breadcrumbs' => $this->breadcrumb,
             'params' => $params,
             'defaults' => $defaults,

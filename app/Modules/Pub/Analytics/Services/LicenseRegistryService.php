@@ -2,6 +2,7 @@
 
 namespace App\Modules\Pub\Analytics\Services;
 
+use App\Modules\Pub\Constant\Models\Constant;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -19,8 +20,30 @@ use Illuminate\Support\Facades\DB;
  */
 class LicenseRegistryService
 {
-    /** Горизонты, по которым раскладываются ключи */
+    /**
+     * Горизонты в днях, по которым раскладываются ключи.
+     * По умолчанию; рабочее значение — consts.license_horizons (читать через horizons())
+     */
     public const HORIZONS = [30, 60, 90];
+
+    /**
+     * Горизонты в днях по возрастанию (consts.license_horizons, по умолчанию HORIZONS).
+     * Та же константа задаёт горизонты LicenseRenewalService.
+     *
+     * @return int[]
+     */
+    public static function horizons(): array
+    {
+        $horizons = collect(Constant::json('license_horizons', static::HORIZONS))
+            ->filter(fn($days) => is_numeric($days) && (int) $days > 0)
+            ->map(fn($days) => (int) $days)
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+
+        return $horizons ?: static::HORIZONS;
+    }
 
     /**
      * Ключи с расчётом срока
@@ -29,6 +52,7 @@ class LicenseRegistryService
      *     'horizon' => int|string|null — 30 / 60 / 90 / 'expired' / null (все),
      *     'partner' => int|null,
      *     'only_active' => bool — только активные ключи,
+     *     'hide_expired' => bool — скрыть истёкшие,
      *     'q' => string|null — ключ, компания, спецификация,
      * ]
      * @return Collection
@@ -70,6 +94,11 @@ class LicenseRegistryService
 
         if (!empty($params['horizon'])) {
             $rows = static::horizon($rows, $params['horizon']);
+        }
+
+        // горизонт включающий — истёкшие попадают в любой; убираем их отдельным условием
+        if (!empty($params['hide_expired'])) {
+            $rows = $rows->reject(fn($row) => $row['bucket'] === 'expired')->values();
         }
 
         return $rows
@@ -126,7 +155,7 @@ class LicenseRegistryService
         if ($days === null) return 'unknown';
         if ($days < 0) return 'expired';
 
-        foreach (static::HORIZONS as $horizon) {
+        foreach (static::horizons() as $horizon) {
             if ($days <= $horizon) return 'soon' . $horizon;
         }
 
@@ -141,11 +170,26 @@ class LicenseRegistryService
      */
     public static function state(string $bucket): array
     {
+        // горизонты настраиваются (consts.license_horizons): цвет — по порядку горизонта,
+        // подпись — словами для 30/60/90, для остальных числом дней
+        if (preg_match('/^soon(\d+)$/', $bucket, $match)) {
+            $days = (int) $match[1];
+            $index = array_search($days, static::horizons(), true);
+            $colors = ['danger', 'warning', 'primary'];
+
+            return [
+                'label' => match ($days) {
+                    30 => 'Меньше месяца',
+                    60 => 'До двух месяцев',
+                    90 => 'До трёх месяцев',
+                    default => 'До ' . $days . ' дн.',
+                },
+                'color' => $colors[$index === false ? 2 : min($index, 2)],
+            ];
+        }
+
         return match ($bucket) {
             'expired' => ['label' => 'Истекла', 'color' => 'danger'],
-            'soon30' => ['label' => 'Меньше месяца', 'color' => 'danger'],
-            'soon60' => ['label' => 'До двух месяцев', 'color' => 'warning'],
-            'soon90' => ['label' => 'До трёх месяцев', 'color' => 'primary'],
             'later' => ['label' => 'Действует', 'color' => 'success'],
             default => ['label' => 'Срок не указан', 'color' => 'secondary'],
         };
@@ -191,7 +235,9 @@ class LicenseRegistryService
             'companies' => $rows->pluck('company.id')->filter()->unique()->count(),
         ];
 
-        foreach (static::HORIZONS as $horizon) {
+        $horizons = static::horizons();
+
+        foreach ($horizons as $horizon) {
             $ret['soon'][$horizon] = ['count' => 0, 'sum' => 0.0];
         }
 
@@ -213,7 +259,7 @@ class LicenseRegistryService
             }
 
             // корзины включающие: ключ на 45 дней попадает и в 60, и в 90
-            foreach (static::HORIZONS as $horizon) {
+            foreach ($horizons as $horizon) {
                 if ($row['days'] !== null && $row['days'] <= $horizon) {
                     $ret['soon'][$horizon]['count']++;
                     $ret['soon'][$horizon]['sum'] += $row['amount_rub'];

@@ -9,7 +9,7 @@
                 <div class="btn btn-icon btn-active-color-primary w-40px h-40px ms-2" id="kt_app_sidebar_mobile_toggle">
                     <i class="fa-light fa-bars fs-2"></i>
                 </div>
-                <a href="{{ route('dashboard.index') }}" class="ms-2">
+                <a href="{{ route('desktop.index') }}" class="ms-2">
                     <img alt="OSMO" src="/images/logo/logo_letter.svg" class="h-30px" />
                 </a>
             </div>
@@ -20,6 +20,19 @@
 
                 <div class="app-main flex-column flex-row-fluid" id="kt_app_main">
                     <div class="d-flex flex-column flex-column-fluid">
+
+                        @if(!empty($log_state))
+                            {{-- patch v29: просмотр исторического состояния (?at=) --}}
+                            <div class="bg-warning bg-opacity-25 border-bottom border-warning px-8 py-5 d-flex align-items-center gap-5 flex-wrap">
+                                <i class="fa-light fa-clock-rotate-left fs-2x text-warning"></i>
+                                <div class="flex-grow-1">
+                                    <div class="fs-2 fw-bold text-gray-900">Просмотр состояния на {{ \App\Modules\Pub\EntityLog\Services\EntityLogViewService::dateWords($log_state['at']) }}, {{ $log_state['at']->format('H:i') }}</div>
+                                    <div class="fs-6 text-gray-700">{{ $log_state['log']->event_label }} · внёс {{ trim((string) ($log_state['log']->user->full_name ?? '')) ?: 'система' }} · это исторический слепок, редактирование недоступно@if(empty($log_state['exact'])) · {{ $log_state['note'] }}@endif</div>
+                                </div>
+                                <a href="{{ $log_state['timeline_url'] }}" class="btn btn-light-warning"><i class="fa-light fa-timeline fs-4 me-2"></i>Журнал изменений</a>
+                                <a href="{{ $log_state['current_url'] }}" class="btn btn-icon btn-light-warning btn-lg" title="Вернуться к текущему состоянию"><i class="fa-light fa-xmark fs-1"></i></a>
+                            </div>
+                        @endif
 
                         @include('layouts.breadcrumbs')
 

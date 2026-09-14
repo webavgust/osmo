@@ -52,7 +52,8 @@ class ContractSpecificationRepository
         ->currency()->associate(CurrencyRepository::get($data['currency']))
         ->save();
 
-        $spec->contract_specification_scenarios()->delete();
+        // patch v29: удаление через Eloquent — события deleting дают baseline журналу изменений
+        $spec->contract_specification_scenarios()->get()->each->delete();
         if(!empty($data['scenario'])) {
             $sort = 0;
             foreach($data['scenario'] as $uuid => $scenario_id) {

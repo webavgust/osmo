@@ -103,12 +103,23 @@ class UiTheme
             return false;
         }
 
-        if (config('ui.switch_admin_only', false)) {
-            $user = auth()->user();
-
-            return $user && method_exists($user, 'isAdmin') && $user->isAdmin();
+        // patch v28: переключатель — по флагу пользователя users.ui_theme_switch,
+        // а не по признаку админа (он теперь означает доступ в админ-панель)
+        $user = auth()->user();
+        if ($user && method_exists($user, 'canSwitchUiTheme')) {
+            return $user->canSwitchUiTheme();
         }
 
         return true;
+    }
+
+    /**
+     * Тема, в которой работает пользователь без права переключения
+     *
+     * @return string
+     */
+    public static function locked(): string
+    {
+        return static::exists('metronic') ? 'metronic' : static::fallback();
     }
 }

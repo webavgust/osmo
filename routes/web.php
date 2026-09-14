@@ -435,7 +435,7 @@ if (config('app.env') == 'development') {
 
 Route::middleware('auth')->group(function () {
     Route::get('/', function () {
-        return redirect(route('dashboard.index'));
+        return redirect(route('desktop.index'));
     });
     Route::get('/logout', [\App\Modules\Pub\User\Controllers\UserController::class, 'logout'])->name('logout');
     Route::get('/user/list', '\App\Modules\Pub\User\Controllers\UserController@view')->name('users.list');

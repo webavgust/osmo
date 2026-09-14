@@ -2,6 +2,7 @@
 
 namespace App\Modules\Pub\PaymentCalendar\Services;
 
+use App\Modules\Pub\Constant\Models\Constant;
 use App\Modules\Pub\ContractSpecification\Models\ContractSpecificationStatus;
 use App\Modules\Pub\Currency\Models\Currency;
 use App\Modules\Pub\Currency\Services\CurrencyService;
@@ -22,7 +23,10 @@ use Illuminate\Support\Facades\DB;
  */
 class PaymentCalendarService
 {
-    /** Что считаем «скоро» — дней до планового платежа */
+    /**
+     * Что считаем «скоро» — дней до планового платежа.
+     * По умолчанию; рабочее значение — consts.payment_soon_days (читать через soonDays())
+     */
     public const SOON_DAYS = 30;
 
     /** Валюта, в которой показываем все итоги */
@@ -33,6 +37,17 @@ class PaymentCalendarService
 
     /** Статусы спецификаций, показываемые по умолчанию */
     public const SPEC_STATUS_DEFAULT = ['processing'];
+
+    /**
+     * Сколько дней до планового платежа считаются «скоро»
+     * (consts.payment_soon_days, по умолчанию SOON_DAYS)
+     *
+     * @return int
+     */
+    public static function soonDays(): int
+    {
+        return max(0, Constant::int('payment_soon_days', static::SOON_DAYS));
+    }
 
     /**
      * Состояния платежа
@@ -300,7 +315,7 @@ class PaymentCalendarService
 
         return match (true) {
             $days < 0 => 'overdue',
-            $days <= static::SOON_DAYS => 'soon',
+            $days <= static::soonDays() => 'soon',
             default => 'planned',
         };
     }

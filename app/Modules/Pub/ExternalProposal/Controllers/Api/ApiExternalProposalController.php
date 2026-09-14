@@ -29,40 +29,37 @@ class ApiExternalProposalController
      */
     public function list_table(Request $request)
     {
-        $rows = $this->service->rows($request->only(['q', 'transferred']));
+        $rows = $this->service->rows($request->only(['q', 'transferred', 'currency', 'license']));
 
         $data = $rows->map(function (ExternalProposal $row) {
-            $proposal = $row->proposal;
-
             return [
                 'id' => $row->id,
-                'external_id' => $row->external_id,
-                'number' => $row->external_number,
-                'name' => $row->name,
-                'customer' => $row->customer,
-                'cameras' => $row->cameras,
-                'date' => $row->created_at_remote?->format('Y-m-d'),
-                'date_label' => $row->created_at_remote?->format('d.m.Y'),
-                'updated' => $row->updated_at_remote?->format('d.m.Y H:i'),
+
+                // Ячейки собираются на сервере отдельными вьюхами — как в
+                // ProposalService::tableDefault() на странице списка КП
+                // (patch v27). Форматтеров в JS больше нет.
+                'number' => view('components.external_proposal.table.number', ['row' => $row])->render(),
+                'name' => view('components.external_proposal.table.name', ['row' => $row])->render(),
+                'customer' => view('components.external_proposal.table.customer', ['row' => $row])->render(),
+                'cameras' => view('components.external_proposal.table.cameras', ['row' => $row])->render(),
+                'date' => view('components.external_proposal.table.date', ['row' => $row])->render(),
+                'license' => view('components.external_proposal.table.license', ['row' => $row])->render(),
+                'transferred' => view('components.external_proposal.table.transferred', ['row' => $row])->render(),
+                'actions' => view('components.external_proposal.table.actions', ['row' => $row])->render(),
+
+                // «Сырые» значения: колонки теперь содержат разметку, и
+                // клиентская сортировка сравнивала бы её. Поэтому у сортируемых
+                // колонок в JS указан `sortName` на эти поля.
+                'number_raw' => $row->external_number,
+                'name_raw' => $row->name,
+                'customer_raw' => $row->customer,
+                'cameras_raw' => $row->cameras,
+                'date_raw' => $row->created_at_remote?->format('Y-m-d'),
+                'transferred_raw' => !empty($row->proposal_group) ? 1 : 0,
+
+                // атрибуты строки (rowAttributes): подсветка и data-id
                 'has_payload' => $row->has_payload,
-                'currency' => $row->has_payload ? $row->currency : null,
-                'license' => $row->license_type,
-                'vat' => $row->has_payload ? !empty($row->payload['isVatIncluded']) : null,
-                'items' => $row->has_payload ? count($row->payload['items'] ?? []) : null,
-                'works' => $row->has_payload ? count($row->payload['detailedWorks'] ?? []) : null,
-                'transferred' => !empty($row->proposal_group),
-                'transferred_at' => $row->transferred_at?->format('d.m.Y H:i'),
-                'transferred_by' => $row->transferred_user?->full_name ?? $row->transferred_user?->name,
-                'proposal' => $proposal ? [
-                    'number' => $proposal->number,
-                    'iteration' => $proposal->iteration,
-                    'url' => route('proposal.detail', [$proposal, $proposal->iteration]),
-                ] : null,
-                'link' => [
-                    'detail' => route('external_proposal.box_detail', $row),
-                    'transfer' => route('external_proposal.box_transfer', $row),
-                    'fetch' => route('api.external_proposal.fetch', $row),
-                ],
+                'is_transferred' => !empty($row->proposal_group),
             ];
         })->values();
 

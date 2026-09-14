@@ -19,6 +19,9 @@
             padding: 12px;
         }
         .score-cell:hover .score-pop { display: block; }
+        /* таблица в прокручиваемом контейнере: у последних строк подсказка открывается вверх,
+           иначе её обрежет нижний край контейнера */
+        tbody tr:nth-last-child(-n+3) .score-pop { top: auto; bottom: calc(100% + 4px); }
         .score-bar { height: 6px; border-radius: 3px; background: #f1f1f4; overflow: hidden; }
         .score-bar > span { display: block; height: 100%; }
         .num-link { border-bottom: 1px dashed currentColor; cursor: pointer; text-decoration: none; }
@@ -26,57 +29,118 @@
     </style>
 @endsection
 
+@php
+    // «Фильтр (n)»: год не считаем — он вынесен отдельным селектором и стоит
+    // в тулбаре всегда, это главный отбор страницы
+    $rules_count = collect(['grade', 'q'])
+        ->filter(fn($key) => !empty($params[$key]))
+        ->count();
+
+    // год уезжает в адрес как есть: пустая строка — «все годы»
+    $year = $params['year'] ?? '';
+@endphp
+
+{{-- Тулбар страницы: год + «Фильтр», как на дашборде Битрикса --}}
+@section('breadcrumb_right')
+    {{-- как считается балл — по иконке, в модалке; раньше легенда раскрывалась над таблицей --}}
+    <button type="button" class="btn btn-icon btn-active-light-primary"
+            data-bs-toggle="modal" data-bs-target="#scoring_legend_modal"
+            title="Как считается балл и что значат буквы">
+        <i class="fas fa-circle-question text-primary fs-1"></i>
+    </button>
+
+
+    {{-- Год всегда на виду; остальной отбор уезжает вместе с ним скрытыми полями --}}
+    <form method="get" action="{{ route('analytics.partners') }}" class="d-flex align-items-center">
+        <input type="hidden" name="grade" value="{{ $params['grade'] }}"/>
+        <input type="hidden" name="q" value="{{ $params['q'] }}"/>
+
+        <select name="year" class="form-select w-auto fw-bold" onchange="this.form.submit()">
+            <option value="">все годы</option>
+            @foreach($years as $item)
+                <option value="{{ $item }}" @selected($params['year'] == $item)>{{ $item }}</option>
+            @endforeach
+        </select>
+    </form>
+
+    <button type="button" data-bs-toggle="modal" data-bs-target="#partners_filter_modal"
+            class="btn btn-light-info fw-bold d-flex align-items-center">
+        <i class="fa-light fa-filter"></i>
+        Фильтр
+        @if($rules_count)
+            <span class="count filter-count">{{ $rules_count }}</span>
+        @endif
+    </button>
+
+    @if($rules_count)
+        {{-- год остаётся: убираем только то, что стоит в модалке --}}
+        <a href="{{ route('analytics.partners', ['year' => $year]) }}"
+           class="me-2 text-dark-500 text-hover-dark">
+            <i class="fa-light fa-xmark fs-5 me-2" aria-hidden="true"></i> Убрать
+        </a>
+    @endif
+
+@endsection
+
 @section('content')
     <div class="container-fluid">
 
-        {{-- Отбор --}}
-        <div class="card mb-4">
-            <div class="card-body py-4">
-                <form method="get" action="{{ route('analytics.partners') }}">
-                    <div class="row g-3 align-items-end">
-                        <div class="col-auto">
-                            <label class="form-label fs-7 text-muted mb-1">ГОД</label>
-                            <select name="year" class="form-select form-select-sm" onchange="this.form.submit()">
-                                <option value="">все годы</option>
-                                @foreach($years as $year)
-                                    <option value="{{ $year }}" @selected($params['year'] == $year)>{{ $year }}</option>
-                                @endforeach
-                            </select>
+        {{-- Отбор: живёт в модалке, в адресе остаётся обычной GET-строкой,
+             поэтому ссылку с отбором можно передать --}}
+        <div id="partners_filter_modal" class="modal fade" tabindex="-1" aria-hidden="true">
+            <form method="get" action="{{ route('analytics.partners') }}">
+                <input type="hidden" name="year" value="{{ $year }}"/>
+
+                <div class="modal-dialog modal-lg modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3 class="modal-title fw-bold">Фильтр</h3>
+                            <button type="button" class="btn btn-icon btn-sm btn-active-light-primary"
+                                    data-bs-dismiss="modal" aria-label="Закрыть">
+                                <i class="fa-light fa-xmark fs-2"></i>
+                            </button>
                         </div>
 
-                        <div class="col-2">
-                            <label class="form-label fs-7 text-muted mb-1">ГРЕЙД</label>
-                            <select name="grade" class="form-select form-select-sm" onchange="this.form.submit()">
-                                <option value="">любой</option>
-                                @foreach($grades as $grade)
-                                    <option value="{{ $grade->value }}" @selected($params['grade'] === $grade->value)>
-                                        {{ $grade->data()['label'] ?? $grade->value }}
-                                    </option>
-                                @endforeach
-                            </select>
+                        <div class="modal-body py-8">
+                            <div class="row mb-5">
+                                <label class="col-sm-3 col-form-label fw-semibold text-sm-end">Грейд</label>
+                                <div class="col-sm-9">
+                                    <select name="grade" class="form-select partners_select" data-placeholder="любой">
+                                        <option value="">любой</option>
+                                        @foreach($grades as $grade)
+                                            <option value="{{ $grade->value }}" @selected($params['grade'] === $grade->value)>
+                                                {{ $grade->data()['label'] ?? $grade->value }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <label class="col-sm-3 col-form-label fw-semibold text-sm-end">Поиск</label>
+                                <div class="col-sm-9">
+                                    <input type="text" name="q" value="{{ $params['q'] }}" class="form-control"
+                                           placeholder="название партнёра"/>
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="col-3">
-                            <label class="form-label fs-7 text-muted mb-1">ПОИСК</label>
-                            <input type="text" name="q" value="{{ $params['q'] }}" class="form-control form-control-sm"
-                                   placeholder="название партнёра">
-                        </div>
-
-                        <div class="col-auto ms-auto">
-                            <button type="submit" class="btn btn-sm btn-primary">Показать</button>
-                            <a href="{{ route('analytics.partners', ['year' => '']) }}" class="btn btn-sm btn-light ms-1">Сбросить</a>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Отменить</button>
+                            <button type="submit" class="btn btn-primary">Применить</button>
                         </div>
                     </div>
-                </form>
-            </div>
+                </div>
+            </form>
         </div>
+
 
         {{-- Показатели --}}
         <div class="row g-4 mb-4">
             @php
                 $cards = [
                     ['label' => 'Партнёров', 'value' => $totals['count'], 'color' => 'dark'],
-                    ['label' => 'Подписано спецификаций', 'value' => $totals['specs_signed'], 'color' => 'success'],
+                    ['label' => 'Подписано специфик.', 'value' => $totals['specs_signed'], 'color' => 'success'],
                     ['label' => 'Сумма подписанного', 'value' => tools()->cost_normalize(round($totals['specs_sum'])) . ' ₽', 'color' => 'primary'],
                     ['label' => 'КП', 'value' => $totals['proposals'], 'color' => 'dark'],
                     ['label' => 'Выиграно КП', 'value' => $totals['won'], 'color' => 'success'],
@@ -96,17 +160,19 @@
             @endforeach
         </div>
 
-        {{-- Легенда — под кнопкой: нужна один раз, потом только занимает место --}}
-        <div class="mb-4">
-            <button class="btn btn-sm btn-light-primary" type="button" data-bs-toggle="collapse"
-                    data-bs-target="#scoring_legend" aria-expanded="false">
-                <i class="fas fa-circle-question me-1"></i>Как считается балл и что значат буквы
-            </button>
-        </div>
+        {{-- Легенда — в модалке по иконке «?» в тулбаре страницы --}}
+        <div id="scoring_legend_modal" class="modal fade" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-xl modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 class="modal-title fw-bold">Как считается балл и что значат буквы</h3>
+                        <button type="button" class="btn btn-icon btn-sm btn-active-light-primary"
+                                data-bs-dismiss="modal" aria-label="Закрыть">
+                            <i class="fa-light fa-xmark fs-2"></i>
+                        </button>
+                    </div>
 
-        <div class="collapse" id="scoring_legend">
-            <div class="card mb-4">
-            <div class="card-body py-4">
+                    <div class="modal-body py-6">
                 <div class="row g-4">
                     <div class="col-12 col-xl-5 fs-5">
                         <div class="fw-bold mb-2">Балл: 0–100, у лучшего партнёра выборки всегда 100</div>
@@ -117,12 +183,14 @@
 
                         <div class="mt-3 d-flex flex-column gap-2">
                             @php
+                                // веса настраиваются в админ-панели (consts.scoring_weight_*)
+                                $score_weights = \App\Modules\Pub\Analytics\Services\PartnerScoringService::weights();
                                 $weights = [
-                                    ['label' => 'Сумма подписанных спецификаций', 'weight' => \App\Modules\Pub\Analytics\Services\PartnerScoringService::WEIGHT_SPECS, 'color' => 'primary', 'hint' => 'одна спецификация на миллион весит больше десяти по пятьдесят тысяч'],
-                                    ['label' => 'Количество проектов', 'weight' => \App\Modules\Pub\Analytics\Services\PartnerScoringService::WEIGHT_PROJECTS, 'color' => 'dark', 'hint' => 'проекты партнёра за год по дате начала; архивные тоже считаются'],
-                                    ['label' => 'Конверсия решённых КП', 'weight' => \App\Modules\Pub\Analytics\Services\PartnerScoringService::WEIGHT_CONVERSION, 'color' => 'success', 'hint' => 'выиграно к сумме выигранных и проигранных; КП в работе не считаются'],
-                                    ['label' => 'Кол-во сделок битрикс', 'weight' => \App\Modules\Pub\Analytics\Services\PartnerScoringService::WEIGHT_DEALS, 'color' => 'info', 'hint' => 'все сделки партнёра за год, любых стадий; считаются по сопоставлению партнёра с Битрикс24'],
-                                    ['label' => 'Доля просроченных платежей', 'weight' => \App\Modules\Pub\Analytics\Services\PartnerScoringService::WEIGHT_OVERDUE, 'color' => 'warning', 'hint' => 'чем меньше просрочки, тем выше балл; без платежей — нейтрально'],
+                                    ['label' => 'Сумма подписанных спецификаций', 'weight' => $score_weights['specs'], 'color' => 'primary', 'hint' => 'одна спецификация на миллион весит больше десяти по пятьдесят тысяч'],
+                                    ['label' => 'Количество проектов', 'weight' => $score_weights['projects'], 'color' => 'dark', 'hint' => 'проекты партнёра за год по дате начала; архивные тоже считаются'],
+                                    ['label' => 'Конверсия решённых КП', 'weight' => $score_weights['conversion'], 'color' => 'success', 'hint' => 'выиграно к сумме выигранных и проигранных; КП в работе не считаются'],
+                                    ['label' => 'Кол-во сделок Битрикс24', 'weight' => $score_weights['deals'], 'color' => 'info', 'hint' => 'все сделки партнёра за год, любых стадий; считаются по сопоставлению партнёра с Битрикс24'],
+                                    ['label' => 'Доля просроченных платежей', 'weight' => $score_weights['overdue'], 'color' => 'warning', 'hint' => 'чем меньше просрочки, тем выше балл; без платежей — нейтрально'],
                                 ];
                             @endphp
 
@@ -157,7 +225,8 @@
                         </table>
                     </div>
                 </div>
-            </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -165,12 +234,10 @@
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h3 class="m-0">Партнёры</h3>
-                <span class="text-muted fs-6">
-                    Сортировка по баллу. Цифры кликабельны, при наведении на балл — место в рейтинге по годам.
-                </span>
             </div>
 
-            <div style="overflow: visible">
+            {{-- таблица широкая: прокручивается внутри карточки, страница за контейнер не уходит --}}
+            <div class="table-responsive">
                 <table class="table table-row-bordered align-middle m-0">
                     <thead>
                         <tr class="fw-bold fs-7 text-muted text-uppercase">
@@ -416,19 +483,28 @@
                 </table>
             </div>
 
-            <div class="card-footer py-3 fs-7 text-muted">
-                Сумма подписанных спецификаций (вес {{ \App\Modules\Pub\Analytics\Services\PartnerScoringService::WEIGHT_SPECS }})
-                + количество проектов ({{ \App\Modules\Pub\Analytics\Services\PartnerScoringService::WEIGHT_PROJECTS }})
-                + конверсия решённых КП ({{ \App\Modules\Pub\Analytics\Services\PartnerScoringService::WEIGHT_CONVERSION }})
-                + кол-во сделок битрикс ({{ \App\Modules\Pub\Analytics\Services\PartnerScoringService::WEIGHT_DEALS }})
-                + платежи без просрочки ({{ \App\Modules\Pub\Analytics\Services\PartnerScoringService::WEIGHT_OVERDUE }}),
-                нормировано так, что у лидера выборки 100. «КП → договор» — средний срок от даты
-                последнего выставленного КП до даты спецификации, к которой его прикрепили.
-                «Сделки» — все сделки партнёра за год, любых стадий: они считаются по сопоставлению
-                партнёра с Битрикс24 (заводится в редактировании партнёра), без сопоставления
-                сделок и проектов не будет. «Проекты» — проекты по сделкам за год, включая архивные.
-                Суммы приведены к рублям по текущему курсу.
-            </div>
         </div>
     </div>
+@endsection
+
+@section('js')
+    @parent
+    <script>
+        // грейдов немного, но список в модалке держим таким же, как на «Анализе скидок»
+        $(document).ready(function () {
+            // модалки живут в контенте — уводим в body, чтобы их не обрезал контекст наложения
+            $('#scoring_legend_modal').appendTo('body');
+
+            var $modal = $('#partners_filter_modal');
+
+            $modal.find('select.partners_select').each(function () {
+                $(this).select2({
+                    width: '100%',
+                    dropdownParent: $modal,
+                    placeholder: $(this).data('placeholder'),
+                    allowClear: true
+                });
+            });
+        });
+    </script>
 @endsection

@@ -3,7 +3,7 @@
 namespace App\Modules\Pub\Organization\Model;
 
 use App\Models\ModuleModel;
-use App\Models\traits\HasDetailPage;
+use App\Models\Traits\HasDetailPage;
 use App\Modules\Pub\DocumentNumber\Models\DocumentNumber;
 use App\Modules\Pub\LabObject\Models\LabObject;
 use App\Modules\Pub\OrderTaskAgreement\Models\OrderTaskAgreement;

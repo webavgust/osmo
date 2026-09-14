@@ -1,0 +1,187 @@
+/*
+ * Рабочий стол (patch v30): стили виджетов категории «Личное» (personal).
+ * Каждый селектор — от .desk-widget[data-widget="{id}"], кегль — классами и контейнерными единицами.
+ */
+
+/* ---------- calendar ---------- */
+
+/* дни недели — равные колонки, как бы ни были длинны подписи внутри */
+.desk-widget[data-widget="calendar"] .cal-day { flex: 1 1 0; min-width: 0; }
+.desk-widget[data-widget="calendar"] .cal-dots { display: flex; justify-content: center; gap: .25rem; margin-top: .25rem; }
+.desk-widget[data-widget="calendar"] .cal-events { display: none; }
+
+/* крупный блок: в ячейке дня — названия событий вместо точек */
+@container dw (min-width: 640px) and (min-height: 540px) {
+    .desk-widget[data-widget="calendar"] .cal-week { align-items: stretch !important; }
+    .desk-widget[data-widget="calendar"] .cal-day { text-align: left !important; padding: .3rem .35rem !important; border-top: 1px solid var(--bs-gray-200); overflow: hidden; }
+    .desk-widget[data-widget="calendar"] .cal-dots { display: none; }
+    .desk-widget[data-widget="calendar"] .cal-events { display: flex; flex-direction: column; gap: .15rem; margin-top: .3rem; line-height: 1.25; font-weight: 400; color: var(--bs-gray-800); }
+}
+
+/* узкий блок: название события уходит под дату, точка цвета не нужна */
+@container dw (max-width: 170px) {
+    .desk-widget[data-widget="calendar"] .cal-list > li { flex-wrap: wrap; row-gap: 0; }
+    .desk-widget[data-widget="calendar"] .cal-list > li > .bullet { display: none; }
+    .desk-widget[data-widget="calendar"] .cal-list > li > .desk-grow { flex-basis: 100%; }
+}
+
+/* ---------- clock ---------- */
+
+/*
+ * Кегль времени — от места под одну плитку: ширина тела делится на колонки (--clock-c) и ширину
+ * строки времени в em (--clock-em), высота — на ряды (--clock-r) и строки под временем
+ * (--clock-lines). Колонки выбираются по пропорции блока: высокий — часы друг под другом,
+ * вытянутый — в ряд, четверо часов в почти квадратном блоке — два на два
+ */
+.desk-widget[data-widget="clock"] .clock-grid {
+    --clock-c: 1;
+    --clock-r: var(--clock-n);
+    --clock-w: calc((100cqw - 36px - (var(--clock-c) - 1) * 10px) / var(--clock-c));
+    --clock-h: calc((100cqh - 52px) / var(--clock-r));
+    --clock-f: min(calc(var(--clock-w) / var(--clock-em)), calc((var(--clock-h) - var(--clock-lines) * 17px) / 1.2), calc(var(--clock-h) / (1.2 + var(--clock-lines) * .34)));
+    height: 100%;
+    display: grid;
+    /* 1fr с минимумом по содержимому: не влезшее время раздвигает сетку, и .desk-fit прячет часы */
+    grid-template-columns: repeat(var(--clock-c), 1fr);
+    align-content: space-evenly;
+    column-gap: 10px;
+    min-width: 0;
+}
+@container dw (min-aspect-ratio: 2/1) {
+    .desk-widget[data-widget="clock"] .clock-grid:not(.clock-n-4) { --clock-c: var(--clock-n); --clock-r: 1; }
+}
+@container dw (min-aspect-ratio: 6/5) {
+    .desk-widget[data-widget="clock"] .clock-grid.clock-n-4 { --clock-c: 2; --clock-r: 2; }
+}
+@container dw (min-aspect-ratio: 4/1) {
+    .desk-widget[data-widget="clock"] .clock-grid.clock-n-4 { --clock-c: 4; --clock-r: 1; }
+}
+/* низкий блок: два ряда часов не встают никогда — только ряд, лишние прячет .desk-fit по ширине;
+   даты нет — третья строка в 48 px не помещается */
+@container dw (max-height: 96px) {
+    .desk-widget[data-widget="clock"] .clock-grid.clock-grid { --clock-c: var(--clock-n); --clock-r: 1; --clock-lines: 1; align-content: center; }
+    .desk-widget[data-widget="clock"] .clock-date { display: none; }
+}
+.desk-widget[data-widget="clock"] .clock-tile { text-align: center; }
+.desk-widget[data-widget="clock"] .clock-time {
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -.01em;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    color: var(--bs-gray-900);
+    font-size: calc(clamp(13px, var(--clock-f), 220px) * var(--desk-font-scale));
+}
+.desk-widget[data-widget="clock"] .clock-city { color: var(--bs-gray-700); font-size: calc(clamp(11px, calc(var(--clock-f) * .26), 28px) * var(--desk-font-scale)); line-height: 1.3; }
+.desk-widget[data-widget="clock"] .clock-date { font-size: calc(clamp(11px, calc(var(--clock-f) * .22), 24px) * var(--desk-font-scale)); line-height: 1.3; }
+
+/* одни часы в высоком блоке: время и подписи расходятся по высоте, а не жмутся к середине */
+@container dw (max-aspect-ratio: 3/4) {
+    .desk-widget[data-widget="clock"] .clock-single { align-content: stretch; }
+    .desk-widget[data-widget="clock"] .clock-single > .clock-tile { display: flex; flex-direction: column; justify-content: space-evenly; }
+}
+
+/* ---------- countdown ---------- */
+
+/*
+ * Столбик: число, подпись, дата, полоса «прошло N% квартала». Кегль числа — от ширины блока,
+ * делённой на ширину числа в em (--cd-em), и от высоты без шапки (--cd-chrome) и строк под
+ * числом (--cd-extra). Вытянутый блок (5:2 и шире) — ряд: число слева, подписи справа
+ */
+.desk-widget[data-widget="countdown"] .cd-box {
+    --cd-chrome: 52px;
+    /* под числом: --cd-extra — пиксели на мелких кеглях, --cd-k — доля от числа, когда подписи растут вместе с ним */
+    --cd-extra: 18px;
+    --cd-k: 1.45;
+    --cd-f: min(calc((100cqw - 34px) / var(--cd-em)), calc((100cqh - var(--cd-chrome) - var(--cd-extra)) / 1.2), calc((100cqh - var(--cd-chrome)) / var(--cd-k)));
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    min-width: 0;
+    overflow: hidden;
+}
+.desk-widget[data-widget="countdown"] .cd-value {
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -.02em;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    color: var(--bs-gray-900);
+    font-size: calc(clamp(15px, var(--cd-f), 260px) * var(--desk-font-scale));
+}
+.desk-widget[data-widget="countdown"] .cd-side { min-width: 0; }
+/* подпись переносится, а не режется: «дней до конца квартала» в 64 px — две строки */
+.desk-widget[data-widget="countdown"] .cd-caption {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    text-wrap: balance;
+    line-height: 1.25;
+    color: var(--bs-gray-700);
+    font-size: calc(clamp(11px, calc(var(--cd-f) * .16), 30px) * var(--desk-font-scale));
+}
+.desk-widget[data-widget="countdown"] .cd-date { display: none; line-height: 1.3; font-size: calc(clamp(11px, calc(var(--cd-f) * .12), 22px) * var(--desk-font-scale)); }
+.desk-widget[data-widget="countdown"] .cd-progress { display: none; margin-top: .45rem; line-height: 1.3; font-size: calc(clamp(11px, calc(var(--cd-f) * .1), 18px) * var(--desk-font-scale)); }
+.desk-widget[data-widget="countdown"] .cd-progress .desk-bar { margin: 0 auto .25rem; width: min(100%, 24rem); }
+
+@container dw (min-height: 110px) {
+    .desk-widget[data-widget="countdown"] .cd-box { --cd-extra: 42px; --cd-k: 1.8; }
+    .desk-widget[data-widget="countdown"] .cd-date { display: block; }
+}
+@container dw (min-height: 230px) {
+    .desk-widget[data-widget="countdown"] .cd-box { --cd-extra: 84px; --cd-k: 2.1; }
+    .desk-widget[data-widget="countdown"] .cd-progress { display: block; }
+}
+/* низкий блок: шапка и отступы плотнее, подпись в одну строку */
+@container dw (max-height: 96px) {
+    .desk-widget[data-widget="countdown"] .cd-box { --cd-chrome: 36px; --cd-extra: 16px; }
+    .desk-widget[data-widget="countdown"] .cd-caption { -webkit-line-clamp: 1; }
+}
+/* высокий блок: число и подписи расходятся по высоте */
+@container dw (max-aspect-ratio: 3/4) {
+    .desk-widget[data-widget="countdown"] .cd-box { justify-content: space-evenly; }
+}
+/* вытянутый блок: ряд — число слева, подписи и полоса справа во всю оставшуюся ширину */
+@container dw (min-aspect-ratio: 5/2) {
+    .desk-widget[data-widget="countdown"] .cd-box {
+        --cd-extra: 0px;
+        --cd-f: min(calc((100cqw - 34px) * .42 / var(--cd-em)), calc((100cqh - var(--cd-chrome)) / 1.2));
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 1rem;
+        text-align: left;
+    }
+    .desk-widget[data-widget="countdown"] .cd-side { flex: 1 1 auto; }
+    .desk-widget[data-widget="countdown"] .cd-caption { font-size: calc(clamp(11px, calc(var(--cd-f) * .22), 30px) * var(--desk-font-scale)); }
+    .desk-widget[data-widget="countdown"] .cd-progress .desk-bar { margin-left: 0; }
+}
+@container dw (min-aspect-ratio: 5/2) and (min-height: 110px) {
+    .desk-widget[data-widget="countdown"] .cd-progress { display: block; }
+}
+
+/* ---------- reminders ---------- */
+
+/* узкий блок: текст уходит под время второй строкой; час переносится под дату, если не влез */
+@container dw (max-width: 170px) {
+    .desk-widget[data-widget="reminders"] .rem-list > li { flex-wrap: wrap; row-gap: 0; }
+    .desk-widget[data-widget="reminders"] .rem-list > li > .desk-grow { flex-basis: 100%; }
+    .desk-widget[data-widget="reminders"] .rem-time { white-space: normal !important; flex-shrink: 1 !important; min-width: 0; }
+    .desk-widget[data-widget="reminders"] .rem-time > span { white-space: nowrap; }
+}
+/* узкий и низкий блок (2×2): только дата и час ближайшего напоминания, текст — в title времени */
+@container dw (max-width: 170px) and (max-height: 96px) {
+    .desk-widget[data-widget="reminders"] .rem-list > li > .desk-grow { display: none; }
+}
+/* сводка над списком: плитки не растягиваются на всю ширину широкого блока */
+.desk-widget[data-widget="reminders"] .desk-tiles > * { flex: 0 1 9rem; }
+
+/* ---------- note ---------- */
+
+/* короткая заметка крупнее в большом блоке: кегль от площади, в маленьком — обычный */
+.desk-widget[data-widget="note"] .note-short { font-size: calc(clamp(13px, min(4.2cqw, 7cqh), 30px) * var(--desk-font-scale)); }
+.desk-widget[data-widget="note"] .note-mid { font-size: calc(clamp(13px, min(3cqw, 5cqh), 22px) * var(--desk-font-scale)); }

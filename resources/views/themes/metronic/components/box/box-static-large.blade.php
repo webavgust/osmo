@@ -18,15 +18,17 @@
             <div class="modal-body">
                 @yield('body')
             </div>
-            <div class="modal-footer">
-                @hasSection('footer')
-                    @yield('footer')
-                @else
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">
-                        Закрыть
-                    </button>
+                @if(empty($hide_footer))
+                    <div class="modal-footer">
+                        @hasSection('footer')
+                            @yield('footer')
+                        @else
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">
+                                Закрыть
+                            </button>
+                        @endif
+                    </div>
                 @endif
-            </div>
         </div>
     </div>
 </div>

@@ -5,12 +5,14 @@ namespace App\Modules\Bitrix\CrmDeal\Services;
 use App\Modules\Bitrix\CrmCompany\Models\CrmCompanyUf;
 use App\Modules\Bitrix\CrmDeal\Models\CrmDeal;
 use App\Modules\Bitrix\CrmDeal\Repositories\CrmDealRepository;
+use App\Modules\Pub\Constant\Models\Constant;
 use App\Modules\Pub\DealProject\Services\DealProjectService;
 use App\Modules\Pub\Partner\Models\Partner;
 use App\Modules\Pub\Proposal\Models\Proposal;
 use App\Modules\Pub\Proposal\Models\ProposalCrmDeal;
 use App\Modules\Pub\Proposal\Services\ProposalDealService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -32,10 +34,16 @@ use Illuminate\Support\Str;
  */
 class CrmDealRegistryService
 {
-    /** Реестр начинается с этой даты создания сделки */
+    /**
+     * Реестр начинается с этой даты создания сделки.
+     * По умолчанию; рабочее значение — consts.bitrix_deals_since (читать через since())
+     */
     public const SINCE = '2025-01-01';
 
-    /** Ссылка на карточку сделки в Битриксе */
+    /**
+     * Ссылка на карточку сделки в Битриксе.
+     * По умолчанию; рабочее значение — consts.bitrix_deal_url (читать через dealUrlTemplate())
+     */
     public const DEAL_URL = 'https://osmoview.bitrix24.ru/crm/deal/details/%s/';
 
     /** Подпись для сделок, у компании которых не заполнена страна */
@@ -63,11 +71,55 @@ class CrmDealRegistryService
         'q' => '',
     ];
 
-    /** Поле сделки с конечным заказчиком (в Битриксе это текст, не справочник) */
+    /**
+     * Поле сделки с конечным заказчиком (в Битриксе это текст, не справочник).
+     * По умолчанию; рабочее значение — consts.bitrix_uf_customer (читать через ufCustomer())
+     */
     public const UF_CUSTOMER = 'uf_crm_1717755645';
 
     /** Карта «сделка → КП» на время запроса */
     protected static ?Collection $proposals = null;
+
+    /**
+     * Дата создания сделки, с которой начинается реестр, Y-m-d
+     * (consts.bitrix_deals_since, по умолчанию SINCE). Не дата — SINCE.
+     *
+     * @return string
+     */
+    public static function since(): string
+    {
+        try {
+            return Carbon::parse(Constant::value('bitrix_deals_since', static::SINCE))->format('Y-m-d');
+        } catch (\Throwable) {
+            return static::SINCE;
+        }
+    }
+
+    /**
+     * Шаблон ссылки на сделку, `%s` — id сделки (consts.bitrix_deal_url, по умолчанию DEAL_URL).
+     * Без `%s` ссылка вела бы в никуда — тогда DEAL_URL.
+     *
+     * @return string
+     */
+    public static function dealUrlTemplate(): string
+    {
+        $template = trim((string) Constant::value('bitrix_deal_url', static::DEAL_URL));
+
+        return str_contains($template, '%s') ? $template : static::DEAL_URL;
+    }
+
+    /**
+     * Поле crm_deal_uf с конечным заказчиком (consts.bitrix_uf_customer, по умолчанию UF_CUSTOMER).
+     * Имя подставляется в SQL как колонка, поэтому допускаются только латиница, цифры и `_`.
+     *
+     * @return string
+     */
+    public static function ufCustomer(): string
+    {
+        $field = trim((string) Constant::value('bitrix_uf_customer', static::UF_CUSTOMER));
+
+        return preg_match('/^[a-z0-9_]+$/i', $field) ? $field : static::UF_CUSTOMER;
+    }
 
     /**
      * Привести фильтр к нормальному виду
@@ -153,6 +205,27 @@ class CrmDealRegistryService
     }
 
     /**
+     * Адрес серверного поиска без самой строки поиска.
+     *
+     * Строка поиска реестра работает через адрес: Enter уводит на страницу
+     * с тем же отбором и вкладкой, а `q` дописывает скрипт в конец. Нужен и
+     * таблице (_table — поиск в панели bootstrap-table), и шапке карточки
+     * на странице реестра, поэтому собирается в одном месте.
+     *
+     * @param string $action Адрес страницы (или вкладки партнёра)
+     * @param array $params Текущий отбор (см. params())
+     * @param string|null $mode Вкладка: all | projects | archive
+     * @return string Адрес, заканчивающийся на `q=`
+     */
+    public static function searchBase(string $action, array $params, ?string $mode = null): string
+    {
+        $query = static::query(array_diff_key($params, ['q' => null]));
+        if ($mode) $query['mode'] = $mode;
+
+        return $action . '?' . (count($query) ? http_build_query($query) . '&' : '') . 'q=';
+    }
+
+    /**
      * Сделки реестра
      *
      * @param array $params Фильтр (см. params())
@@ -164,7 +237,8 @@ class CrmDealRegistryService
     {
         $params = static::params($params);
         $mode = static::mode($mode);
-        $country_field = 'crm_company_uf.' . CrmDealRepository::UF_COUNTRY;
+        $country_field = 'crm_company_uf.' . CrmDealRepository::ufCountry();
+        $customer_field = 'crm_deal_uf.' . static::ufCustomer();
 
         // партнёр без сопоставления с Битриксом — сделок у него нет
         if ($partner) {
@@ -178,9 +252,9 @@ class CrmDealRegistryService
             ->select([
                 'crm_deal.*',
                 // конечный заказчик
-                'crm_deal_uf.uf_crm_1717755645 as customer_name',
+                $customer_field . ' as customer_name',
                 // плановый квартал и месяц исполнения
-                'crm_deal_uf.uf_crm_1722255711522 as plan_quarter',
+                'crm_deal_uf.' . DealProjectService::ufQuarter() . ' as plan_quarter',
                 'crm_deal_uf.uf_crm_1736778153503 as plan_month',
                 // деньги по видам
                 'crm_deal_uf.uf_crm_1718977752420 as amount_licenses',
@@ -190,7 +264,7 @@ class CrmDealRegistryService
                 // страна получения средств — поле компании, а не сделки
                 $country_field . ' as country',
             ])
-            ->where('crm_deal.date_create', '>=', static::SINCE);
+            ->where('crm_deal.date_create', '>=', static::since());
 
         if ($partner) {
             $builder->whereIn('crm_deal.company_id', $company_ids);
@@ -218,18 +292,18 @@ class CrmDealRegistryService
         }
 
         if (!empty($params['customer'])) {
-            $builder->whereIn('crm_deal_uf.' . static::UF_CUSTOMER, $params['customer']);
+            $builder->whereIn($customer_field, $params['customer']);
         }
 
         if ($params['q'] !== '') {
             $like = '%' . $params['q'] . '%';
 
-            $builder->where(function ($builder) use ($params, $like) {
+            $builder->where(function ($builder) use ($params, $like, $customer_field) {
                 if (ctype_digit($params['q'])) $builder->orWhere('crm_deal.id', (int) $params['q']);
 
                 $builder->orWhere('crm_deal.title', 'like', $like)
                     ->orWhere('crm_deal.company_name', 'like', $like)
-                    ->orWhere('crm_deal_uf.uf_crm_1717755645', 'like', $like);
+                    ->orWhere($customer_field, 'like', $like);
             });
         }
 
@@ -291,7 +365,7 @@ class CrmDealRegistryService
         }
 
         $ids = CrmDeal::query()
-            ->where('date_create', '>=', static::SINCE)
+            ->where('date_create', '>=', static::since())
             ->when($partner, fn($builder) => $builder->whereIn('company_id', $company_ids ?? []))
             ->pluck('id')
             ->map(fn($id) => (int) $id);
@@ -369,7 +443,7 @@ class CrmDealRegistryService
      */
     public static function customers(?Partner $partner = null): array
     {
-        $field = static::UF_CUSTOMER;
+        $field = static::ufCustomer();
 
         if ($partner) {
             $company_ids = static::partnerCompanyIds($partner);
@@ -378,7 +452,7 @@ class CrmDealRegistryService
 
         return CrmDeal::query()
             ->join('crm_deal_uf', 'crm_deal.id', '=', 'crm_deal_uf.deal_id')
-            ->where('crm_deal.date_create', '>=', static::SINCE)
+            ->where('crm_deal.date_create', '>=', static::since())
             ->when($partner, fn($builder) => $builder->whereIn('crm_deal.company_id', $company_ids ?? []))
             ->whereNotNull('crm_deal_uf.' . $field)
             ->where('crm_deal_uf.' . $field, '!=', '')
@@ -397,7 +471,7 @@ class CrmDealRegistryService
      */
     public static function countries(): array
     {
-        $field = CrmDealRepository::UF_COUNTRY;
+        $field = CrmDealRepository::ufCountry();
 
         // у модели не задано соединение — она живёт связями от CrmCompany,
         // поэтому прямой запрос отправляем в базу Битрикса явно
@@ -447,7 +521,7 @@ class CrmDealRegistryService
      */
     public static function url($id): string
     {
-        return sprintf(static::DEAL_URL, $id);
+        return sprintf(static::dealUrlTemplate(), $id);
     }
 
     /**

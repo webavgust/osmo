@@ -1,5 +1,4 @@
-
-<div class="card mb-0 h-100">
+<div class="card mb-0">
     <div class="border-bottom title-part-padding d-flex justify-content-between align-items-center">
         <h4 class="mb-0">Воронка в разрезе сферы деятельности заказчика</h4>
     </div>

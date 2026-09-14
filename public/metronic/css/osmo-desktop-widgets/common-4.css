@@ -1,0 +1,89 @@
+/*
+ * Рабочий стол (patch v30): поведение виджетов группы common-4 в блоке любого размера.
+ * currency, embed, heading.
+ *
+ * Каждый селектор начинается с .desk-widget[data-widget="{id}"], кегль — только
+ * контейнерными единицами (cqw, cqh) в clamp(). Прогон — patches/patch-v30/grid/common-4.md.
+ */
+
+/* ================= currency — Выбор валюты ================= */
+
+/*
+ * Низкий блок: выбор валюты (и курс в строку, если шире 230 px) по центру высоты.
+ * С высоты 110 px под выбором карточка текущей валюты: знак и код крупно, название,
+ * курс к рублю. С высоты 230 px (ступень lg) — все валюты списком, переключение нажатием.
+ */
+
+/* узкий блок: в шапке только значок — название виджета не помещается */
+@container dw (max-width: 170px) {
+    .desk-widget[data-widget="currency"] .desk-widget-title { visibility: hidden; }
+}
+
+.desk-widget[data-widget="currency"] .cur-body { justify-content: center; }
+/* широкий блок: выбор не растягивается на всю ширину */
+.desk-widget[data-widget="currency"] .cur-pick .form-select { max-width: 24rem; }
+
+@container dw (min-height: 110px) {
+    .desk-widget[data-widget="currency"] .cur-rate-inline { display: none; }
+    .desk-widget[data-widget="currency"] .cur-body { justify-content: flex-start; gap: clamp(.35rem, 2cqh, 1.25rem); }
+}
+
+/* карточка текущей валюты */
+.desk-widget[data-widget="currency"] .cur-now { min-width: 0; }
+.desk-widget[data-widget="currency"] .cur-code {
+    line-height: 1.1;
+    overflow: hidden;
+    font-variant-numeric: tabular-nums;
+    font-size: calc(clamp(15px, min(11cqw, 14cqh), 64px) * var(--desk-font-scale));
+}
+.desk-widget[data-widget="currency"] .cur-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 .5rem;
+    min-width: 0;
+    margin-top: .15rem;
+    font-size: calc(clamp(12px, min(3.4cqw, 4cqh), 18px) * var(--desk-font-scale));
+}
+.desk-widget[data-widget="currency"] .cur-name { flex: 0 1 auto; min-width: 0; font-size: 1em; }
+.desk-widget[data-widget="currency"] .cur-rate { font-weight: 600; }
+
+/* список валют: переключатель спрятан, текущая валюта подсвечена */
+.desk-widget[data-widget="currency"] .cur-list { align-content: start; }
+.desk-widget[data-widget="currency"] .cur-list > li { padding: 0; }
+.desk-widget[data-widget="currency"] .cur-option {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding: clamp(.3rem, 1.1cqh, .8rem) .5rem;
+    border-radius: .425rem;
+    cursor: pointer;
+}
+.desk-widget[data-widget="currency"] .cur-option:hover { background: var(--bs-gray-100); }
+.desk-widget[data-widget="currency"] .cur-radio { position: absolute; opacity: 0; pointer-events: none; }
+.desk-widget[data-widget="currency"] .cur-item.is-current .cur-option { background: var(--bs-primary-light); color: var(--bs-primary); }
+.desk-widget[data-widget="currency"] .cur-radio:focus-visible + span { outline: 2px solid var(--bs-primary); outline-offset: 2px; }
+.desk-widget[data-widget="currency"] .cur-radio:disabled ~ span { cursor: default; }
+@container dw (max-width: 170px) {
+    .desk-widget[data-widget="currency"] .cur-option { padding-left: .3rem; padding-right: .3rem; }
+}
+/* широкий блок: валюты в несколько колонок — столько, чтобы название не резалось */
+@container dw (min-width: 420px) {
+    .desk-widget[data-widget="currency"] .cur-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
+        column-gap: 1rem;
+    }
+}
+/* очень высокий блок: одна колонка, строки растягиваются по высоте (не выше 4.5rem) */
+@container dw (min-height: 560px) {
+    .desk-widget[data-widget="currency"] .cur-list { display: flex; flex-direction: column; }
+    .desk-widget[data-widget="currency"] .cur-list > li { flex: 1 1 auto; max-height: 4.5rem; align-items: stretch; }
+    .desk-widget[data-widget="currency"] .cur-option {
+        font-size: calc(clamp(13px, min(3.4cqw, 2cqh), 20px) * var(--desk-font-scale));
+    }
+}

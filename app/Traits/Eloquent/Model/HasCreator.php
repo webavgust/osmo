@@ -11,7 +11,8 @@ trait HasCreator
 
     public function creator()
     {
-        return $this->belongsTo(User::class, 'created_by');
+        // withTrashed: имя автора не пропадает у мягко удалённого пользователя
+        return $this->belongsTo(User::class, 'created_by')->withTrashed();
     }
 
     /**

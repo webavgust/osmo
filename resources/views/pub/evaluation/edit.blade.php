@@ -152,7 +152,7 @@
                             <div class="card mb-1">
                                 <div
                                     class="card-body d-flex justify-content-between align-items-center flex-column flex-sm-row">
-                                    <h4 class="card-title mb-0">Адреса и виды анализов</h4>
+                                      <h4 class="card-title mb-0">Адреса и виды анализов</h4>
                                 </div>
                                 <div class="card-body p-0 structure">
                                     <ul class="objects">
@@ -185,7 +185,7 @@
                         <div class="card mb-0">
                             <div
                                 class="card-body d-flex justify-content-between align-items-center flex-column flex-sm-row">
-                                <h4 class="card-title mb-0">Информация</h4>
+                                  <h4 class="card-title mb-0">Информация</h4>
                             </div>
                             <div class="card-body">
                                 <div class="card-table">
@@ -206,7 +206,7 @@
                         <div class="card mt-3 mb-0">
                             <div
                                 class="card-body d-flex justify-content-between align-items-center flex-column flex-sm-row">
-                                <h4 class="card-title mb-0">Комментарий</h4>
+                                  <h4 class="card-title mb-0">Комментарий</h4>
                             </div>
                             <div class="card-body p-1">
                                 <textarea name="comment_out" class="form-control" rows="5">{!! $evaluation->comment !!}</textarea>

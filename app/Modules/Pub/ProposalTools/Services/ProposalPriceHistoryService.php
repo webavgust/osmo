@@ -34,10 +34,11 @@ class ProposalPriceHistoryService
     public static function blocks(): array
     {
         return [
-            'platform' => ['label' => 'Платформа', 'total' => 'platform_cost_total'],
-            'neuro' => ['label' => 'Нейросервисы', 'total' => 'neuro_cost_total'],
-            'soft' => ['label' => 'ПО', 'total' => 'soft_cost_total'],
-            'work' => ['label' => 'Работы', 'total' => 'work_cost_total'],
+            // цвет и иконка — как у типов договора (ContractType), нейросервисам свои
+            'platform' => ['label' => 'Платформа', 'total' => 'platform_cost_total', 'color' => 'primary', 'icon' => 'fa-desktop'],
+            'neuro' => ['label' => 'Нейросервисы', 'total' => 'neuro_cost_total', 'color' => 'info', 'icon' => 'fa-microchip'],
+            'soft' => ['label' => 'ПО', 'total' => 'soft_cost_total', 'color' => 'danger', 'icon' => 'fa-brain-circuit'],
+            'work' => ['label' => 'Работы', 'total' => 'work_cost_total', 'color' => 'warning', 'icon' => 'fa-person-digging'],
         ];
     }
 
@@ -268,6 +269,10 @@ class ProposalPriceHistoryService
 
         $keys = $left->keys()->merge($right->keys())->unique();
 
+        // блоки идут в порядке blocks() — платформа первой; по коду блока сортировка
+        // была алфавитной и ставила «Нейросервисы» выше «Платформы»
+        $order = array_flip(array_keys(static::blocks()));
+
         return $keys->map(function ($key) use ($left, $right, $convert, $rate_from, $rate_to) {
             $a = $left->get($key);
             $b = $right->get($key);
@@ -296,7 +301,7 @@ class ProposalPriceHistoryService
                 'diff_p' => $from_value > 0 ? round(($to_value - $from_value) / $from_value * 100, 1) : null,
             ];
         })
-        ->sortBy([['block', 'asc'], ['label', 'asc']])
+        ->sortBy(fn($row) => sprintf('%02d|%s', $order[$row['block']] ?? 99, mb_strtolower((string) $row['label'])))
         ->values();
     }
 

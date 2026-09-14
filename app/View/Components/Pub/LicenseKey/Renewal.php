@@ -15,7 +15,7 @@ class Renewal extends Component
 {
     public function render(): View
     {
-        return view('components.pub.license_key.renewal', [
+        return view('components.bitrix.dashboard.renewal', [
             'data' => LicenseRenewalService::summary(),
         ]);
     }

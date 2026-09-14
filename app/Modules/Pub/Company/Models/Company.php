@@ -3,6 +3,7 @@
 namespace App\Modules\Pub\Company\Models;
 
 use App\Models\ModuleModel;
+use App\Models\Traits\HasLogger;
 use App\Modules\Bitrix\CrmCompany\Models\CrmCompany;
 use App\Modules\Bitrix\CrmDeal\Models\CrmDealUf;
 use App\Modules\Pub\Contract\Models\Contract;
@@ -19,6 +20,8 @@ use Illuminate\Database\Eloquent\Builder;
 
 class Company extends ModuleModel
 {
+    use HasLogger;
+
     protected $fillable = ['active', 'name', 'kind'];
     protected $searchable = ["name"];
     protected $casts = ['active' => 'bool'];
@@ -133,5 +136,27 @@ class Company extends ModuleModel
 //            ->sum('amount_plan');
     }
 
+    /*** ЖУРНАЛ ИЗМЕНЕНИЙ (patch v29) ***/
 
+    public static function logLabel(): string
+    {
+        return 'Компания';
+    }
+
+    public function logUrl(): ?string
+    {
+        return route('company.detail', $this);
+    }
+
+    public static function logFields(): array
+    {
+        return [
+            'active' => ['label' => 'Активность', 'type' => 'bool'],
+            'name' => ['label' => 'Название'],
+            'sector_id' => ['label' => 'Сектор', 'relation' => 'sector'],
+            'partner_id' => ['label' => 'Партнёр', 'relation' => 'partner'],
+            'country_id' => ['label' => 'Страна', 'relation' => 'country'],
+            'kind' => ['label' => 'Вид'],
+        ];
+    }
 }

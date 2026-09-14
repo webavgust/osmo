@@ -11,6 +11,6 @@
 
 <a href="{{ route('deal_card.index', $proposal->group ?? $proposal) }}"
    class="btn btn-sm btn-primary text-nowrap"
-   title="КП, сделки Битрикса, договоры, спецификации, платежи и лицензии на одном экране">
+   title="КП, сделки Битрикс24, договоры, спецификации, платежи и лицензии на одном экране">
     <i class="fas fa-sitemap me-2"></i>Сводная информация
 </a>

@@ -1,0 +1,124 @@
+/*
+ * Рабочий стол (patch v30): стили виджетов группы proposal-1 — discounts, external_proposals,
+ * lost_reasons, pipeline_sum, price_history, proposal_card, proposal_conversion.
+ * Кегли не задаются: только раскладка, отступы и контейнерные запросы.
+ */
+
+/* === discounts === */
+/* узкий блок: процент уходит под название грейда */
+@container dw (max-width: 150px) {
+    .desk-widget[data-widget="discounts"] .desk-discounts-list > li { flex-wrap: wrap; row-gap: .1rem; }
+    .desk-widget[data-widget="discounts"] .desk-discounts-list .desk-grow { flex-basis: 100%; }
+}
+/* широкий невысокий блок: показатели слева, таблица разбивки справа */
+.desk-widget[data-widget="discounts"] .desk-discounts-side { flex-direction: row; gap: 1.25rem; }
+.desk-widget[data-widget="discounts"] .desk-discounts-side > .desk-discounts-head { flex: 0 0 auto; max-width: 50%; }
+/* шкала в строке — только если справа хватает места */
+.desk-widget[data-widget="discounts"] .desk-discounts-side .desk-discounts-list .desk-bar { display: none; }
+@container dw (min-width: 420px) {
+    .desk-widget[data-widget="discounts"] .desk-discounts-side .desk-discounts-list .desk-bar { display: block; }
+}
+/* плитки показателей плотнее обычных */
+.desk-widget[data-widget="discounts"] .desk-discounts-tiles > * { flex-basis: 5rem; }
+/* очень высокий блок: строки разбивки просторнее */
+@container dw (min-height: 560px) {
+    .desk-widget[data-widget="discounts"] .desk-discounts-list > li { padding-top: .6rem; padding-bottom: .6rem; }
+    .desk-widget[data-widget="discounts"] .desk-table td { padding-top: .6rem; padding-bottom: .6rem; }
+    .desk-widget[data-widget="discounts"] .desk-discounts-tiles { padding-block: .5rem; }
+}
+
+/* === external_proposals === */
+/* очень узкий блок: в строке только номер записи и кнопка переноса */
+@container dw (max-width: 120px) {
+    .desk-widget[data-widget="external_proposals"] .desk-extprop-who,
+    .desk-widget[data-widget="external_proposals"] .desk-extprop-list .badge { display: none; }
+}
+.desk-widget[data-widget="external_proposals"] .desk-extprop-tiles > * { flex-basis: 6rem; }
+/* очень высокий блок: записи просторнее */
+@container dw (min-height: 560px) {
+    .desk-widget[data-widget="external_proposals"] .desk-extprop-list > li { padding-top: .6rem; padding-bottom: .6rem; }
+    .desk-widget[data-widget="external_proposals"] .desk-extprop-tiles { padding-block: .5rem; }
+}
+
+/* === lost_reasons === */
+/* невысокий блок шириной ≥6: итог слева, разбивка справа */
+.desk-widget[data-widget="lost_reasons"] .desk-lost-side { flex-direction: row; gap: 1.25rem; }
+.desk-widget[data-widget="lost_reasons"] .desk-lost-side > .desk-lost-head { flex: 0 0 auto; max-width: 45%; }
+.desk-widget[data-widget="lost_reasons"] .desk-lost-side .desk-lost-list .desk-bar { display: none; }
+@container dw (min-width: 420px) {
+    .desk-widget[data-widget="lost_reasons"] .desk-lost-side .desk-lost-list .desk-bar { display: block; }
+}
+/* очень высокий блок: строки просторнее */
+@container dw (min-height: 560px) {
+    .desk-widget[data-widget="lost_reasons"] .desk-lost-list > li { padding-top: .6rem; padding-bottom: .6rem; }
+    .desk-widget[data-widget="lost_reasons"] .desk-table td { padding-top: .6rem; padding-bottom: .6rem; }
+}
+
+/* === pipeline_sum === */
+/* невысокий блок шириной ≥6: сумма слева, разбивка справа */
+.desk-widget[data-widget="pipeline_sum"] .desk-pipe-side { flex-direction: row; gap: 1.25rem; }
+.desk-widget[data-widget="pipeline_sum"] .desk-pipe-side > .desk-pipe-head { flex: 0 0 auto; max-width: 50%; }
+.desk-widget[data-widget="pipeline_sum"] .desk-pipe-side .desk-pipe-list .desk-bar { display: none; }
+@container dw (min-width: 420px) {
+    .desk-widget[data-widget="pipeline_sum"] .desk-pipe-side .desk-pipe-list .desk-bar { display: block; }
+}
+/* узкий блок: сумма уходит под имя */
+@container dw (max-width: 150px) {
+    .desk-widget[data-widget="pipeline_sum"] .desk-pipe-list > li { flex-wrap: wrap; row-gap: .1rem; }
+    .desk-widget[data-widget="pipeline_sum"] .desk-pipe-list .desk-grow { flex-basis: 100%; }
+}
+.desk-widget[data-widget="pipeline_sum"] .desk-pipe-tiles > * { flex-basis: 6rem; }
+/* очень высокий блок: строки просторнее */
+@container dw (min-height: 560px) {
+    .desk-widget[data-widget="pipeline_sum"] .desk-pipe-list > li { padding-top: .6rem; padding-bottom: .6rem; }
+    .desk-widget[data-widget="pipeline_sum"] .desk-table td { padding-top: .6rem; padding-bottom: .6rem; }
+    .desk-widget[data-widget="pipeline_sum"] .desk-pipe-tiles { padding-block: .5rem; }
+}
+
+/* === price_history === */
+/* невысокий блок шириной ≥6: сумма слева, редакции справа */
+.desk-widget[data-widget="price_history"] .desk-ph-side { flex-direction: row; gap: 1.25rem; }
+.desk-widget[data-widget="price_history"] .desk-ph-side > .desk-ph-head { flex: 0 0 auto; max-width: 50%; }
+/* название блока и заметка в строке сжимаются в многоточие, дата и суммы — нет */
+.desk-widget[data-widget="price_history"] .desk-ph-sub,
+.desk-widget[data-widget="price_history"] .desk-ph-note { min-width: 0; }
+/* график цены по редакциям: две пятых высоты, остальное — список */
+.desk-widget[data-widget="price_history"] .desk-ph-chart { flex: 0 0 40%; min-height: 0; }
+/* узкий блок: сумма уходит под название строки */
+@container dw (max-width: 150px) {
+    .desk-widget[data-widget="price_history"] .desk-ph-list > li { flex-wrap: wrap; row-gap: .1rem; }
+    .desk-widget[data-widget="price_history"] .desk-ph-list .desk-grow { flex-basis: 100%; }
+}
+/* очень высокий блок: строки просторнее */
+@container dw (min-height: 560px) {
+    .desk-widget[data-widget="price_history"] .desk-ph-list > li { padding-top: .5rem; padding-bottom: .5rem; }
+}
+
+/* === proposal_card === */
+/* плитка суммы — по ширине суммы, чтобы та не уходила в многоточие */
+.desk-widget[data-widget="proposal_card"] .desk-card-tiles > .desk-card-amount { flex: 0 0 auto; max-width: 100%; }
+/* название КП и комментарий к статусу — не больше трёх строк */
+.desk-widget[data-widget="proposal_card"] .desk-card-clamp {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+}
+.desk-widget[data-widget="proposal_card"] .desk-card-stage { min-width: 0; }
+/* узкий блок (ширина 2–4): значение свойства уходит под подпись — «спецификации 4 · 6,7 млн ₽» в строку не влезает */
+@container dw (max-width: 200px) {
+    .desk-widget[data-widget="proposal_card"] .desk-card-props > li { flex-wrap: wrap; row-gap: 0; }
+    .desk-widget[data-widget="proposal_card"] .desk-card-props > li > .desk-label,
+    .desk-widget[data-widget="proposal_card"] .desk-card-props > li > .desk-grow { flex-basis: 100%; }
+}
+/* очень высокий блок: строки просторнее */
+@container dw (min-height: 560px) {
+    .desk-widget[data-widget="proposal_card"] .desk-card-props > li { padding-top: .55rem; padding-bottom: .55rem; }
+}
+
+/* === proposal_conversion === */
+/* невысокий блок шириной ≥6: процент слева, спарклайн справа на всю высоту */
+.desk-widget[data-widget="proposal_conversion"] .desk-conv-side { flex-direction: row; gap: 1.25rem; }
+.desk-widget[data-widget="proposal_conversion"] .desk-conv-side > .desk-conv-head { flex: 0 0 auto; max-width: 50%; }
+.desk-widget[data-widget="proposal_conversion"] .desk-conv-side > .desk-conv-chart { min-width: 0; }
+.desk-widget[data-widget="proposal_conversion"] .desk-conv-tiles > * { flex-basis: 5.5rem; }

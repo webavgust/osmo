@@ -19,10 +19,20 @@ class DashboardDataService
 {
     private $deals;
 
-    public function __construct()
+    /** Валюта пересчёта сумм (patch v30) */
+    private string $currency;
+
+    /**
+     * @param string|null $currency валюта пересчёта; null — выбранная на странице воронки (кэш dashboard_currency) или RUB
+     * @param bool $filtered false — сделки без фильтра страницы воронки (patch v30: рабочий стол)
+     */
+    public function __construct(?string $currency = null, bool $filtered = true)
     {
+        // patch v30: валюта и фильтр задаются снаружи, по умолчанию — как раньше
+        $this->currency = $currency ?? Cache::get('dashboard_currency') ?? "RUB";
+
         // получим срез конвертированных данных
-        $deals = CrmDealRepository::getFiltered();
+        $deals = CrmDealRepository::getFiltered($filtered);
 
         $this->deals = $this->deals_convert_currency($deals);
     }
@@ -36,7 +46,8 @@ class DashboardDataService
 
     public function deals_convert_currency($deals)
     {
-        $currency_target = Cache::get('dashboard_currency') ?? "RUB";
+        // patch v30: валюта из свойства (задаётся в конструкторе)
+        $currency_target = $this->currency;
         $convert_rates = CurrencyService::getConvertRates();
 
         $deals->map(function ($item) use ($currency_target, $convert_rates) {
@@ -276,7 +287,13 @@ class DashboardDataService
     }
 
 
-    public function country_status_month()
+    /**
+     * Суммы сделок: страна → статус → плановый месяц
+     *
+     * @param int $months сколько месяцев от текущего (patch v30: раньше всегда 6)
+     * @return array ['matrix' => Collection, 'columns' => ['09', '10', …]]
+     */
+    public function country_status_month(int $months = 6)
     {
         // получим все deals
         $deals = CrmDeal::all();
@@ -287,15 +304,17 @@ class DashboardDataService
 
 
         $start = Carbon::now()->startOfMonth();
-        $monthsCount = 5;
+        $monthsCount = max(1, $months) - 1;
 
         $columns = [];
         $quarter = [];
+        $year_months = [];
 
         for ($i = 0; $i <= $monthsCount; $i++) {
             $date = $start->copy()->addMonths($i);
             $columns[] = $date->format('m');
             $quarter[] = $date->format('Y') . 'q' . $date->quarter;
+            $year_months[] = $date->format('Y-m');
         }
 
 
@@ -310,6 +329,12 @@ class DashboardDataService
 
             if(!in_array($month, $columns)) continue;
             if(!in_array($deal->dealUf?->uf_crm_1722255711522, $quarter)) continue;
+
+            // patch v30: при периоде от 11 месяцев номер месяца встречается в двух годах —
+            // если месяц лежит в квартале сделки, сверяем и год (на 3–10 месяцах ничего не меняет)
+            if(preg_match('/^(\d{4})q([1-4])$/', (string) $deal->dealUf?->uf_crm_1722255711522, $q)
+                && (int) ceil((int) $month / 3) === (int) $q[2]
+                && !in_array($q[1] . '-' . sprintf('%02d', (int) $month), $year_months)) continue;
 
 
             if(empty($matrix[$country]))

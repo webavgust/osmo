@@ -1,0 +1,107 @@
+/*
+ * Рабочий стол (patch v30): ширина и позиция блоков GridStack для 32, 16 и 1 колонки.
+ *
+ * gridstack.min.css (11.x) содержит такие правила только для 12 колонок, для остальных
+ * их нужно подключать самим. Файл сгенерирован скриптом: .gs-N > .grid-stack-item[gs-w|gs-x].
+ */
+
+/* 32 колонки */
+.gs-32 > .grid-stack-item { width: 3.125%; }
+.gs-32 > .grid-stack-item[gs-w="2"] { width: 6.25%; }
+.gs-32 > .grid-stack-item[gs-w="3"] { width: 9.375%; }
+.gs-32 > .grid-stack-item[gs-w="4"] { width: 12.5%; }
+.gs-32 > .grid-stack-item[gs-w="5"] { width: 15.625%; }
+.gs-32 > .grid-stack-item[gs-w="6"] { width: 18.75%; }
+.gs-32 > .grid-stack-item[gs-w="7"] { width: 21.875%; }
+.gs-32 > .grid-stack-item[gs-w="8"] { width: 25%; }
+.gs-32 > .grid-stack-item[gs-w="9"] { width: 28.125%; }
+.gs-32 > .grid-stack-item[gs-w="10"] { width: 31.25%; }
+.gs-32 > .grid-stack-item[gs-w="11"] { width: 34.375%; }
+.gs-32 > .grid-stack-item[gs-w="12"] { width: 37.5%; }
+.gs-32 > .grid-stack-item[gs-w="13"] { width: 40.625%; }
+.gs-32 > .grid-stack-item[gs-w="14"] { width: 43.75%; }
+.gs-32 > .grid-stack-item[gs-w="15"] { width: 46.875%; }
+.gs-32 > .grid-stack-item[gs-w="16"] { width: 50%; }
+.gs-32 > .grid-stack-item[gs-w="17"] { width: 53.125%; }
+.gs-32 > .grid-stack-item[gs-w="18"] { width: 56.25%; }
+.gs-32 > .grid-stack-item[gs-w="19"] { width: 59.375%; }
+.gs-32 > .grid-stack-item[gs-w="20"] { width: 62.5%; }
+.gs-32 > .grid-stack-item[gs-w="21"] { width: 65.625%; }
+.gs-32 > .grid-stack-item[gs-w="22"] { width: 68.75%; }
+.gs-32 > .grid-stack-item[gs-w="23"] { width: 71.875%; }
+.gs-32 > .grid-stack-item[gs-w="24"] { width: 75%; }
+.gs-32 > .grid-stack-item[gs-w="25"] { width: 78.125%; }
+.gs-32 > .grid-stack-item[gs-w="26"] { width: 81.25%; }
+.gs-32 > .grid-stack-item[gs-w="27"] { width: 84.375%; }
+.gs-32 > .grid-stack-item[gs-w="28"] { width: 87.5%; }
+.gs-32 > .grid-stack-item[gs-w="29"] { width: 90.625%; }
+.gs-32 > .grid-stack-item[gs-w="30"] { width: 93.75%; }
+.gs-32 > .grid-stack-item[gs-w="31"] { width: 96.875%; }
+.gs-32 > .grid-stack-item[gs-w="32"] { width: 100%; }
+.gs-32 > .grid-stack-item[gs-x="1"] { left: 3.125%; }
+.gs-32 > .grid-stack-item[gs-x="2"] { left: 6.25%; }
+.gs-32 > .grid-stack-item[gs-x="3"] { left: 9.375%; }
+.gs-32 > .grid-stack-item[gs-x="4"] { left: 12.5%; }
+.gs-32 > .grid-stack-item[gs-x="5"] { left: 15.625%; }
+.gs-32 > .grid-stack-item[gs-x="6"] { left: 18.75%; }
+.gs-32 > .grid-stack-item[gs-x="7"] { left: 21.875%; }
+.gs-32 > .grid-stack-item[gs-x="8"] { left: 25%; }
+.gs-32 > .grid-stack-item[gs-x="9"] { left: 28.125%; }
+.gs-32 > .grid-stack-item[gs-x="10"] { left: 31.25%; }
+.gs-32 > .grid-stack-item[gs-x="11"] { left: 34.375%; }
+.gs-32 > .grid-stack-item[gs-x="12"] { left: 37.5%; }
+.gs-32 > .grid-stack-item[gs-x="13"] { left: 40.625%; }
+.gs-32 > .grid-stack-item[gs-x="14"] { left: 43.75%; }
+.gs-32 > .grid-stack-item[gs-x="15"] { left: 46.875%; }
+.gs-32 > .grid-stack-item[gs-x="16"] { left: 50%; }
+.gs-32 > .grid-stack-item[gs-x="17"] { left: 53.125%; }
+.gs-32 > .grid-stack-item[gs-x="18"] { left: 56.25%; }
+.gs-32 > .grid-stack-item[gs-x="19"] { left: 59.375%; }
+.gs-32 > .grid-stack-item[gs-x="20"] { left: 62.5%; }
+.gs-32 > .grid-stack-item[gs-x="21"] { left: 65.625%; }
+.gs-32 > .grid-stack-item[gs-x="22"] { left: 68.75%; }
+.gs-32 > .grid-stack-item[gs-x="23"] { left: 71.875%; }
+.gs-32 > .grid-stack-item[gs-x="24"] { left: 75%; }
+.gs-32 > .grid-stack-item[gs-x="25"] { left: 78.125%; }
+.gs-32 > .grid-stack-item[gs-x="26"] { left: 81.25%; }
+.gs-32 > .grid-stack-item[gs-x="27"] { left: 84.375%; }
+.gs-32 > .grid-stack-item[gs-x="28"] { left: 87.5%; }
+.gs-32 > .grid-stack-item[gs-x="29"] { left: 90.625%; }
+.gs-32 > .grid-stack-item[gs-x="30"] { left: 93.75%; }
+.gs-32 > .grid-stack-item[gs-x="31"] { left: 96.875%; }
+
+/* 16 колонок */
+.gs-16 > .grid-stack-item { width: 6.25%; }
+.gs-16 > .grid-stack-item[gs-w="2"] { width: 12.5%; }
+.gs-16 > .grid-stack-item[gs-w="3"] { width: 18.75%; }
+.gs-16 > .grid-stack-item[gs-w="4"] { width: 25%; }
+.gs-16 > .grid-stack-item[gs-w="5"] { width: 31.25%; }
+.gs-16 > .grid-stack-item[gs-w="6"] { width: 37.5%; }
+.gs-16 > .grid-stack-item[gs-w="7"] { width: 43.75%; }
+.gs-16 > .grid-stack-item[gs-w="8"] { width: 50%; }
+.gs-16 > .grid-stack-item[gs-w="9"] { width: 56.25%; }
+.gs-16 > .grid-stack-item[gs-w="10"] { width: 62.5%; }
+.gs-16 > .grid-stack-item[gs-w="11"] { width: 68.75%; }
+.gs-16 > .grid-stack-item[gs-w="12"] { width: 75%; }
+.gs-16 > .grid-stack-item[gs-w="13"] { width: 81.25%; }
+.gs-16 > .grid-stack-item[gs-w="14"] { width: 87.5%; }
+.gs-16 > .grid-stack-item[gs-w="15"] { width: 93.75%; }
+.gs-16 > .grid-stack-item[gs-w="16"] { width: 100%; }
+.gs-16 > .grid-stack-item[gs-x="1"] { left: 6.25%; }
+.gs-16 > .grid-stack-item[gs-x="2"] { left: 12.5%; }
+.gs-16 > .grid-stack-item[gs-x="3"] { left: 18.75%; }
+.gs-16 > .grid-stack-item[gs-x="4"] { left: 25%; }
+.gs-16 > .grid-stack-item[gs-x="5"] { left: 31.25%; }
+.gs-16 > .grid-stack-item[gs-x="6"] { left: 37.5%; }
+.gs-16 > .grid-stack-item[gs-x="7"] { left: 43.75%; }
+.gs-16 > .grid-stack-item[gs-x="8"] { left: 50%; }
+.gs-16 > .grid-stack-item[gs-x="9"] { left: 56.25%; }
+.gs-16 > .grid-stack-item[gs-x="10"] { left: 62.5%; }
+.gs-16 > .grid-stack-item[gs-x="11"] { left: 68.75%; }
+.gs-16 > .grid-stack-item[gs-x="12"] { left: 75%; }
+.gs-16 > .grid-stack-item[gs-x="13"] { left: 81.25%; }
+.gs-16 > .grid-stack-item[gs-x="14"] { left: 87.5%; }
+.gs-16 > .grid-stack-item[gs-x="15"] { left: 93.75%; }
+
+/* 1 колонка */
+.gs-1 > .grid-stack-item { width: 100%; }

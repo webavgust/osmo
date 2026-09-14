@@ -1,0 +1,116 @@
+/*
+ * Рабочий стол (patch v30): стили виджетов группы funnel-1 —
+ * country_month, country_quarter, crm_mismatch, deal_card, deal_issues, deals_quarter, deals_registry.
+ *
+ * Каждый селектор начинается с .desk-widget[data-widget="{id}"]; размеры — контейнерными
+ * запросами к блоку виджета (@container dw).
+ */
+
+/*** country_month, country_quarter: страны × статусы по месяцам / кварталам ***/
+
+/* узкий блок: название и сумма в две строки, чтобы сумма не уходила в многоточие */
+@container dw (max-width: 130px) {
+    .desk-widget[data-widget="country_month"] .desk-list > li,
+    .desk-widget[data-widget="country_quarter"] .desk-list > li { flex-wrap: wrap; gap: 0 .5rem; }
+    .desk-widget[data-widget="country_month"] .desk-list > li > .desk-grow,
+    .desk-widget[data-widget="country_quarter"] .desk-list > li > .desk-grow { flex-basis: 100%; }
+}
+
+/* колонки периодов (data-m — номер от текущего): первая всегда, следующие — по ширине блока;
+   названия и итог остаются */
+.desk-widget[data-widget="country_month"] .desk-table [data-m],
+.desk-widget[data-widget="country_quarter"] .desk-table [data-m] { display: none; }
+.desk-widget[data-widget="country_month"] .desk-table [data-m="0"],
+.desk-widget[data-widget="country_quarter"] .desk-table [data-m="0"] { display: table-cell; }
+
+/* матрица без статусов: название ~90 px, итог ~70 px, период ~64 px */
+@container dw (min-width: 314px) { .desk-widget[data-widget="country_month"] .desk-table:not(.cm-status) [data-m="1"], .desk-widget[data-widget="country_quarter"] .desk-table:not(.cm-status) [data-m="1"] { display: table-cell; } }
+@container dw (min-width: 378px) { .desk-widget[data-widget="country_month"] .desk-table:not(.cm-status) [data-m="2"], .desk-widget[data-widget="country_quarter"] .desk-table:not(.cm-status) [data-m="2"] { display: table-cell; } }
+@container dw (min-width: 442px) { .desk-widget[data-widget="country_month"] .desk-table:not(.cm-status) [data-m="3"], .desk-widget[data-widget="country_quarter"] .desk-table:not(.cm-status) [data-m="3"] { display: table-cell; } }
+@container dw (min-width: 506px) { .desk-widget[data-widget="country_month"] .desk-table:not(.cm-status) [data-m="4"], .desk-widget[data-widget="country_quarter"] .desk-table:not(.cm-status) [data-m="4"] { display: table-cell; } }
+@container dw (min-width: 570px) { .desk-widget[data-widget="country_month"] .desk-table:not(.cm-status) [data-m="5"], .desk-widget[data-widget="country_quarter"] .desk-table:not(.cm-status) [data-m="5"] { display: table-cell; } }
+@container dw (min-width: 634px) { .desk-widget[data-widget="country_month"] .desk-table:not(.cm-status) [data-m="6"], .desk-widget[data-widget="country_quarter"] .desk-table:not(.cm-status) [data-m="6"] { display: table-cell; } }
+@container dw (min-width: 698px) { .desk-widget[data-widget="country_month"] .desk-table:not(.cm-status) [data-m="7"], .desk-widget[data-widget="country_quarter"] .desk-table:not(.cm-status) [data-m="7"] { display: table-cell; } }
+@container dw (min-width: 762px) { .desk-widget[data-widget="country_month"] .desk-table:not(.cm-status) [data-m="8"] { display: table-cell; } }
+@container dw (min-width: 826px) { .desk-widget[data-widget="country_month"] .desk-table:not(.cm-status) [data-m="9"] { display: table-cell; } }
+@container dw (min-width: 890px) { .desk-widget[data-widget="country_month"] .desk-table:not(.cm-status) [data-m="10"] { display: table-cell; } }
+@container dw (min-width: 954px) { .desk-widget[data-widget="country_month"] .desk-table:not(.cm-status) [data-m="11"] { display: table-cell; } }
+
+/* матрица со статусами: ещё ~130 px на колонку статуса (названия стадий длинные);
+   страна получает меньшую долю ширины, статус — большую */
+.desk-widget[data-widget="country_month"] .cm-status td.desk-cut:first-child,
+.desk-widget[data-widget="country_quarter"] .cm-status td.desk-cut:first-child { width: 40%; }
+@container dw (min-width: 444px) { .desk-widget[data-widget="country_month"] .cm-status [data-m="1"], .desk-widget[data-widget="country_quarter"] .cm-status [data-m="1"] { display: table-cell; } }
+@container dw (min-width: 508px) { .desk-widget[data-widget="country_month"] .cm-status [data-m="2"], .desk-widget[data-widget="country_quarter"] .cm-status [data-m="2"] { display: table-cell; } }
+@container dw (min-width: 572px) { .desk-widget[data-widget="country_month"] .cm-status [data-m="3"], .desk-widget[data-widget="country_quarter"] .cm-status [data-m="3"] { display: table-cell; } }
+@container dw (min-width: 636px) { .desk-widget[data-widget="country_month"] .cm-status [data-m="4"], .desk-widget[data-widget="country_quarter"] .cm-status [data-m="4"] { display: table-cell; } }
+@container dw (min-width: 700px) { .desk-widget[data-widget="country_month"] .cm-status [data-m="5"], .desk-widget[data-widget="country_quarter"] .cm-status [data-m="5"] { display: table-cell; } }
+@container dw (min-width: 764px) { .desk-widget[data-widget="country_month"] .cm-status [data-m="6"], .desk-widget[data-widget="country_quarter"] .cm-status [data-m="6"] { display: table-cell; } }
+@container dw (min-width: 828px) { .desk-widget[data-widget="country_month"] .cm-status [data-m="7"], .desk-widget[data-widget="country_quarter"] .cm-status [data-m="7"] { display: table-cell; } }
+@container dw (min-width: 892px) { .desk-widget[data-widget="country_month"] .cm-status [data-m="8"] { display: table-cell; } }
+@container dw (min-width: 956px) { .desk-widget[data-widget="country_month"] .cm-status [data-m="9"] { display: table-cell; } }
+@container dw (min-width: 1020px) { .desk-widget[data-widget="country_month"] .cm-status [data-m="10"] { display: table-cell; } }
+@container dw (min-width: 1084px) { .desk-widget[data-widget="country_month"] .cm-status [data-m="11"] { display: table-cell; } }
+
+/*** crm_mismatch: расхождения с Битрикс24 ***/
+
+/* широкий блок: сводка и виды расхождений колонкой слева, таблица КП справа на всю высоту
+   (та же сетка у deal_issues: сводка и типы проблем слева, таблица сделок справа) */
+.desk-widget[data-widget="crm_mismatch"] .cmm-side,
+.desk-widget[data-widget="deal_issues"] .cmm-side {
+    display: grid;
+    grid-template-columns: minmax(0, 30%) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    column-gap: 1.25rem;
+    row-gap: .35rem;
+    overflow: hidden;
+}
+.desk-widget[data-widget="crm_mismatch"] .cmm-side > .cmm-summary,
+.desk-widget[data-widget="deal_issues"] .cmm-side > .cmm-summary { grid-column: 1; grid-row: 1; min-width: 0; }
+.desk-widget[data-widget="crm_mismatch"] .cmm-side > .cmm-types,
+.desk-widget[data-widget="deal_issues"] .cmm-side > .cmm-types { grid-column: 1; grid-row: 2; }
+.desk-widget[data-widget="crm_mismatch"] .cmm-side > .cmm-list,
+.desk-widget[data-widget="deal_issues"] .cmm-side > .cmm-list { grid-column: 2; grid-row: 1 / span 2; min-height: 0; }
+
+/* колонка «Компания» — только в очень широком блоке, иначе съедает название КП */
+.desk-widget[data-widget="crm_mismatch"] .cmm-company { display: none; }
+@container dw (min-width: 860px) { .desk-widget[data-widget="crm_mismatch"] .cmm-company { display: table-cell; } }
+
+/*** deal_card: карточка сделки ***/
+
+/* плитки «сумма» и «квартал плана»: кегль от блока, но мельче .desk-value — две плитки в ряд
+   на ширине 6 не уходят в многоточие */
+.desk-widget[data-widget="deal_card"] .dc-tiles > * { flex-basis: 8rem; }
+.desk-widget[data-widget="deal_card"] .dc-tiles .desk-value { font-size: calc(clamp(13px, min(6.5cqw, 16cqh), 40px) * var(--desk-font-scale)); }
+
+/*** deals_quarter: сделки по кварталам плана ***/
+
+/* узкий блок (ширина 2): квартал, сумма и прошлый год столбиком в строке списка */
+.desk-widget[data-widget="deals_quarter"] .dq-quarters > li { flex-direction: column; align-items: flex-start; gap: 0; }
+
+/* низкий блок: ячейки дельты и кварталов растягиваются, но не сжимаются — не влезшие прячет подгон по ширине */
+.desk-widget[data-widget="deals_quarter"] .dq-cell { flex: 1 0 auto; }
+
+/*** deals_registry: реестр сделок ***/
+
+/* узкий блок: название сделки и сумма в две строки — сумма не режется */
+@container dw (max-width: 130px) {
+    .desk-widget[data-widget="deals_registry"] .dr-list > li { flex-wrap: wrap; gap: 0 .5rem; }
+    .desk-widget[data-widget="deals_registry"] .dr-list > li > .desk-grow { flex-basis: 100%; }
+}
+
+/* низкий блок: ячейки растягиваются, но не сжимаются — не влезшие прячет подгон по ширине */
+.desk-widget[data-widget="deals_registry"] .dr-cell { flex: 1 0 auto; }
+
+/* колонка «Партнёр» — только в очень широком блоке, иначе съедает название сделки */
+.desk-widget[data-widget="deals_registry"] .dr-wide { display: none; }
+@container dw (min-width: 800px) { .desk-widget[data-widget="deals_registry"] .dr-wide { display: table-cell; } }
+
+/*** deal_card (продолжение) ***/
+
+/* узкий блок: подпись поля над значением, значение по левому краю */
+@container dw (max-width: 230px) {
+    .desk-widget[data-widget="deal_card"] .dc-fields > li { flex-wrap: wrap; gap: 0 .5rem; }
+    .desk-widget[data-widget="deal_card"] .dc-fields > li > .desk-label { flex-basis: 100%; }
+    .desk-widget[data-widget="deal_card"] .dc-fields > li > .desk-grow { text-align: left !important; }
+}

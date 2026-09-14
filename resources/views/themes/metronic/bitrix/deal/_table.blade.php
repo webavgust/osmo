@@ -19,7 +19,9 @@
       $table_id — id таблицы (во вкладке партнёра он будет свой, patch v23);
       $ajax     — во вкладке: поиск перерисовывает вкладку, а не страницу;
       $mode     — вкладка реестра: all | projects | archive (patch v24);
-      $partner  — область партнёра, если таблица живёт во вкладке карточки.
+      $partner  — область партнёра, если таблица живёт во вкладке карточки;
+      $toolbar  — забирать в панель таблицы тулбар _filter (по умолчанию да;
+                  на странице реестра false — кнопки и поиск в шапке страницы).
 --}}
 @php
     $action = $action ?? route('crm-deal.index');
@@ -28,6 +30,7 @@
     $ajax = $ajax ?? false;
     $mode = $mode ?? null;
     $partner = $partner ?? null;
+    $toolbar = $toolbar ?? true;
 
     /** Цвет плашки стадии: S — выиграна, F — провалена, P — в работе */
     $semantic = ['S' => 'success', 'F' => 'danger', 'P' => 'primary'];
@@ -36,11 +39,7 @@
     $symbols = ['RUB' => '₽', 'USD' => '$', 'EUR' => '€', 'CNY' => '¥'];
 
     // поиск уходит на сервер: собираем адрес страницы без q, q допишет скрипт
-    $search_query = \App\Modules\Bitrix\CrmDeal\Services\CrmDealRegistryService::query(
-        array_diff_key($params, ['q' => null])
-    );
-    if ($mode) $search_query['mode'] = $mode;
-    $search_base = $action . '?' . (count($search_query) ? http_build_query($search_query) . '&' : '') . 'q=';
+    $search_base = \App\Modules\Bitrix\CrmDeal\Services\CrmDealRegistryService::searchBase($action, $params, $mode);
 @endphp
 
 {{-- Плотность строк как в списке КП. Специфичность важна: у самого
@@ -53,11 +52,15 @@
     .bootstrap-table .table.table_data:not(.table-condensed) > thead > tr > th { padding: 0; }
     table.table_data .cell { padding: 8px 2px; }
     table.table_data > thead > tr > th .th-inner { padding: .75rem 1.25rem .75rem .5rem; }
+
+    /* Строки рендерятся на сервере, а страницы режет bootstrap-table: до её
+       инициализации на экране вся простыня сделок. Прячем, пока таблицу не обернули. */
+    table.table_data:not(.bootstrap-table *) { display: none; }
 </style>
 
 <table class="table table_data"
        id="{{ $table_id }}"
-       data-toolbar="#{{ $prefix }}_toolbar"
+       @if($toolbar) data-toolbar="#{{ $prefix }}_toolbar" @endif
        data-search="true"
        data-search-text="{{ $params['q'] }}"
        data-search-on-enter-key="true"
@@ -83,7 +86,8 @@
             data-sortable="true" data-sorter="dealDateSort">Дата</th>
 
         <th data-field="manager" data-align="left" data-width="160"
-            data-sortable="true" data-sorter="dealTextSort">Менеджер</th>
+            data-sortable="true" data-sorter="dealTextSort"
+            >Менеджер</th>
 
         <th data-field="partner" data-align="left" data-width="250"
             data-sortable="true" data-sorter="dealTextSort">Партнёр и заказчик</th>
@@ -145,24 +149,24 @@
             </td>
 
             <td>
-                <div class="cell fs-7 text-nowrap">{{ $row->manager ?: '—' }}</div>
+                <div class="cell fs-7 text-nowrap ps-2">{{ $row->manager ?: '—' }}</div>
             </td>
 
             <td>
                 <div class="cell">
                     @if($row->company_name)
-                        <x-ui.badge.default type="warning" class="text-dark">
+                        <x-ui.badge.light type="info" class="text-info-700 bg-hover-info text-hover-white">
                             {{ $row->company_name }}
-                        </x-ui.badge.default>
+                        </x-ui.badge.light>
                     @else
                         <span class="text-muted fs-8">партнёр не указан</span>
                     @endif
 
                     @if($row->customer_name)
-                        <span class="px-1">--></span>
-                        <x-ui.badge.default type="primary" class="text-white">
+                        <span class="px-1 text-dark-800">--></span>
+                        <x-ui.badge.light type="primary" class="text-primary-700 bg-hover-primary text-hover-white">
                             {{ $row->customer_name }}
-                        </x-ui.badge.default>
+                        </x-ui.badge.light>
                     @endif
                 </div>
             </td>
@@ -189,12 +193,17 @@
                         @if($project)
                             <a href="javascript:void(0)"
                                onclick="javascript:box({href:'{{ route('deal_project.box_info', $project) }}'})"
-                               class="fs-7 badge badge-light-{{ $project->is_archived ? 'secondary' : ($project->is_pilot ? 'warning' : 'info') }} d-inline-flex align-items-center text-decoration-none"
+                               @class(["fs-7 badge d-inline-flex align-items-center text-decoration-none",
+                                    "badge-light-secondary" => $project->is_archived,
+                                    "badge-light-warning bg-hover-warning text-hover-white" => !$project->is_archived && $project->is_pilot,
+                                    "badge-light-info bg-hover-info text-hover-white" => !$project->is_archived && !$project->is_pilot,
+                                ])
                                title="{{ $project->is_archived ? 'Проект в архиве' : 'Открыть карточку проекта' }}">
                                 <i class="fa-light fa-diagram-project me-2"></i>
-                                {{ $project->date_start?->format('d.m.Y') ?? 'проект' }}
                                 @if($project->is_pilot)
-                                    <span class="ms-1">· пилот</span>
+                                    {{ $project->date_start?->format('d.m.Y') ?? '' }}
+                                @else
+                                    проект
                                 @endif
                             </a>
                         @else
@@ -202,9 +211,9 @@
                                  компании сделки с партнёром портала (patch v23) --}}
                             <a href="javascript:void(0)"
                                onclick="javascript:box({href:'{{ route('deal_project.box_form', $row->id) }}'})"
-                               class="fs-7 badge badge-light-primary d-inline-flex align-items-center text-decoration-none"
+                               class="fs-7 d-flex align-items-center badge badge-light-primary d-inline-flex align-items-center text-decoration-none bg-hover-primary text-hover-white"
                                title="Создать проект или прикрепить сделку к существующему">
-                                <i class="fa-light fa-plus fs-8 me-2"></i>
+                                <i class="fa-regular fa-plus fs-8 me-1"></i>
                                 проект
                             </a>
                         @endif
@@ -214,30 +223,28 @@
 
             <td>
                 <div class="cell">
-                    <div class="d-flex justify-content-center fs-7">
-                        @if($proposal)
-                            <a href="{{ route('proposal.detail', [$proposal, $proposal->iteration]) }}"
-                               class="fs-7 badge badge-light-success d-inline-flex align-items-center text-decoration-none"
-                               title="{{ $proposal->name }}">
-                                <i class="fa-light fa-link me-2"></i>
-                                {{ $proposal->number ?: 'КП' }}
-                            </a>
+                    <div class="d-flex justify-content-center">
+                            @if($proposal)
+                                <a href="{{ route('proposal.detail', [$proposal, $proposal->iteration]) }}"
+                                   class="fs-7 badge badge-light-success d-inline-flex align-items-center text-decoration-none bg-hover-success-700 text-hover-white-900"
+                                   title="{{ $proposal->name }}">
+                                    <i class="fa-light fa-link me-2"></i>
+                                    {{ $proposal->number ?: 'КП' }}
+                                </a>
 
-                            {{-- сменить или снять привязку, не уходя из реестра --}}
-                            <a href="javascript:void(0)" class="text-muted ms-2"
-                               onclick="javascript:box({href:'{{ route('crm-deal.box.proposal', $row->id) }}'})"
-                               title="Изменить привязку к КП">
-                                <i class="fa-light fa-pen fs-8"></i>
-                            </a>
-                        @else
-                            <a href="javascript:void(0)"
-                               onclick="javascript:box({href:'{{ route('crm-deal.box.proposal', $row->id) }}'})"
-                               class="fs-7 badge badge-light-secondary d-inline-flex align-items-center text-decoration-none"
-                               title="Привязать КП к сделке">
-                                <i class="fa-light fa-link fs-8 me-2"></i>
-                                привязать
-                            </a>
-                        @endif
+                                {{-- сменить или снять привязку, не уходя из реестра --}}
+                                <a href="javascript:void(0)" class="text-muted ms-2 text-hover-primary"
+                                   onclick="javascript:box({href:'{{ route('crm-deal.box.proposal', $row->id) }}'})"
+                                   title="Изменить привязку к КП">
+                                    <i class="fa-light fa-pen fs-8"></i>
+                                </a>
+                            @else
+                                <a href="javascript:box({href:'{{ route('crm-deal.box.proposal', $row->id) }}'})"
+                                   class="fs-7 badge badge-light-secondary d-inline-flex align-items-center text-decoration-none bg-hover-light-primary text-hover-primary"
+                                   title="Привязать КП к сделке">
+                                    <i class="fa-light fa-link-slash fs-8"></i>
+                                </a>
+                            @endif
                     </div>
                 </div>
             </td>

@@ -81,7 +81,7 @@ class DealChainService
             ->where('csp.proposal_group', $proposalGroup)
             ->select([
                 'c.id', 'c.number', 'c.date', 'c.type', 'c.cb_signed',
-                'c.currency_slug', 'c.proposal_id', 'c.old', 'c.company_id',
+                'c.currency_slug', 'c.proposal_id', 'c.old', 'c.company_id', 'c.partner_id',
                 'co.name as company_name', 'pa.name as partner_name',
             ])
             ->orderBy('c.date')
@@ -120,6 +120,8 @@ class DealChainService
                 's.id', 's.name', 's.amount', 's.currency_slug', 's.is_signed',
                 's.status', 's.closed_at', 's.contract_id', 's.project_configuration_id',
                 's.company_id', 'co.name as company_name',
+                // то же, что ContractSpecification::amount_all — сумма плана всех платежей
+                DB::raw('(SELECT COALESCE(SUM(p.amount_plan), 0) FROM payments p WHERE p.contract_specification_id = s.id) as amount_all'),
             ])
             ->orderBy('s.id')
             ->get())
@@ -250,7 +252,7 @@ class DealChainService
                 'hint' => match (true) {
                     $links->isEmpty() => 'Привяжите сделку — без неё не сойдётся сверка с CRM',
                     !empty($check['has_errors']) => $check['summary'],
-                    $links->count() === 1 => trim((string) ($main->deal->stage_name ?? 'Нет в выгрузке Битрикса')),
+                    $links->count() === 1 => trim((string) ($main->deal->stage_name ?? 'Нет в выгрузке Битрикс24')),
                     default => 'Главная #' . $main->crm_deal_id . ' · суммы сходятся',
                 },
                 'url' => null,

@@ -8,9 +8,11 @@ return [
         'Admin' => [
             'web' => [
                 'auth',
+                'can:admin_panel',
             ],
             'api' => [
                 'auth:api',
+                'can:admin_panel',
             ],
         ],
         'Pub' => [
@@ -32,8 +34,13 @@ return [
     ],
     'modules' => [
         'Admin' => [
+            'Panel',
+            'Users',
+            'Consts',
         ],
         'Pub' => [
+            'Desktop',
+            'EntityLog',
             'DealProject',
             'ExternalProposal',
             'Analytics',
@@ -71,7 +78,6 @@ return [
             'Access',
             'AccessGroup',
             'Menu',
-            'Dashboard',
             'User',
             'Project',
             'ProjectConfiguration',

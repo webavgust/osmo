@@ -1,0 +1,76 @@
+/*
+ * Рабочий стол (patch v30): стили виджетов группы funnel-2 — deals_top, funnel_stages,
+ * funnel_table, industry, manager_quarter, projects, sync.
+ *
+ * Каждый селектор начинается с .desk-widget[data-widget="{id}"]; кегль — только классами
+ * тела или контейнерными единицами, контейнерные запросы — @container dw.
+ */
+
+/* deals_top: легенда разбивки по стадиям — в одну строку, название сжимается с многоточием */
+.desk-widget[data-widget="deals_top"] .deals-top-legend { display: flex; column-gap: .75rem; min-width: 0; overflow: hidden; }
+.desk-widget[data-widget="deals_top"] .deals-top-legend > span { display: flex; align-items: center; gap: .25rem; flex: 0 1 auto; min-width: 0; }
+@container dw (max-width: 419px) {
+    .desk-widget[data-widget="deals_top"] .deals-top-legend > :nth-child(n+3) { display: none; }
+}
+
+/* deals_top: на высоком блоке итог показан сверху — итоговая строка таблицы его не повторяет */
+@container dw (min-height: 230px) {
+    .desk-widget[data-widget="deals_top"] .deals-top-foot { display: none; }
+}
+
+/*
+ * funnel_stages: на высоком блоке (ступень lg/xl) стадии делят высоту поровну, но строка
+ * не выше 4rem, полоса толще — стадий немного, и без растяжки блок пустовал
+ */
+.desk-widget[data-widget="funnel_stages"] .funnel-stages-tall { display: flex; flex-direction: column; }
+.desk-widget[data-widget="funnel_stages"] .funnel-stages-tall > li { flex: 1 1 0; max-height: 4rem; }
+.desk-widget[data-widget="funnel_stages"] .funnel-stages-tall .desk-bar { height: clamp(.55em, 2.2cqh, 1.4em); }
+/* funnel_table: на высоком блоке (ступень lg/xl) строки выше и полоса доли толще — стадий не больше 11 */
+.desk-widget[data-widget="funnel_table"] .funnel-table-tall .desk-table td { padding-top: clamp(.28rem, 1.2cqh, 1rem); padding-bottom: clamp(.28rem, 1.2cqh, 1rem); }
+.desk-widget[data-widget="funnel_table"] .funnel-table-tall .desk-bar { height: clamp(.55em, 1.4cqh, 1.2em); }
+/* funnel_table: в узком блоке видна одна колонка «Сумма» — боковые отступы ячеек съедали ей место */
+@container dw (max-width: 170px) {
+    .desk-widget[data-widget="funnel_table"] .desk-table th,
+    .desk-widget[data-widget="funnel_table"] .desk-table td { padding-left: 0; padding-right: 0; }
+}
+
+/* industry: на высоком блоке (ступень lg/xl) строки делят высоту (не выше 4rem), строки таблицы выше */
+.desk-widget[data-widget="industry"] .industry-tall-list { display: flex; flex-direction: column; }
+.desk-widget[data-widget="industry"] .industry-tall-list > li { flex: 1 1 0; max-height: 4rem; }
+.desk-widget[data-widget="industry"] .industry-tall-list .desk-bar,
+.desk-widget[data-widget="industry"] .industry-tall-table .desk-bar { height: clamp(.55em, 1.6cqh, 1.2em); }
+.desk-widget[data-widget="industry"] .industry-tall-table .desk-table td { padding-top: clamp(.28rem, 1.2cqh, 1rem); padding-bottom: clamp(.28rem, 1.2cqh, 1rem); }
+/* industry: узкая высокая колонка — название над суммой */
+.desk-widget[data-widget="industry"] .industry-stacked > li { flex-direction: column; align-items: stretch; justify-content: center; gap: 0; }
+
+/* manager_quarter: второй квартал — от 340 px (на 6 колонках не хватало места колонке «Итого») */
+.desk-widget[data-widget="manager_quarter"] .mq-mid { display: none; }
+@container dw (min-width: 340px) {
+    .desk-widget[data-widget="manager_quarter"] .mq-mid { display: table-cell; }
+}
+/* manager_quarter: кварталы с пятого — только на очень широком блоке (8 кварталов, 32 колонки) */
+.desk-widget[data-widget="manager_quarter"] .mq-far { display: none; }
+@container dw (min-width: 900px) {
+    .desk-widget[data-widget="manager_quarter"] .mq-far { display: table-cell; }
+}
+/* manager_quarter: в узком блоке видна одна колонка «Итого» — без боковых отступов ячеек */
+@container dw (max-width: 170px) {
+    .desk-widget[data-widget="manager_quarter"] .desk-table th,
+    .desk-widget[data-widget="manager_quarter"] .desk-table td { padding-left: 0; padding-right: 0; }
+}
+/* manager_quarter: на высоком блоке строки выше */
+.desk-widget[data-widget="manager_quarter"] .mq-tall .desk-table td { padding-top: clamp(.28rem, 1cqh, .8rem); padding-bottom: clamp(.28rem, 1cqh, .8rem); }
+
+/* projects: на высоком блоке (ступень lg/xl) строки списка делят высоту (не выше 3.5rem), ячейки таблицы выше */
+.desk-widget[data-widget="projects"] .projects-tall-list { display: flex; flex-direction: column; }
+.desk-widget[data-widget="projects"] .projects-tall-list > li { flex: 1 1 0; max-height: 3.5rem; }
+.desk-widget[data-widget="projects"] .projects-tall-table .desk-table td { padding-top: clamp(.28rem, 1cqh, .8rem); padding-bottom: clamp(.28rem, 1cqh, .8rem); }
+
+/* sync: на высоком блоке таблицы зеркала (их немного) делят высоту, строка не выше 5rem */
+.desk-widget[data-widget="sync"] .sync-tall { display: flex; flex-direction: column; }
+.desk-widget[data-widget="sync"] .sync-tall > li { flex: 1 1 0; max-height: 5rem; }
+/* sync: узкая колонка — подпись строкой над значением */
+.desk-widget[data-widget="sync"] .sync-stacked > li { flex-direction: column; align-items: stretch; justify-content: center; gap: 0; }
+
+/* funnel_stages: узкая высокая колонка — название над суммой */
+.desk-widget[data-widget="funnel_stages"] .funnel-stages-stacked > li { flex-direction: column; align-items: stretch; justify-content: center; gap: 0; }

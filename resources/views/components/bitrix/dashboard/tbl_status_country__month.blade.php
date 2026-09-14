@@ -1,7 +1,9 @@
-<div class="card mb-0" report="tbl_status_country__month">
+<div class="card mb-0 border-0" report="tbl_status_country__month">
     <div class="border-bottom title-part-padding d-flex justify-content-between align-items-center">
-        <h4 class="mb-0">Статусы и страны помесячно</h4>
-
+        <h4 class="mb-0">
+            <x-ui.icon.regular icon="fa-corner" class="transform-rotate-180 me-2"/>
+            Статусы и страны помесячно
+        </h4>
         <div class="d-flex d-print-none">
             <div class="reports ms-3 d-flex align-items-center">
                 <a href="{{ route('report-download.tbl_status_country__month', ['mode' => 'pdf']) }}" class="ms-2">
@@ -13,10 +15,10 @@
             </div>
         </div>
     </div>
-    <div class="card-body p-0 text-center text-dark fw-bolder py-4 pt-0 pb-0 fs-6">
-        <table class="table table-bordered mb-0">
+    <div class="card-body p-0 text-center text-dark py-4 pt-0 pb-0 fs-6">
+        <table class="table table-bordered mb-0 fs-7">
             <thead>
-            <tr>
+            <tr class="fw-bolder">
                 <th class="text-start" rowspan="2">Статус</th>
                 <th class="text-start" rowspan="2">Страна</th>
                 @foreach($data['columns'] as $column)
@@ -42,12 +44,12 @@
                     @endphp
                     <tr>
                         @if($loop->first)
-                            <td class="text-start py-1" rowspan="{{ count($line1) + ($loop_block->count > 1 ? 1 : 0) }}">
+                            <td class="text-start py-1 fw-bolder" rowspan="{{ count($line1) + ($loop_block->count > 1 ? 1 : 0) }}">
                                 {{ $status }}
                             </td>
                         @endif
 
-                        <td class="text-start py-1"
+                        <td class="text-start py-1 fw-bolder"
                             @if($loop_block->iteration > 1 && $loop_block->last) rowspan="2" @endif
                         >{{ $country }}</td>
                         @foreach($data['columns'] as $column)
@@ -94,7 +96,7 @@
                 @if($loop_block->count > 1)
                     <tr>
                         @foreach($data['columns'] as $column)
-                            <td @class(["p-1 fs-4 text-end border-top-0 fw-bold bg-light-info", "bl" => in_array($column, ['01', '04', '07', '10']) && $loop->iteration > 1]) style="padding-right: 12px!important">
+                            <td @class(["p-1 pe-2 fs-7 text-end border-top-0 fw-bold bg-light-info", "bl" => in_array($column, ['01', '04', '07', '10']) && $loop->iteration > 1]) style="padding-right: 12px!important">
                                 @if($subtotal[$column] > 0)
                                     {{ tools()->cost_normalize(
                                      round($subtotal[$column] ?? 0),
@@ -104,7 +106,7 @@
                                 @endif
                             </td>
                         @endforeach
-                        <td class="p-1 pe-3 fs-2 text-end fw-bold bg-light-info" style="padding-right: 12px!important">
+                        <td class="p-1 pe-2 fs-5 text-end fw-bold bg-light-info">
                             {{ tools()->cost_normalize(
                              round($subtotal->sum()),
                              mode: 'M',
@@ -118,7 +120,7 @@
                 <td class="text-end p-1" colspan=2 style="background: #F0F0F0"></td>
                 @foreach($data['columns'] as $column)
                     @php $group = floor(((int)$column - 1) / 3) % 2; @endphp
-                    <td @class(["text-end monospace text-nowrap fs-2", "bl" => in_array($column, ['01', '04', '07', '10']) && $loop->iteration > 1]) style="font-weight: 600; background: #F0F0F0" group="{{ $group }}">
+                    <td @class(["text-end text-nowrap fs-6", "bl" => in_array($column, ['01', '04', '07', '10']) && $loop->iteration > 1]) style="font-weight: 600; background: #F0F0F0" group="{{ $group }}">
                         <a href="javascript:void(0);" onclick="javascript:box({href: '{{ route('dashboard.box.status_country_month', [
                                     'r1' => 'all',
                                     'r2' => 'all',
@@ -132,7 +134,7 @@
                         </a>
                     </td>
                 @endforeach
-                <td class="text-end monospace text-nowrap fs-2" style="font-weight: 600; background: #E5E5E5">
+                <td class="text-end text-nowrap fs-6" style="font-weight: 600; background: #E5E5E5">
                     <a href="javascript:void(0);" onclick="javascript:box({href: '{{ route('dashboard.box.status_country_month', [
                                     'r1' => 'all',
                                     'r2' => 'all',

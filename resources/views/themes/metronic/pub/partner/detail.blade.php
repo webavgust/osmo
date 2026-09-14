@@ -16,9 +16,11 @@
 @endsection
 
 @section('breadcrumb_right')
-    <x-ui.a.default btn_type="info" href="{{ route('partner.edit', $partner) }}">
-        Редактировать
-    </x-ui.a.default>
+    @if(empty($log_state)){{-- patch v29: в режиме состояния на момент редактирования нет --}}
+        <x-ui.a.default btn_type="info" href="{{ route('partner.edit', $partner) }}">
+            Редактировать
+        </x-ui.a.default>
+    @endif
 @endsection
 
 @section('content')
@@ -35,6 +37,13 @@
         tr[status='canceled'] {color: #ffb4b4; background: #ffefef;}
         tr[status='canceled'] .card-table .tr {border-bottom-color: #ffb4b4;}
         tr[status='canceled'] .card-table .tr span {color: #ffb4b4; background: #ffefef;}
+
+        /* спецификация, на которую пришли по ссылке (#spec_ID, например из карточки сделки):
+           жирная фиолетовая рамка вокруг строки; отступ прокрутки — чтобы не пряталась под шапку */
+        tr[id^='spec_'] { scroll-margin-top: 140px; }
+        tr[id^='spec_']:target > td { border-top: 3px solid var(--bs-info) !important; border-bottom: 3px solid var(--bs-info) !important; }
+        tr[id^='spec_']:target > td:first-child { border-left: 3px solid var(--bs-info) !important; }
+        tr[id^='spec_']:target > td:last-child { border-right: 3px solid var(--bs-info) !important; }
     </style>
 
 
@@ -131,7 +140,7 @@
                 {{-- Сопоставление с Битрикс24 (patch v23) --}}
                 @php
                     $crm_deals_year = \Illuminate\Support\Str::before(
-                        \App\Modules\Pub\Partner\Services\PartnerCrmCompanyService::DEALS_FROM, '-'
+                        \App\Modules\Pub\Partner\Services\PartnerCrmCompanyService::dealsFrom(), '-'
                     );
                 @endphp
                 <div class="card mt-5">
@@ -159,7 +168,7 @@
                                                 @endif
                                             </a>
                                             @if(empty($crm_link['title']))
-                                                <div class="fs-8 text-danger">нет в зеркале Битрикса</div>
+                                                <div class="fs-8 text-danger">нет в зеркале Битрикс24</div>
                                             @endif
                                         </span>
                                         <span class="td ps-3">
@@ -190,7 +199,7 @@
                      строк вкладка покажет по клику. --}}
                 @php
                     $deal_tabs = [
-                        'partner_deal' => ['label' => 'Сделки Битрикс', 'mode' => 'all', 'pane' => 'partner_tab_deals'],
+                        'partner_deal' => ['label' => 'Сделки Битрикс24', 'mode' => 'all', 'pane' => 'partner_tab_deals'],
                         'partner_project' => ['label' => 'Проекты', 'mode' => 'projects', 'pane' => 'partner_tab_projects'],
                         'partner_archive' => ['label' => 'Архив проектов', 'mode' => 'archive', 'pane' => 'partner_tab_archive'],
                     ];
@@ -312,7 +321,7 @@
                                             $status = \App\Modules\Pub\ContractSpecification\Models\ContractSpecificationStatus::from($spec->status);
                                             $status_data = $status->data();
                                         @endphp
-                                        <tr status="{{ $status }}">
+                                        <tr status="{{ $status }}" id="spec_{{ $spec->id }}">
                                             <td>
                                                 <div class="ps-4">
                                                         {{ $spec->name }}
@@ -387,7 +396,7 @@
                                                                         @endif
                                                                     @endif
                                                                 </span>
-                                                                <span class="td">
+                                                                <span class="td text-nowrap">
                                                                     @if(!empty($payment->amount_plan))
                                                                         {{ $payment->amount_plan ? tools()->cost_normalize($payment->amount_plan) : '?' }} {{ $spec->currency->symbol }}
                                                                     @endif

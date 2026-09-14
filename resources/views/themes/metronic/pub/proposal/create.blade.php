@@ -565,7 +565,7 @@
 
                                                         <div class="d-flex justify-content-center align-items-center">
                                                             <div id="neuro_nds">
-                                                                <input type="checkbox" class="btn-check" id="neuro_nds_cb" checked>
+                                                                <input type="checkbox" class="btn-check" id="neuro_nds_cb">
                                                                 <label class="
                                                                       btn btn-outline-danger
                                                                       font-weight-medium

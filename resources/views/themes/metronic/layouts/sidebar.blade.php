@@ -10,7 +10,7 @@
 
     {{-- Логотип --}}
     <div class="app-sidebar-logo px-5" id="kt_app_sidebar_logo">
-        <a href="{{ route('dashboard.index') }}" class="app-sidebar-logo-link h-100 d-flex align-items-center">
+        <a href="{{ route('desktop.index') }}" class="app-sidebar-logo-link h-100 d-flex align-items-center">
             <img alt="OSMO" src="/images/logo/logo_letter.svg" class="h-32px app-sidebar-logo-default h-75" />
             <img alt="OSMO" src="/images/logo/logo_letter.svg" class="h-28px app-sidebar-logo-minimize h-50" />
         </a>
@@ -58,6 +58,16 @@
                     <span class="menu-title">{{ __('header.my_profile') }}</span>
                 </a>
             </div>
+
+            {{-- Админ-панель (patch v28): только с признаком users.is_admin --}}
+            @can('admin_panel')
+                <div class="menu-item px-3">
+                    <a href="{{ route('admin.index') }}" class="menu-link px-3">
+                        <span class="menu-icon"><i class="fa-light fa-shield-halved fs-5"></i></span>
+                        <span class="menu-title">Админ-панель</span>
+                    </a>
+                </div>
+            @endcan
 
             <div class="separator my-2"></div>
 

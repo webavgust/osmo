@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Facades\Tools;
+use App\Modules\Pub\EntityLog\Services\EntityLogService;
 use App\View\Components\Reminder\Row;
 use http\Client\Request;
 use Illuminate\Support\Facades\App;
@@ -43,5 +44,8 @@ class AppServiceProvider extends ServiceProvider
         {
             return new Tools();
         });
+
+        // patch v29: журнал изменений сущностей — страховочный flush при завершении приложения
+        EntityLogService::register();
     }
 }

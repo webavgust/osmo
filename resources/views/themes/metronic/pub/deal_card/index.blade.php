@@ -59,7 +59,7 @@
                     </div>
                     <div class="col-6 col-lg-3">
                         <div class="text-muted fs-7 fw-bold text-uppercase mb-1">Менеджер</div>
-                        <div class="fw-semibold fs-4">{{ $proposal->manager?->name ?: '—' }}</div>
+                        <div class="fw-semibold fs-4">{{ $proposal->manager?->full_name ?: '—' }}</div>
                     </div>
                     <div class="col-6 col-lg-3">
                         <div class="text-muted fs-7 fw-bold text-uppercase mb-1">Отправлено</div>
@@ -73,7 +73,7 @@
             <div class="alert alert-{{ $bottleneck['state'] === 'empty' ? 'danger' : 'warning' }} d-flex align-items-center mb-0">
                 <i class="fa-light {{ $bottleneck['icon'] }} fs-2 me-4"></i>
                 <div>
-                    <div class="fs-5 fw-bold">Остановилось на шаге «{{ $bottleneck['title'] }}»</div>
+                    <div class="fs-5 fw-bold">Остановились на шаге «{{ $bottleneck['title'] }}»</div>
                     <div class="fs-6">{{ $bottleneck['hint'] }}</div>
                 </div>
             </div>
@@ -105,7 +105,7 @@
                         <div class="card-body p-4 d-flex flex-column">
                             <div class="d-flex align-items-center justify-content-between mb-3">
                                 <i class="fa-light {{ $step['icon'] }} fs-2 text-{{ $color }}"></i>
-                                <span class="badge badge-circle bg-white fw-bold badge-light fs-6">{{ $index + 1 }}</span>
+                                <span class="badge badge-circle bg-{{ $color }} text-white fw-bold badge-light fs-6">{{ $index + 1 }}</span>
                             </div>
 
                             <div class="fs-7 fw-bold text-{{ $color }} text-uppercase mb-1">{{ $step['title'] }}</div>
@@ -117,8 +117,6 @@
                                     {{ $step['value'] }}
                                 @endif
                             </div>
-
-                            <div class="fs-9 text-muted mt-auto">{{ $step['hint'] }}</div>
                         </div>
                     </div>
                 </div>
@@ -138,7 +136,7 @@
                 <div class="row g-5 mb-5">
                     <div class="col-6 col-lg-3">
                         <div class="text-muted fs-7 fw-bold text-uppercase mb-1">Сумма спецификаций</div>
-                        <div class="fs-3 fw-bold">{{ tools()->cost_normalize(round($money['spec'])) }}</div>
+                        <div class="fs-3 fw-bold">{{ tools()->cost_normalize(round($money['spec'])) }} </div>
                         @if($money['canceled'])
                             <div class="fs-8 text-muted">
                                 отменено на {{ tools()->cost_normalize(round($money['canceled'])) }}
@@ -191,7 +189,7 @@
 
             <div class="card-body p-0">
                 @if($contracts->isEmpty())
-                    <div class="text-center text-muted py-10">По этому КП договоров нет</div>
+                    <div class="text-center text-muted py-10 fst-italic">По этому КП нет договоров</div>
                 @else
                     @foreach($contracts as $contract)
                         <div class="border-bottom p-5">
@@ -229,7 +227,7 @@
                                             <th class="ps-3">СПЕЦИФИКАЦИЯ</th>
                                             <th width="220">СТАТУС</th>
                                             <th class="text-end" width="150">СУММА</th>
-                                            <th class="text-end" width="200">ПЛАТЕЖИ</th>
+                                            <th width="500">ПЛАТЕЖИ</th>
                                             <th class="text-end pe-3" width="120">ЛИЦЕНЗИИ</th>
                                         </tr>
                                         </thead>
@@ -242,10 +240,17 @@
                                             @endphp
                                             <tr @class(['opacity-75' => $spec->is_canceled])>
                                                 <td class="ps-3">
-                                                    <a href="javascript:box({href: '{{ route('contract_spec.box_edit', $spec->id) }}'})"
-                                                       class="fw-semibold text-gray-900 text-hover-primary fs-6">
-                                                        {{ $spec->name ?: 'без названия' }}
-                                                    </a>
+                                                    {{-- без редактирования: ведёт на карточку партнёра, строка спецификации
+                                                         там подсвечивается по якорю (tr:target) --}}
+                                                    @if($contract->partner_id)
+                                                        <a href="{{ route('partner.detail', $contract->partner_id) }}#spec_{{ $spec->id }}"
+                                                           class="fw-semibold text-gray-900 text-hover-primary fs-6"
+                                                           title="Открыть на карточке партнёра">
+                                                            {{ $spec->name ?: 'без названия' }}
+                                                        </a>
+                                                    @else
+                                                        <span class="fw-semibold text-gray-900 fs-6">{{ $spec->name ?: 'без названия' }}</span>
+                                                    @endif
                                                     @if($spec->closed_at)
                                                         <div class="fs-7 text-muted">закрыта {{ $spec->closed_at->format('d.m.Y') }}</div>
                                                     @endif
@@ -267,36 +272,20 @@
                                                     </div>
                                                 </td>
 
-                                                <td class="text-end text-nowrap">
+                                                <td class="text-end text-nowrap pe-4">
                                                     <span class="fs-5 fw-semibold @if($spec->is_canceled) text-decoration-line-through text-muted @endif">
-                                                        {{ tools()->cost_normalize(round((float) $spec->amount)) }}
+                                                        {{ tools()->cost_normalize(round((float) $spec->amount_all)) }}
                                                     </span>
                                                     <span class="text-muted fs-8 ms-1">{{ $spec->currency_slug }}</span>
                                                 </td>
 
-                                                <td class="text-end">
+                                                <td>
                                                     @if($spec_payments->isEmpty())
                                                         <span class="badge badge-light-{{ $spec->is_canceled ? 'secondary' : 'danger' }} fs-7">нет платежей</span>
                                                     @else
-                                                        <div class="d-flex flex-wrap justify-content-end gap-1">
-                                                            @foreach($spec_payments as $payment)
-                                                                @php
-                                                                    $color = match($payment->state) {
-                                                                        'paid' => 'success',
-                                                                        'overdue' => 'danger',
-                                                                        'unknown' => 'secondary',
-                                                                        'canceled' => 'dark',
-                                                                        default => 'info',
-                                                                    };
-                                                                @endphp
-                                                                <span class="badge badge-light-{{ $color }} fs-7"
-                                                                      title="{{ $payment->state === 'paid'
-                                                                            ? 'Оплачен ' . $payment->date_fact?->format('d.m.Y')
-                                                                            : 'План ' . ($payment->date_plan?->format('d.m.Y') ?: 'без даты') }}">
-                                                                    {{ tools()->cost_normalize(round((float) ($payment->date_fact ? $payment->amount_fact : $payment->amount_plan))) }}
-                                                                </span>
-                                                            @endforeach
-                                                        </div>
+                                                        {{-- та же табличка, что в ячейке «Оплаты» на карточке партнёра --}}
+                                                        <x-payment.table :payments="$spec_payments"
+                                                                         :symbol="$spec->currency_slug" class="my-1"/>
                                                     @endif
                                                 </td>
 
@@ -304,13 +293,16 @@
                                                     @if($spec_keys->isEmpty())
                                                         <span class="text-muted">—</span>
                                                     @else
-                                                        @foreach($spec_keys as $key)
-                                                            <div class="fs-8 text-nowrap">
-                                                                <span class="badge badge-light-{{ $key->days_left < 0 ? 'dark' : ($key->days_left <= 30 ? 'danger' : 'info') }} fs-7">
-                                                                    до {{ $key->active_to?->format('d.m.Y') }}
-                                                                </span>
-                                                            </div>
-                                                        @endforeach
+                                                        {{-- бейджи сроков столбиком с отступом: вплотную сливались в одну плашку --}}
+                                                        <div class="d-flex flex-column align-items-end gap-1">
+                                                            @foreach($spec_keys as $key)
+                                                                <div class="fs-8 text-nowrap">
+                                                                    <span class="badge badge-light-{{ $key->days_left < 0 ? 'dark' : ($key->days_left <= 30 ? 'danger' : 'info') }} fs-7">
+                                                                        до {{ $key->active_to?->format('d.m.Y') }}
+                                                                    </span>
+                                                                </div>
+                                                            @endforeach
+                                                        </div>
                                                     @endif
                                                 </td>
                                             </tr>
@@ -331,7 +323,7 @@
                 <div class="card-title flex-column align-items-start">
                     <h4 class="fw-bold mb-1">Сделки Битрикс24</h4>
                     <span class="text-muted fs-7">
-                        Привязано: {{ $deal_links->count() }}. Сумма сделок сверяется с последним вариантом КП
+                        Сумма сделок сверяется с последним вариантом КП
                         без пересчёта валюты.
                     </span>
                 </div>
@@ -346,16 +338,15 @@
 
             <div class="card-body p-0">
                 @if($deal_links->isEmpty())
-                    <div class="text-center text-muted py-10">Сделка Битрикса не привязана</div>
+                    <div class="text-center text-muted py-10">Сделка Битрикс24 не привязана</div>
                 @else
                     @if($deal_check['has_errors'])
                         <div class="alert alert-danger d-flex align-items-center m-5">
                             <i class="fa-light fa-scale-unbalanced fs-2 me-4"></i>
                             <div class="fs-7">
                                 Сделки в CRM не совпадают с последним вариантом КП:
-                                в Битриксе <b>{{ tools()->cost_normalize(round($deal_check['deals_amount'])) }}</b>,
+                                в Битрикс24 <b>{{ tools()->cost_normalize(round($deal_check['deals_amount'])) }}</b>,
                                 в КП <b>{{ tools()->cost_normalize(round($deal_check['amount'])) }} {{ $deal_check['currency'] }}</b>.
-                                Подробности — в строках ниже.
                             </div>
                         </div>
                     @endif
@@ -377,9 +368,17 @@
                                 <tr @class(['bg-light-danger' => !empty($errors)])>
                                     <td class="ps-5">
                                         @if($link->is_main)
-                                            <span class="badge badge-light-success fs-6">#{{ $link->crm_deal_id }}</span>
+                                            <span @class([
+                                                "badge fs-6",
+                                                 "badge-light-success" => empty($errors),
+                                                 "badge-danger" => !empty($errors)
+                                             ])>#{{ $link->crm_deal_id }}</span>
                                         @else
-                                            <span class="fw-bold">#{{ $link->crm_deal_id }}</span>
+                                            <span @class([
+                                                    "fw-bold",
+                                                    "text-danger" => !empty($errors)
+                                                ])
+                                            >#{{ $link->crm_deal_id }}</span>
                                         @endif
 
                                         @if(!empty($errors))
@@ -391,9 +390,14 @@
                                     <td>
                                         <div>
                                             @if(!empty($link->deal?->title))
-                                                <span class="fw-bold">{{ $link->deal?->title }}</span>
+                                                {{-- ссылка уводит в Битрикс24: значок новой вкладки — как в реестре сделок --}}
+                                                <a href="{{ \App\Modules\Bitrix\CrmDeal\Services\CrmDealRegistryService::url($link->crm_deal_id) }}"
+                                                   target="_blank" class="fw-bold text-dark text-hover-primary"
+                                                   title="Открыть сделку в Битрикс24">
+                                                    {{ $link->deal->title }}<i class="fa-light fa-arrow-up-right-from-square fs-8 ms-2 text-muted"></i>
+                                                </a>
                                             @else
-                                                Сделки нет в выгрузке Битрикса
+                                                Сделки нет в выгрузке Битрикс24
                                             @endif
                                         </div>
 

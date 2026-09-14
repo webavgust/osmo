@@ -24,7 +24,7 @@ class ExternalProposalController extends Controller
     public function __construct()
     {
         $this->breadcrumb_add(route('proposal.index'), 'КП');
-        $this->breadcrumb_add(route('external_proposal.index'), 'OSMOVIEW CP');
+        $this->breadcrumb_add(route('external_proposal.index'), 'Внешние КП');
     }
 
     /**
@@ -35,15 +35,13 @@ class ExternalProposalController extends Controller
      */
     public function index(Request $request)
     {
-        $params = [
-            'q' => trim((string) $request->input('q')),
-            'transferred' => in_array($request->input('transferred'), ['yes', 'no', 'all']) ? $request->input('transferred') : 'all',
-        ];
+        // отбор живёт в адресе страницы (переживает F5) и уезжает в data-url таблицы
+        $params = ExternalProposalService::params($request);
 
         $all = ExternalProposal::source();
 
-        return View::make('pub.external_proposal.index', [
-            'title' => 'КП OSMOVIEW CP',
+        return View::make('pub.external_proposal.index', array_merge([
+            'title' => 'Внешние КП',
             'breadcrumbs' => $this->breadcrumb,
             'params' => $params,
             'totals' => [
@@ -53,7 +51,7 @@ class ExternalProposalController extends Controller
             ],
             'api_configured' => (new OsmoviewCpClient())->configured(),
             'api_url' => config('services.osmoview_cp.base_url'),
-        ]);
+        ], ExternalProposalService::options()));
     }
 
     /**

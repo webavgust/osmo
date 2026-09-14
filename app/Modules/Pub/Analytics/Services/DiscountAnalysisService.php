@@ -2,6 +2,7 @@
 
 namespace App\Modules\Pub\Analytics\Services;
 
+use App\Modules\Pub\Constant\Models\Constant;
 use App\Modules\Pub\Currency\Services\CurrencyService;
 use App\Modules\Pub\Partner\Models\PartnerGrade;
 use App\Modules\Pub\Proposal\Models\Proposal;
@@ -29,6 +30,7 @@ class DiscountAnalysisService
     /**
      * Блоки расчёта: где лежат позиции и откуда берутся проценты.
      *
+     * color/icon — оформление блока, как у типов договора (ContractType) и в «Истории цен»
      * discount  — поле процента скидки заказчику на позиции
      * partner_p — поле процента скидки партнёру на варианте
      *             (null — процент лежит на самой позиции, в discount_partner)
@@ -36,35 +38,69 @@ class DiscountAnalysisService
     public const BLOCKS = [
         'platform' => [
             'label' => 'Платформа',
+            'color' => 'primary',
+            'icon' => 'fa-desktop',
             'relation' => 'proposal_platforms',
             'discount' => 'discount',
             'partner_p' => 'platform_discount_partner_p',
         ],
         'soft' => [
             'label' => 'ПО',
+            'color' => 'danger',
+            'icon' => 'fa-brain-circuit',
             'relation' => 'proposal_software',
             'discount' => 'discount_customer',
             'partner_p' => 'soft_discount_partner_p',
         ],
         'neuro' => [
             'label' => 'Нейросервисы',
+            'color' => 'info',
+            'icon' => 'fa-microchip',
             'relation' => 'proposal_scenarios',
             'discount' => 'discount',
             'partner_p' => 'neuro_discount_partner_p',
         ],
         'work' => [
             'label' => 'Работы',
+            'color' => 'warning',
+            'icon' => 'fa-person-digging',
             'relation' => 'proposal_works',
             'discount' => 'discount_customer',
             'partner_p' => null,
         ],
     ];
 
-    /** На сколько процентных пунктов скидка должна превысить средний уровень грейда, чтобы попасть в отбор */
+    /**
+     * На сколько процентных пунктов скидка должна превысить средний уровень грейда, чтобы попасть в отбор.
+     * По умолчанию; рабочее значение — consts.discount_grade_alert_pp (читать через gradeAlertPp())
+     */
     public const GRADE_ALERT_PP = 5;
 
-    /** Совокупная скидка выше этого процента считается исключением при любом грейде */
+    /**
+     * Совокупная скидка выше этого процента считается исключением при любом грейде.
+     * По умолчанию; рабочее значение — consts.discount_hard_limit_p (читать через hardLimitP())
+     */
     public const HARD_LIMIT_P = 40;
+
+    /**
+     * Превышение среднего по грейду, п.п. (consts.discount_grade_alert_pp, по умолчанию GRADE_ALERT_PP)
+     *
+     * @return int
+     */
+    public static function gradeAlertPp(): int
+    {
+        return max(0, Constant::int('discount_grade_alert_pp', static::GRADE_ALERT_PP));
+    }
+
+    /**
+     * Потолок совокупной скидки, % (consts.discount_hard_limit_p, по умолчанию HARD_LIMIT_P)
+     *
+     * @return int
+     */
+    public static function hardLimitP(): int
+    {
+        return max(0, Constant::int('discount_hard_limit_p', static::HARD_LIMIT_P));
+    }
 
     /**
      * КП со скидками
@@ -204,6 +240,8 @@ class DiscountAnalysisService
 
             $ret[$code] = [
                 'label' => $block['label'],
+                'color' => $block['color'],
+                'icon' => $block['icon'],
                 'list' => $list,
                 'customer' => $customer,
                 'partner' => $partner,
@@ -250,12 +288,14 @@ class DiscountAnalysisService
         $row['grade_average'] = $average;
         $row['grade_diff'] = $row['total_p'] - $average;
 
-        if ($row['total_p'] > static::HARD_LIMIT_P) {
+        $hard_limit = static::hardLimitP();
+
+        if ($row['total_p'] > $hard_limit) {
             $row['alerts']['limit'] = 'Совокупная скидка ' . round($row['total_p'], 1)
-                . '% — выше потолка ' . static::HARD_LIMIT_P . '%';
+                . '% — выше потолка ' . $hard_limit . '%';
         }
 
-        if ($average > 0 && $row['grade_diff'] > static::GRADE_ALERT_PP) {
+        if ($average > 0 && $row['grade_diff'] > static::gradeAlertPp()) {
             $row['alerts']['grade'] = 'На ' . round($row['grade_diff'], 1)
                 . ' п.п. выше среднего по грейду (' . round($average, 1) . '%)';
         }

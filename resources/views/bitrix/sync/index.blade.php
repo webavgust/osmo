@@ -11,7 +11,7 @@
             <div class="col-12">
                 <div class="card">
                     <div class="border-bottom title-part-padding">
-                        <h4 class="card-title mb-0">Синхронизация данных</h4>
+                          <h4 class="card-title mb-0">Синхронизация данных</h4>
                     </div>
                     <div class="card-body p-0">
                         <table class="table table-bordered m-t-30 table-hover contact-list footable footable-5 footable-paging footable-paging-center breakpoint-lg">

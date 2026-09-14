@@ -32,8 +32,8 @@ class DealProjectSeedService
             ->leftJoin('crm_deal_uf', 'crm_deal.id', '=', 'crm_deal_uf.deal_id')
             ->select([
                 'crm_deal.*',
-                'crm_deal_uf.' . DealProjectService::UF_CUSTOMER . ' as customer_name',
-                'crm_deal_uf.' . DealProjectService::UF_QUARTER . ' as plan_quarter',
+                'crm_deal_uf.' . DealProjectService::ufCustomer() . ' as customer_name',
+                'crm_deal_uf.' . DealProjectService::ufQuarter() . ' as plan_quarter',
             ])
             ->where('crm_deal.date_create', '>=', $from)
             ->whereIn('crm_deal.stage_name', DealProjectService::PROJECT_STAGES)

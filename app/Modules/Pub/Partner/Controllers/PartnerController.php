@@ -8,6 +8,7 @@ use App\Modules\Pub\Breadcrumbs\Traits\HasBreadcrumb;
 use App\Modules\Pub\Company\Models\Company;
 use App\Modules\Pub\Company\Services\CompanyService;
 use App\Modules\Pub\Contract\Repositories\ContractRepository;
+use App\Modules\Pub\EntityLog\Services\EntityLogViewService;
 use App\Modules\Pub\EducationApplication\Models\EducationApplication;
 use App\Modules\Pub\EducationApplication\Services\EducationApplicationListFilterService;
 use App\Modules\Pub\Partner\Models\Partner;
@@ -60,12 +61,18 @@ class PartnerController extends Controller
     {
         if(empty($partner)) abort(404);
 
+        // patch v29: просмотр состояния на момент (?at=)
+        $state = EntityLogViewService::state($partner, request('at'));
+        if ($state) $partner = $state['model'];
+
         $this->breadcrumb_add('', $partner->name);
 
 
         return view('pub.partner.detail', [
             'breadcrumbs' => $this->breadcrumb,
             'partner' => $partner,
+            'log_root' => $partner, // patch v29: кнопка журнала изменений в крошках
+            'log_state' => $state,
             // сопоставление с Битрикс24 (patch v23)
             'crm_links' => (new PartnerCrmCompanyService())->linked($partner),
             // числа в скобках у вкладок со сделками: считаются с теми же

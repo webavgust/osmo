@@ -1,6 +1,98 @@
 @extends('layouts.layout')
 
+@php
+    // «Фильтр (n)»: вид расхождения выбирается карточками, поиск стоит в шапке списка —
+    // считаем только то, что в модалке. «Все КП» — отход от умолчания «только расхождения»
+    $rules_count = collect(['status', 'manager'])->filter(fn($key) => !empty($params[$key]))->count()
+        + ($params['only_issues'] ? 0 : 1);
+@endphp
+
+{{-- Тулбар страницы: «Фильтр» и «Убрать», как на остальных списках --}}
+@section('breadcrumb_right')
+    <button type="button" data-bs-toggle="modal" data-bs-target="#crm_monitor_filter_modal"
+            class="btn btn-light-info fw-bold d-flex align-items-center">
+        <i class="fa-light fa-filter"></i>
+        Фильтр
+        @if($rules_count)
+            <span class="count filter-count">{{ $rules_count }}</span>
+        @endif
+    </button>
+
+    @if($rules_count)
+        {{-- вид расхождения и поиск остаются: убираем только то, что стоит в модалке --}}
+        <a href="{{ route('crm_monitor.index', array_filter(['issue' => $params['issue'], 'q' => $params['q']])) }}"
+           class="me-2 text-dark-500 text-hover-dark">
+            <i class="fa-light fa-xmark fs-5 me-2" aria-hidden="true"></i> Убрать
+        </a>
+    @endif
+@endsection
+
 @section('content')
+    {{-- Отбор: живёт в модалке, в адресе остаётся обычной GET-строкой --}}
+    <div id="crm_monitor_filter_modal" class="modal fade" tabindex="-1" aria-hidden="true">
+        <form method="get" action="{{ route('crm_monitor.index') }}">
+            @if($params['issue'])
+                <input type="hidden" name="issue" value="{{ $params['issue'] }}"/>
+            @endif
+            @if($params['q'] !== '')
+                <input type="hidden" name="q" value="{{ $params['q'] }}"/>
+            @endif
+
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 class="modal-title fw-bold">Фильтр</h3>
+                        <button type="button" class="btn btn-icon btn-sm btn-active-light-primary"
+                                data-bs-dismiss="modal" aria-label="Закрыть">
+                            <i class="fa-light fa-xmark fs-2"></i>
+                        </button>
+                    </div>
+
+                    <div class="modal-body py-8">
+                        <div class="row mb-5">
+                            <label class="col-sm-3 col-form-label fw-semibold text-sm-end">Статус КП</label>
+                            <div class="col-sm-9">
+                                <select name="status" class="form-select crm_monitor_select" data-placeholder="все статусы">
+                                    <option value="">все статусы</option>
+                                    @foreach($statuses as $code => $status)
+                                        <option value="{{ $code }}" @selected($params['status'] === $code)>{{ $status['label'] }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row mb-5">
+                            <label class="col-sm-3 col-form-label fw-semibold text-sm-end">Менеджер</label>
+                            <div class="col-sm-9">
+                                <select name="manager" class="form-select crm_monitor_select" data-placeholder="все менеджеры">
+                                    <option value="">все менеджеры</option>
+                                    @foreach($managers as $manager)
+                                        <option value="{{ $manager->id }}" @selected($params['manager'] == $manager->id)>{{ $manager->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-sm-9 offset-sm-3">
+                                <label class="form-check form-switch form-check-custom form-check-solid">
+                                    <input type="checkbox" name="all" value="1" class="form-check-input"
+                                           @checked(!$params['only_issues'])/>
+                                    <span class="form-check-label fw-semibold">все КП, в том числе где всё сходится</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Отменить</button>
+                        <button type="submit" class="btn btn-primary">Применить</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
     @php
         $link = function (array $extra = []) use ($params) {
             $query = array_merge([
@@ -40,9 +132,9 @@
         @if($params['issue'] == 'amount' && $money['count'])
             <x-ui.notification.regular type="danger" class="fs-6 mb-0">
                 <i class="fa-light fa-scale-unbalanced fs-2 text-danger me-4"></i>
-                По {{ $money['count'] }} КП суммы в Битриксе и на портале расходятся на
+                По {{ $money['count'] }} КП суммы в Битрикс24 и на портале расходятся на
                 <b>{{ $money['diff'] > 0 ? '+' : '' }}{{ tools()->cost_normalize(round($money['diff'])) }}</b>
-                (в Битриксе {{ tools()->cost_normalize(round($money['deals_total'])) }},
+                (в Битрикс24 {{ tools()->cost_normalize(round($money['deals_total'])) }},
                 в КП {{ tools()->cost_normalize(round($money['proposal_total'])) }}).
             </x-ui.notification.regular>
         @endif
@@ -59,53 +151,27 @@
                     </span>
                 </div>
 
+                {{-- Поиск — в шапке списка; остальной отбор уезжает с ним скрытыми полями --}}
                 <div class="card-toolbar">
-                    <form method="get" class="d-flex flex-wrap ">
-                        <div class="d-flex justify-content-start gap-3 align-items-center">
-                            @if($params['issue'])
-                                <input type="hidden" name="issue" value="{{ $params['issue'] }}" />
-                            @endif
+                    <form method="get" action="{{ route('crm_monitor.index') }}">
+                        @if($params['issue'])
+                            <input type="hidden" name="issue" value="{{ $params['issue'] }}"/>
+                        @endif
+                        @if($params['status'])
+                            <input type="hidden" name="status" value="{{ $params['status'] }}"/>
+                        @endif
+                        @if($params['manager'])
+                            <input type="hidden" name="manager" value="{{ $params['manager'] }}"/>
+                        @endif
+                        @if(!$params['only_issues'])
+                            <input type="hidden" name="all" value="1"/>
+                        @endif
 
-                            <div class="position-relative">
-                                <i class="fa-light fa-magnifying-glass position-absolute top-50 translate-middle-y ms-4 text-gray-500"></i>
-                                <input type="text" name="q" value="{{ $params['q'] }}"
-                                       class="form-control form-control-sm form-control-solid ps-11 w-225px"
-                                       placeholder="КП, номер, компания" />
-                            </div>
-
-                            <select name="status" class="form-select form-select-sm form-select-solid w-160px">
-                                    <option value="">Все статусы</option>
-                                    @foreach($statuses as $code => $status)
-                                        <option value="{{ $code }}" @selected($params['status'] === $code)>{{ $status['label'] }}</option>
-                                    @endforeach
-                            </select>
-
-                            <select name="manager" class="form-select form-select-sm form-select-solid w-175px">
-                                <option value="">Все менеджеры</option>
-                                @foreach($managers as $manager)
-                                    <option value="{{ $manager->id }}" @selected($params['manager'] == $manager->id)>
-                                        {{ $manager->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-
-                            <label class="form-check form-check-custom form-check-solid form-check-sm"
-                                   title="Показать и те КП, где всё сходится">
-                                <input class="form-check-input" type="checkbox" name="all" value="1"
-                                       @checked(!$params['only_issues']) />
-                                <span class="form-check-label fs-8 text-nowrap">все КП</span>
-                            </label>
-
-                            <button type="submit" class="btn btn-sm btn-primary text-nowrap">
-                                <i class="fa-light fa-filter fs-6 me-2"></i> Применить
-                            </button>
-
-                            @if($params['issue'] || $params['status'] || $params['manager'] || $params['q'] || !$params['only_issues'])
-                                <a href="{{ route('crm_monitor.index') }}" class="btn btn-sm btn-light text-nowrap">
-                                    <i class="fa-light fa-xmark fs-6 me-2"></i>
-                                    Сбросить
-                                </a>
-                            @endif
+                        <div class="position-relative">
+                            <i class="fa-light fa-magnifying-glass position-absolute top-50 translate-middle-y ms-4 text-gray-500"></i>
+                            <input type="text" name="q" value="{{ $params['q'] }}"
+                                   class="form-control form-control-sm form-control-solid ps-11 w-225px"
+                                   placeholder="КП, номер, компания" />
                         </div>
                     </form>
                 </div>
@@ -114,20 +180,22 @@
             <div class="card-body p-0">
                 @if($rows->isEmpty())
                     <div class="text-center text-muted py-10 fs-4">
-                        Расхождений нет — портал и Битрикс сходятся
+                        Расхождений нет — портал и Битрикс24 сходятся
                     </div>
                 @else
                     <div class="table-responsive">
                         <table class="table table-row-dashed table-row-gray-300 align-middle mb-0">
                             <thead>
                             <tr class="fw-bold text-muted bg-light fs-7">
-                                <th class="ps-5">КП</th>
-                                <th width="140">Статус</th>
-                                <th>Сделки Битрикс24</th>
-                                <th class="text-end" width="150">В КП</th>
-                                <th class="text-end" width="150">В Битриксе</th>
-                                <th class="text-end" width="140">Расхождение</th>
-                                <th class="pe-5" width="260">Что не так</th>
+                                {{-- место отдаём названию КП: служебные колонки сжимаются по содержимому
+                                     (width="1%" + nowrap), сделкам — разумный минимум --}}
+                                <th class="ps-5 min-w-250px">КП</th>
+                                <th class="text-nowrap" width="1%">Статус</th>
+                                <th class="min-w-200px">Сделки Битрикс24</th>
+                                <th class="text-end text-nowrap" width="1%">В КП</th>
+                                <th class="text-end text-nowrap" width="1%">В Битрикс24</th>
+                                <th class="text-end text-nowrap" width="1%">Расхождение</th>
+                                <th class="pe-5 text-nowrap" width="1%">Что не так</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -234,4 +302,23 @@
         </div>
 
     </div>
+@endsection
+
+@section('js')
+    @parent
+    <script>
+        $(document).ready(function () {
+            // модалка живёт в контенте — уводим в body, чтобы её не обрезал контекст наложения
+            var $modal = $('#crm_monitor_filter_modal').appendTo('body');
+
+            $modal.find('select.crm_monitor_select').each(function () {
+                $(this).select2({
+                    width: '100%',
+                    dropdownParent: $modal,
+                    placeholder: $(this).data('placeholder'),
+                    allowClear: true
+                });
+            });
+        });
+    </script>
 @endsection

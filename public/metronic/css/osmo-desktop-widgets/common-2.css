@@ -1,0 +1,250 @@
+/*
+ * Рабочий стол (patch v30): стили виджетов группы common-2 —
+ * journal, kpi, link, links, period, progress, rates, team.
+ * Каждый селектор начинается с .desk-widget[data-widget="{id}"], кегль — классами и
+ * контейнерными единицами.
+ */
+
+/* ===== journal — Заметки по компаниям ===== */
+
+/* список: компания, текст заметки в остатке строки, КП, дата */
+.desk-widget[data-widget="journal"] .dj-company {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 55%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.desk-widget[data-widget="journal"] .dj-list .dj-note {
+    display: none;
+    flex: 1 1 0;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.desk-widget[data-widget="journal"] .dj-date { margin-left: auto; }
+@container dw (min-width: 230px) {
+    .desk-widget[data-widget="journal"] .dj-list .dj-note { display: block; }
+}
+@container dw (max-width: 229.9px) {
+    .desk-widget[data-widget="journal"] .dj-company { flex: 1 1 auto; max-width: none; }
+}
+
+/* самый узкий блок: дата над компанией */
+.desk-widget[data-widget="journal"] .dj-narrow > li { flex-wrap: wrap; row-gap: 0; }
+.desk-widget[data-widget="journal"] .dj-narrow .dj-date { order: -1; flex-basis: 100%; margin-left: 0; line-height: 1.2; }
+.desk-widget[data-widget="journal"] .dj-narrow .dj-company { flex: 1 1 100%; max-width: none; }
+
+/* таблица: текст заметки в ячейке одной строкой */
+.desk-widget[data-widget="journal"] .dj-table td { vertical-align: top; }
+.desk-widget[data-widget="journal"] .dj-table .dj-company-cell { max-width: 16rem; }
+.desk-widget[data-widget="journal"] .dj-table .dj-note {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* высокий блок: текст заметки отдельной строкой под компанией, 2–3 строки */
+@container dw (min-height: 600px) {
+    .desk-widget[data-widget="journal"] .dj-list > li { flex-wrap: wrap; row-gap: .15rem; align-items: baseline; }
+    .desk-widget[data-widget="journal"] .dj-list .dj-company { flex: 1 1 auto; max-width: none; }
+    .desk-widget[data-widget="journal"] .dj-list .dj-note,
+    .desk-widget[data-widget="journal"] .dj-table .dj-note {
+        order: 9;
+        flex: 1 1 100%;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        white-space: normal;
+        text-overflow: clip;
+    }
+}
+@container dw (min-height: 900px) {
+    .desk-widget[data-widget="journal"] .dj-list .dj-note,
+    .desk-widget[data-widget="journal"] .dj-table .dj-note { -webkit-line-clamp: 3; }
+}
+
+/* ===== kpi — Число ===== */
+
+.desk-widget[data-widget="kpi"] .dk-head { flex: none; min-width: 0; }
+
+/* подпись в узком блоке: переносится, не больше трёх строк */
+.desk-widget[data-widget="kpi"] .dk-label-wrap {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    margin-top: .15rem;
+}
+
+/* спарклайн занимает остаток высоты; если остаток ниже 44 px — график не рисуется */
+.desk-widget[data-widget="kpi"] .dk-spark { container-type: size; container-name: dkspark; min-height: 0; }
+@container dkspark (max-height: 44px) {
+    .desk-widget[data-widget="kpi"] .dk-spark .desk-chart { display: none; }
+}
+
+/* узкий, но не низкий блок: подпись в две строки вместо многоточия */
+@container dw (width < 230px) and (height >= 110px) {
+    .desk-widget[data-widget="kpi"] .dk-label {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+}
+
+/* ===== link — Быстрая ссылка ===== */
+
+/* карточка: значок и тип прижаты к верху, название и вторая строка — к низу */
+.desk-widget[data-widget="link"] .lk-card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: .5rem;
+    min-width: 0;
+    overflow: hidden;
+}
+.desk-widget[data-widget="link"] .lk-top { flex: none; min-width: 0; }
+.desk-widget[data-widget="link"] .lk-bottom { min-width: 0; min-height: 0; overflow: hidden; }
+.desk-widget[data-widget="link"] .lk-symbol .symbol-label {
+    width: clamp(35px, 18cqmin, 96px);
+    height: clamp(35px, 18cqmin, 96px);
+}
+.desk-widget[data-widget="link"] .lk-icon { font-size: calc(clamp(16px, 9cqmin, 44px) * var(--desk-font-scale)); }
+.desk-widget[data-widget="link"] .lk-go { font-size: calc(clamp(12px, 4.5cqmin, 22px) * var(--desk-font-scale)); }
+.desk-widget[data-widget="link"] .lk-title,
+.desk-widget[data-widget="link"] .lk-second {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+}
+.desk-widget[data-widget="link"] .lk-title {
+    -webkit-line-clamp: 3;
+    line-height: 1.2;
+    font-size: calc(clamp(13px, min(5.5cqw, 8cqh), 30px) * var(--desk-font-scale));
+}
+.desk-widget[data-widget="link"] .lk-second {
+    -webkit-line-clamp: 2;
+    margin-top: .2rem;
+    line-height: 1.25;
+    font-size: calc(clamp(11px, min(3.2cqw, 5cqh), 18px) * var(--desk-font-scale));
+}
+/* невысокая карточка: название в две строки */
+@container dw (max-height: 240px) {
+    .desk-widget[data-widget="link"] .lk-title { -webkit-line-clamp: 2; }
+}
+
+/* низкий блок (строка или узкая плитка): название переносится, число строк задаёт вьюха */
+.desk-widget[data-widget="link"] .lk-lines {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.22;
+}
+.desk-widget[data-widget="link"] .lk-lines-1 { -webkit-line-clamp: 1; }
+.desk-widget[data-widget="link"] .lk-lines-2 { -webkit-line-clamp: 2; }
+.desk-widget[data-widget="link"] .lk-lines-3 { -webkit-line-clamp: 3; }
+.desk-widget[data-widget="link"] .lk-lines-5 { -webkit-line-clamp: 5; }
+
+/* ===== links — Набор ссылок ===== */
+
+/* плитки сеткой: колонок по ширине блока; ряды не ниже содержимого и растягиваются на остаток высоты */
+.desk-widget[data-widget="links"] .dl-tiles {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-auto-rows: minmax(min-content, 1fr);
+    gap: .4rem;
+}
+@container dw (width >= 230px) {
+    .desk-widget[data-widget="links"] .dl-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container dw (width >= 560px) {
+    .desk-widget[data-widget="links"] .dl-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@container dw (width >= 900px) {
+    .desk-widget[data-widget="links"] .dl-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+.desk-widget[data-widget="links"] .dl-tile {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    min-width: 0;
+    padding: .4rem .6rem;
+    border: 1px solid var(--bs-gray-200);
+    border-radius: .475rem;
+    overflow: hidden;
+}
+.desk-widget[data-widget="links"] .dl-tile:hover { border-color: var(--bs-primary); }
+.desk-widget[data-widget="links"] .dl-symbol .symbol-label {
+    width: clamp(28px, min(7cqw, 6cqh), 64px);
+    height: clamp(28px, min(7cqw, 6cqh), 64px);
+}
+.desk-widget[data-widget="links"] .dl-icon { font-size: calc(clamp(13px, min(3.2cqw, 2.8cqh), 30px) * var(--desk-font-scale)); }
+.desk-widget[data-widget="links"] .dl-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.desk-widget[data-widget="links"] .dl-tile .dl-title,
+.desk-widget[data-widget="links"] .dl-tile .dl-second {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    line-height: 1.25;
+}
+.desk-widget[data-widget="links"] .dl-tile .dl-title {
+    overflow-wrap: anywhere;
+    font-size: calc(clamp(12px, min(2.4cqw, 3cqh), 20px) * var(--desk-font-scale));
+}
+.desk-widget[data-widget="links"] .dl-tile .dl-second {
+    margin-top: .1rem;
+    /* одно длинное слово (домен, стадия) переносится, а не уходит в многоточие */
+    overflow-wrap: anywhere;
+    font-size: calc(clamp(11px, min(1.9cqw, 2.4cqh), 16px) * var(--desk-font-scale));
+}
+/* одна колонка плиток в узком блоке: отступы плотнее, тексту больше места */
+@container dw (width < 230px) {
+    .desk-widget[data-widget="links"] .dl-tile { padding-left: .5rem; padding-right: .5rem; gap: .45rem; }
+}
+/* две колонки в нешироком блоке: плитка ~120 px, значок забирал половину текста */
+@container dw (230px <= width < 340px) {
+    .desk-widget[data-widget="links"] .dl-symbol { display: none; }
+}
+/* низкий блок: плитка в одну строку */
+@container dw (height < 110px) {
+    .desk-widget[data-widget="links"] .dl-tile { padding: .2rem .5rem; }
+    .desk-widget[data-widget="links"] .dl-tile .dl-title { -webkit-line-clamp: 1; }
+}
+/* высокий блок: плитка — карточка, значок сверху, название и вторая строка снизу */
+@container dw (height >= 600px) {
+    .desk-widget[data-widget="links"] .dl-tile {
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: space-between;
+        padding: .7rem .85rem;
+    }
+    .desk-widget[data-widget="links"] .dl-text { flex: none; width: 100%; }
+    .desk-widget[data-widget="links"] .dl-tile .dl-title { -webkit-line-clamp: 3; }
+}
+
+/* список: название одной строкой, вторая строка — справа; в высоком блоке — под названием */
+.desk-widget[data-widget="links"] .dl-list .dl-title { display: block; overflow: hidden; text-overflow: ellipsis; }
+.desk-widget[data-widget="links"] .dl-list .dl-second { display: none; }
+@container dw (height >= 600px) {
+    .desk-widget[data-widget="links"] .dl-list > li { padding: .5rem 0; }
+    .desk-widget[data-widget="links"] .dl-list .dl-title {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        line-height: 1.25;
+    }
+    .desk-widget[data-widget="links"] .dl-list .dl-second { display: block; white-space: normal; line-height: 1.25; margin-top: .1rem; }
+    .desk-widget[data-widget="links"] .dl-list .dl-side { display: none; }
+}

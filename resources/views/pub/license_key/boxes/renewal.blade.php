@@ -1,42 +1,46 @@
-@extends('components.box.box-static-large')
+@extends('components.box.box-static-extralarge')
 
 @section('title')
     Продление лицензий
-    <span class="text-muted fs-7 ms-2">горизонт {{ $days }} дней</span>
 @endsection
 
 @section('body')
     {{-- Сводка --}}
-    <div class="d-flex flex-wrap gap-2 mb-4">
-        <a href="javascript:box({href: '{{ route('dashboard.box.license_renewal') }}?days=30'})"
-           class="btn btn-sm @if($days == 30) btn-danger @else btn-light-danger @endif">
-            30 дней
-            <span class="badge badge-circle badge-light ms-2">{{ $summary['horizons'][30]['count'] ?? 0 }}</span>
-        </a>
-        <a href="javascript:box({href: '{{ route('dashboard.box.license_renewal') }}?days=60'})"
-           class="btn btn-sm @if($days == 60) btn-warning @else btn-light-warning @endif">
-            60 дней
-            <span class="badge badge-circle badge-light ms-2">{{ $summary['horizons'][60]['count'] ?? 0 }}</span>
-        </a>
-        <a href="javascript:box({href: '{{ route('dashboard.box.license_renewal') }}?days=90'})"
-           class="btn btn-sm @if($days == 90) btn-info @else btn-light-info @endif">
-            90 дней
-            <span class="badge badge-circle badge-light ms-2">{{ $summary['horizons'][90]['count'] ?? 0 }}</span>
-        </a>
+    <div class="d-flex justify-content-start align-items-center mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <span class="me-2">Период:</span>
+            <div class="d-flex flex-wrap gap-2">
+                <a href="javascript:box({href: '{{ route('dashboard.box.license_renewal') }}?days=30'})"
+                   class="btn btn-sm @if($days == 30) btn-danger @else btn-light-danger @endif">
+                    30 дней
+                    <span class="badge badge-circle badge-light ms-2">{{ $summary['horizons'][30]['count'] ?? 0 }}</span>
+                </a>
+                <a href="javascript:box({href: '{{ route('dashboard.box.license_renewal') }}?days=60'})"
+                   class="btn btn-sm @if($days == 60) btn-warning @else btn-light-warning @endif">
+                    60 дней
+                    <span class="badge badge-circle badge-light ms-2">{{ $summary['horizons'][60]['count'] ?? 0 }}</span>
+                </a>
+                <a href="javascript:box({href: '{{ route('dashboard.box.license_renewal') }}?days=90'})"
+                   class="btn btn-sm @if($days == 90) btn-info @else btn-light-info @endif">
+                    90 дней
+                    <span class="badge badge-circle badge-light ms-2">{{ $summary['horizons'][90]['count'] ?? 0 }}</span>
+                </a>
+            </div>
+        </div>
+
 
         <div class="ms-auto d-flex align-items-center">
             <span class="text-muted fs-7 me-2">Оценка продлений:</span>
             <span class="fw-bold fs-4">{{ tools()->cost_normalize(round($summary['amount'])) }} ₽</span>
         </div>
     </div>
-
     @if($keys->isEmpty())
         <div class="alert alert-info mb-0">
-            В выбранном горизонте нет истекающих лицензий.
+            В выбранном периоде нет истекающих лицензий.
         </div>
     @else
         <div class="table-responsive">
-            <table class="table table-row-dashed table-row-gray-300 align-middle mb-0">
+            <table class="table table-bordered table-row-dashed table-row-gray-300 align-middle mb-0">
                 <thead>
                 <tr class="fw-bold text-muted bg-light">
                     <th class="ps-3">Компания</th>
@@ -44,7 +48,14 @@
                     <th class="text-center" width="90">Кол-во</th>
                     <th class="text-center" width="120">Действует до</th>
                     <th class="text-center" width="120">Осталось</th>
-                    <th class="text-end pe-3" width="140">Оценка</th>
+                    <th class="text-end pe-3" width="140">
+                        Оценка
+
+                        <x-ui.help.icon>
+                            Оценка продления — сумма спецификации, по которой был выдан ключ,
+                            делённая на количество ключей в ней. Отдельной цены продления в базе нет.
+                        </x-ui.help.icon>
+                    </th>
                 </tr>
                 </thead>
                 <tbody>
@@ -52,7 +63,7 @@
                     <tr>
                         <td class="ps-3">
                             @if($key->company)
-                                <a href="{{ route('company.detail', $key->company) }}" class="fw-semibold">
+                                <a href="{{ route('company.detail', $key->company) }}" class="fw-bold">
                                     {{ $key->company->name }}
                                 </a>
                             @else
@@ -67,7 +78,8 @@
                         </td>
 
                         <td>
-                            <span class="font-monospace fs-8">{{ $key->key }}</span>
+                            <span class="fs-9 fw-bold">{{ $key->key }}</span>
+
                             @if($key->comment)
                                 <div class="fs-8 text-muted">{{ $key->comment }}</div>
                             @endif
@@ -101,10 +113,7 @@
                 </tbody>
             </table>
         </div>
-
-        <div class="text-muted fs-8 mt-3">
-            Оценка продления — сумма спецификации, по которой был выдан ключ,
-            делённая на количество ключей в ней. Отдельной цены продления в базе нет.
-        </div>
     @endif
 @endsection
+
+@section('footer') &nbsp; @endsection

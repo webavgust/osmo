@@ -469,8 +469,9 @@ class ProposalRepository
         $proposal->manager()->associate(User::findOrFail($data['manager']));
         $proposal->save();
 
-        $proposal->software()->delete();
-        $proposal->works()->delete();
+        // patch v29: удаление через Eloquent — события deleting дают baseline журналу изменений
+        $proposal->software()->get()->each->delete();
+        $proposal->works()->get()->each->delete();
         $proposal->variants->flatMap->proposal_platforms->each(function($instance) {
             $instance->delete();
         });

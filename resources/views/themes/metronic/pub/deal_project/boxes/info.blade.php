@@ -89,7 +89,7 @@
         <div class="text-muted fs-7 mb-5">К проекту не прикреплено ни одной сделки.</div>
     @else
         <div class="table-responsive mb-5">
-            <table class="table table-row-bordered align-middle fs-7 m-0">
+            <table class="table table-bordered table-row-bordered align-middle fs-7 m-0">
                 <thead>
                     <tr class="fw-bold fs-8 text-muted text-uppercase">
                         <th style="width: 70px">ID</th>
@@ -146,7 +146,7 @@
         <div class="text-muted fs-7">К проекту не отнесено ни одной спецификации.</div>
     @else
         <div class="table-responsive">
-            <table class="table table-row-bordered align-middle fs-7 m-0">
+            <table class="table table-bordered table-row-bordered align-middle fs-7 m-0">
                 <thead>
                     <tr class="fw-bold fs-8 text-muted text-uppercase">
                         <th>Спецификация</th>
@@ -285,6 +285,14 @@
         </x-ui.button.default>
 
         <div class="d-flex gap-2">
+            {{-- patch v32: журнал изменений проекта --}}
+            @if(auth()->user()?->can('entity_log_view'))
+                <a href="{{ route('entity_log.index', ['deal_project', $project->id]) }}" class="btn btn-light" title="Журнал изменений">
+                    <i class="fa-light fa-timeline me-2"></i>
+                    <span>Журнал изменений</span>
+                </a>
+            @endif
+
             @if($project->is_archived)
                 <x-ui.button.default btn_type="light-primary" onclick="javascript:deal_project_info_archive(true);">
                     <i class="fa-light fa-box-open me-2"></i>

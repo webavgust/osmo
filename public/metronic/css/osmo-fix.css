@@ -29,3 +29,46 @@
 .card-table .tr .td {
     background: white!important;
 }
+
+/* Тулбар bootstrap-table (data-toolbar) до инициализации таблицы стоит в потоке
+   страницы и на секунду вылезает над ней. Прячем его, пока таблица не забрала
+   тулбар в свою панель; внутри панели работают его собственные классы. */
+.bt-toolbar:not(.fixed-table-toolbar *) { display: none !important; }
+
+/* .btn-light при наведении — чёрная заливка и белый текст на всём сайте.
+   Селектор тот же, что у Metronic, файл подключается позже — поэтому перебиваем;
+   цвет с !important, чтобы кнопки и иконки с text-* тоже становились белыми. */
+.btn.btn-light:hover:not(.btn-active) {
+    color: var(--bs-white) !important;
+    border-color: var(--bs-dark);
+    background-color: var(--bs-dark) !important;
+}
+.btn.btn-light:hover:not(.btn-active) i,
+.btn.btn-light:hover:not(.btn-active) .svg-icon,
+.btn.btn-light:hover:not(.btn-active).dropdown-toggle:after { color: var(--bs-white) !important; }
+
+/* Пагинация bootstrap-table: «Записи с … из …» слева, страницы справа — в одну строку.
+   Таблица расставляет pull-left/pull-right из Bootstrap 3, в Bootstrap 5 их нет,
+   поэтому блоки вставали друг под друга. clearfix (::after) во flex не нужен. */
+.fixed-table-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; column-gap: 1rem; }
+.fixed-table-pagination::after { display: none; }
+.fixed-table-pagination div.pagination { justify-content: flex-end; margin-left: auto; }
+
+/* Число условий на кнопке «Фильтр»: кружок, при двух цифрах — пилюля.
+   Цвет под кнопку btn-light-info. Скрывается классом d-none, как раньше «(n)». */
+.btn .filter-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    margin-left: .5rem;
+    border-radius: 9px;
+    background-color: var(--bs-info);
+    color: var(--bs-white);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+}
+.btn .filter-count.d-none { display: none !important; }

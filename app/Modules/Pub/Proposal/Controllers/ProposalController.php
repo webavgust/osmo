@@ -6,6 +6,7 @@ use App\Modules\Pub\Breadcrumbs\Traits\HasBreadcrumb;
 use App\Modules\Pub\Company\Repositories\CompanyRepository;
 use App\Modules\Pub\Constant\Models\Constant;
 use App\Modules\Pub\Currency\Repository\CurrencyRepository;
+use App\Modules\Pub\EntityLog\Services\EntityLogViewService;
 use App\Modules\Pub\Neuroservice\Models\Neuroservice;
 use App\Modules\Pub\Neuroservice\Repositories\NeuroserviceRepository;
 use App\Modules\Pub\Proposal\Models\Proposal;
@@ -113,12 +114,18 @@ class ProposalController extends Controller
         $proposal = ProposalRepository::getOnce($proposal->group, $iteration);
         if(empty($proposal)) abort(404);
 
+        // patch v29: просмотр состояния на момент (?at=)
+        $state = EntityLogViewService::state($proposal, request('at'));
+        if ($state) $proposal = $state['model'];
+
         $this->breadcrumb_add(route('proposal.detail', [$proposal, $proposal->iteration]), $proposal->number . " ({$proposal->iteration})");
         $iterations = ProposalRepository::getIterations($proposal->group);
 
         return view('pub.proposal.detail', [
             'breadcrumbs' => $this->breadcrumb,
             'proposal' => $proposal,
+            'log_root' => $proposal, // patch v29: кнопка журнала изменений в крошках
+            'log_state' => $state,
             'iterations' => $iterations,
         ]);
     }

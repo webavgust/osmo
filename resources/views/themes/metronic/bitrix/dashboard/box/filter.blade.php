@@ -29,7 +29,6 @@
                 <x-ui.select.multiple
                     :selected="$filter['probability'] ?? []"
                     name="filter[probability][]" class="select2" :items="$probability" blank-ignore="1" key-as-value="1"/>
-                <div class="form-text">Значение поля «Вероятность» в карточке сделки, %</div>
             </div>
         </div>
 
@@ -40,7 +39,6 @@
                 <x-ui.select.multiple
                     :selected="$filter['country'] ?? []"
                     name="filter[country][]" class="select2" :items="$country" blank-ignore="1" key-as-value="1"/>
-                <div class="form-text">Поле компании «Страна» из Битрикс24</div>
             </div>
         </div>
     </form>

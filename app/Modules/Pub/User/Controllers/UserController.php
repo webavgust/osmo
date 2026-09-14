@@ -73,7 +73,7 @@ class UserController extends Controller
 
 
             if (empty($request->back)) {
-                return redirect()->route('dashboard.index');
+                return redirect()->route('desktop.index');
             } else {
                 return redirect($request->back);
             }

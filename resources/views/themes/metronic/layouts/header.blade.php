@@ -12,7 +12,7 @@
 
         {{-- Логотип (мобильные — в сайдбаре он скрыт за drawer) --}}
         <div class="d-flex align-items-center flex-grow-1 flex-lg-grow-0 d-lg-none">
-            <a href="{{ route('dashboard.index') }}">
+            <a href="{{ route('desktop.index') }}">
                 <img alt="OSMO" src="/images/logo/logo_letter.svg" class="h-30px" />
             </a>
         </div>
@@ -127,6 +127,15 @@
                     <div class="menu-item px-5">
                         <a href="{{ route('users.view', auth()->user()) }}" class="menu-link px-5">{{ __('header.my_profile') }}</a>
                     </div>
+
+                    {{-- Админ-панель (patch v28): только с признаком users.is_admin --}}
+                    @can('admin_panel')
+                        <div class="menu-item px-5">
+                            <a href="{{ route('admin.index') }}" class="menu-link px-5">
+                                <i class="fa-light fa-shield-halved me-2"></i>Админ-панель
+                            </a>
+                        </div>
+                    @endcan
 
                     <div class="menu-item px-5">
                         <a href="{{ route('notify.list') }}" class="menu-link px-5">История уведомлений</a>

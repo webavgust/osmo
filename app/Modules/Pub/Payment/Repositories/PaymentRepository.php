@@ -14,7 +14,8 @@ class PaymentRepository
 
     public static function create(ContractSpecification $spec, array $data)
     {
-        $spec->payments()->delete();
+        // patch v29: удаление через Eloquent — события deleting дают baseline журналу изменений
+        $spec->payments()->get()->each->delete();
 
         foreach($data as $payment) {
             $date_plan = !empty($payment['date_plan']) ? Carbon::createFromFormat('Y-m-d', $payment['date_plan']) : null;

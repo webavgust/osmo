@@ -1,0 +1,59 @@
+/*
+ * Рабочий стол (patch v30): стили виджетов группы common-3 — progress, rates, team.
+ * Каждый селектор начинается с .desk-widget[data-widget="{id}"], кегль — классами и
+ * контейнерными единицами.
+ */
+
+/* ===== progress — Прогресс к цели ===== */
+
+/* суммы не режутся многоточием: в узком блоке переносятся по пробелам */
+.desk-widget[data-widget="progress"] .dp-wrap { white-space: normal; line-height: 1.2; min-width: 0; }
+
+/* низкий блок: «факт из цели» в одну строку рядом с процентом, и только если хватает ширины */
+@container dw (max-height: 96px) {
+    .desk-widget[data-widget="progress"] .dp-row { flex-wrap: nowrap; }
+    .desk-widget[data-widget="progress"] .dp-fact { white-space: nowrap; }
+}
+@container dw (max-height: 96px) and (width < 360px) {
+    .desk-widget[data-widget="progress"] .dp-fact { display: none; }
+}
+
+/* в высоком блоке шкала толще: растёт с высотой блока */
+.desk-widget[data-widget="progress"] .dp-bar { height: clamp(.55em, 2.4cqh, 1.1em); }
+
+/* плитки «Факт / Цель / Осталось» внизу высокого блока */
+.desk-widget[data-widget="progress"] .dp-tiles > * {
+    padding: .45rem .65rem;
+    border-radius: .475rem;
+    background: var(--bs-gray-100);
+}
+@container dw (max-width: 170px) {
+    .desk-widget[data-widget="progress"] .dp-tiles { gap: .3rem; }
+    .desk-widget[data-widget="progress"] .dp-tiles > * { padding: .3rem .4rem; }
+}
+
+/* ===== rates — Курсы валют ===== */
+
+/* дельта ко вчера: колонка ровная и в узком списке */
+.desk-widget[data-widget="rates"] .dr-col { min-width: 3.6em; text-align: right; }
+
+/* от 420 px есть шапка — колонки фиксированной ширины, чтобы шапка встала над ними */
+@container dw (width >= 420px) {
+    .desk-widget[data-widget="rates"] .dr-slug { min-width: 2.6rem; }
+    .desk-widget[data-widget="rates"] .dr-range { min-width: 7.5rem; text-align: right; }
+    .desk-widget[data-widget="rates"] .dr-rate { min-width: 5.2rem; text-align: right; }
+    .desk-widget[data-widget="rates"] .dr-col { min-width: 4.4rem; }
+}
+.desk-widget[data-widget="rates"] .dr-head > * { white-space: nowrap; }
+
+/* список над графиком: отдаёт место графику, лишние строки прячет подгон */
+.desk-widget[data-widget="rates"] .dr-list { flex: 0 1 auto; min-height: 0; }
+.desk-widget[data-widget="rates"] .dr-chart { flex: 1 0 45%; min-height: 0; }
+
+/* узкий блок: код валюты мелко над курсом */
+.desk-widget[data-widget="rates"] .dr-narrow > li { flex-direction: column; align-items: flex-start; gap: 0; }
+.desk-widget[data-widget="rates"] .dr-wrap { white-space: normal; line-height: 1.2; }
+.desk-widget[data-widget="rates"] .dr-only-narrow { display: none; }
+@container dw (max-width: 170px) {
+    .desk-widget[data-widget="rates"] .dr-only-narrow { display: inline; }
+}

@@ -2,6 +2,7 @@
 
 namespace App\Modules\Pub\Partner\Models;
 
+use App\Models\Traits\HasLogger;
 use App\Modules\Bitrix\CrmCompany\Models\CrmCompany;
 use Illuminate\Database\Eloquent\Model;
 
@@ -16,6 +17,8 @@ use Illuminate\Database\Eloquent\Model;
  */
 class PartnerCrmCompany extends Model
 {
+    use HasLogger;
+
     protected $table = 'partner_crm_companies';
 
     public $timestamps = false;
@@ -42,5 +45,41 @@ class PartnerCrmCompany extends Model
     public function crm_company()
     {
         return $this->belongsTo(CrmCompany::class, 'crm_company_id', 'id');
+    }
+
+    /*** ЖУРНАЛ ИЗМЕНЕНИЙ (patch v29) ***/
+
+    public static function logParentRelation(): ?string
+    {
+        return 'partner';
+    }
+
+    public static function logLabel(): string
+    {
+        return 'Компания Битрикс24';
+    }
+
+    public function logKey(int $index): string
+    {
+        return (string) $this->crm_company_id;
+    }
+
+    public function logTitle(?int $index = null): string
+    {
+        // компания в другой базе — без неё подпись по id
+        try {
+            $title = static::logText($this->crm_company?->title, 80);
+        } catch (\Throwable $e) {
+            $title = '';
+        }
+
+        return 'Компания Битрикс24 ' . ($title !== '' ? '«' . $title . '»' : '#' . $this->crm_company_id);
+    }
+
+    public static function logFields(): array
+    {
+        return [
+            'crm_company_id' => ['label' => 'Компания Битрикс24', 'relation' => 'crm_company', 'title' => 'title'],
+        ];
     }
 }

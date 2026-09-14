@@ -1,50 +1,22 @@
 @extends('components.box.box-static-extralarge')
 
 @section('body')
-    <style>
-    </style>
-    <div class="card">
-        <table
-            class="tablesaw table-bordered table-hover table no-wrap w-100 table-responsive"
-            data-tablesaw-mode="swipe"
-            data-tablesaw-sortable
-            data-tablesaw-sortable-switch
-            data-tablesaw-minimap
-            data-tablesaw-mode-switch
+
+    <table
+            class="table table-bordered mb-0"
         >
             <thead>
             <tr class="bg-light-secondary fs-5 text-dark">
-                <th
-                    scope="col"
-                    data-tablesaw-sortable-col
-                    data-tablesaw-priority="persist"
-                    class="border"
-                >
+                <th class="border">
                     ID
                 </th>
-                <th
-                    scope="col"
-                    data-tablesaw-sortable-col
-                    data-tablesaw-sortable-default-col
-                    data-tablesaw-priority="persist"
-                    class="border"
-                >
+                <th class="border">
                     Название
                 </th>
-                <th
-                    scope="col"
-                    data-tablesaw-sortable-col
-                    data-tablesaw-priority="persist"
-                    class="border"
-                >
+                <th class="border">
                     Менеджер
                 </th>
-                <th
-                    scope="col"
-                    data-tablesaw-sortable-col
-                    data-tablesaw-priority="persist"
-                    class="border"
-                >
+                <th class="border">
                     Проблема
                 </th>
             </tr>
@@ -65,20 +37,12 @@
                     </tr>
                 @endforeach
             @endforeach
-        </table>
-    </div>
+</table>
 
     <style>
         tr.bg-issue-odd { background: #EEE; }
-        .tablesaw-bar { display: none; }
-        .tablesaw { border: 1px solid #e4e1de; }
     </style>
 
-    <script>
-        $(document).ready(function() {
-            Tablesaw.init();
-            console.log("!!");
-        });
-    </script>
 @endsection
 
+@section('footer') &nbsp; @endsection

@@ -7,6 +7,7 @@ use App\Modules\Pub\Analytics\Services\DiscountAnalysisService;
 use App\Modules\Pub\Analytics\Services\LicenseRegistryService;
 use App\Modules\Pub\Analytics\Services\PartnerScoringService;
 use App\Modules\Pub\Analytics\Services\PartnerStatsService;
+use App\Modules\Pub\Breadcrumbs\Traits\HasBreadcrumb;
 use App\Modules\Pub\Partner\Models\Partner;
 use App\Modules\Pub\Partner\Models\PartnerGrade;
 use App\Modules\Pub\Proposal\Models\ProposalStatus;
@@ -15,6 +16,8 @@ use Illuminate\Support\Facades\View;
 
 class AnalyticsController extends Controller
 {
+    use HasBreadcrumb;
+
     /**
      * Анализ скидок
      *
@@ -23,6 +26,8 @@ class AnalyticsController extends Controller
      */
     public function discounts(Request $request)
     {
+        $this->breadcrumb_add(null, 'Анализ скидок');
+
         $years = DiscountAnalysisService::years();
 
         // без года выборка тянет все КП со всеми позициями — по умолчанию последний год
@@ -47,6 +52,7 @@ class AnalyticsController extends Controller
             'years' => $years,
             'partners' => Partner::orderBy('name')->get(['id', 'name']),
             'statuses' => ProposalStatus::getDecorated(),
+            'breadcrumbs' => $this->breadcrumb,
         ]);
     }
 
@@ -58,6 +64,8 @@ class AnalyticsController extends Controller
      */
     public function partners(Request $request)
     {
+        $this->breadcrumb_add(null, 'Скоринг партнёров');
+
         $years = PartnerScoringService::years();
 
         $params = [
@@ -84,6 +92,7 @@ class AnalyticsController extends Controller
             'grades' => PartnerGrade::cases(),
             'legend' => PartnerScoringService::grades(),
             'history' => $history,
+            'breadcrumbs' => $this->breadcrumb,
         ]);
     }
 
@@ -95,10 +104,13 @@ class AnalyticsController extends Controller
      */
     public function licenses(Request $request)
     {
+        $this->breadcrumb_add(null, 'Реестр лицензий');
+
         $params = [
-            'horizon' => $request->has('horizon') ? $request->input('horizon') : 90,
+            'horizon' => $request->has('horizon') ? $request->input('horizon') : max(LicenseRegistryService::horizons()),
             'partner' => (int) $request->input('partner') ?: null,
             'only_active' => !$request->has('horizon') || $request->boolean('only_active'),
+            'hide_expired' => $request->boolean('hide_expired'),
             'q' => trim((string) $request->input('q')),
         ];
 
@@ -109,8 +121,9 @@ class AnalyticsController extends Controller
             'params' => $params,
             'rows' => $rows,
             'totals' => LicenseRegistryService::totals($rows),
-            'horizons' => LicenseRegistryService::HORIZONS,
+            'horizons' => LicenseRegistryService::horizons(),
             'partners' => Partner::orderBy('name')->get(['id', 'name']),
+            'breadcrumbs' => $this->breadcrumb,
         ]);
     }
 
@@ -132,7 +145,8 @@ class AnalyticsController extends Controller
         $tabs = ['stats', 'proposals', 'volume', 'contracts', 'payments', 'deals', 'projects'];
 
         return View::make('pub.analytics.boxes.partner', [
-            'title' => 'Статистика: ' . $partner->name,
+            // в заголовке только период: имя партнёра стоит в шапке справа (header_right)
+            'title' => 'Статистика ' . ($year ? 'за ' . $year . ' год' : 'за все годы'),
             'partner' => $partner,
             'tab' => in_array($tab, $tabs) ? $tab : 'stats',
             'year' => $year,

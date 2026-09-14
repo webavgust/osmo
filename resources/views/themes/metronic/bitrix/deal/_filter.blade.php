@@ -20,7 +20,10 @@
       $partner           — область партнёра, если фильтр живёт во вкладке;
       $prefix            — префикс id, если на странице два таких блока;
       $ajax              — во вкладке: применить фильтр, не перезагружая страницу;
-      $mode              — задел под вкладки «Проекты» / «Архив» (patch v24).
+      $mode              — задел под вкладки «Проекты» / «Архив» (patch v24);
+      $toolbar           — рисовать тулбар с кнопками для панели таблицы (по умолчанию да).
+                           На странице реестра false: кнопки стоят в тулбаре страницы
+                           (_filter_buttons в breadcrumb_right), здесь остаётся модалка.
 --}}
 @php
     $action = $action ?? route('crm-deal.index');
@@ -28,36 +31,20 @@
     $prefix = $prefix ?? 'deal';
     $ajax = $ajax ?? false;
     $mode = $mode ?? null;
+    $toolbar = $toolbar ?? true;
     $service = \App\Modules\Bitrix\CrmDeal\Services\CrmDealRegistryService::class;
 
     // значения по умолчанию: на вкладках проектов они свои (patch v24)
     $defaults = array_merge($service::DEFAULTS, $defaults ?? []);
-
-    // «Фильтр (n)»: правила модалки (наличие КП считается, когда отличается
-    // от значения по умолчанию) и строка поиска
-    $rules_count = collect(['stage', 'manager', 'country', 'customer'])
-            ->filter(fn($key) => !empty($params[$key]))
-            ->count()
-        + ($params['q'] !== '' ? 1 : 0)
-        + ($params['has_proposal'] !== $defaults['has_proposal'] ? 1 : 0);
-
 @endphp
 
 
-{{-- Тулбар таблицы: bootstrap-table сам перенесёт его в свою панель --}}
-<div id="{{ $prefix }}_toolbar" class="d-flex flex-wrap gap-2">
-    <button type="button" class="btn btn-light-primary"
-            data-bs-toggle="modal" data-bs-target="#{{ $prefix }}_filter_modal">
-        <i class="fa-light fa-filter fs-5 me-2"></i>
-        Фильтр <span class="count @unless($rules_count) d-none @endunless">({{ $rules_count }})</span>
-    </button>
-
-    <a href="{{ $action }}{{ $mode ? '?mode=' . $mode : '' }}"
-       class="btn btn-light-danger @unless($service::filtered($params, $defaults)) d-none @endunless"
-       id="{{ $prefix }}_filter_clear" data-bs-toggle="tooltip" title="Сбросить фильтр">
-        <i class="fa-light fa-xmark fs-5 me-2" aria-hidden="true"></i> Убрать
-    </a>
-</div>
+@if($toolbar)
+    {{-- Тулбар таблицы: bootstrap-table сам перенесёт его в свою панель --}}
+    <div id="{{ $prefix }}_toolbar" class="bt-toolbar d-flex flex-wrap align-items-center gap-2">
+        @include('bitrix.deal._filter_buttons')
+    </div>
+@endif
 
 <div id="{{ $prefix }}_filter_modal" class="modal fade" tabindex="-1" aria-hidden="true">
     <form method="get" action="{{ $action }}" id="{{ $prefix }}_filter_form">
@@ -141,7 +128,7 @@
                         <div class="col-sm-9">
                             <div class="form-text mt-3">
                                 Сделки с
-                                {{ \Carbon\Carbon::parse($service::SINCE)->format('d.m.Y') }}@switch($mode)
+                                {{ \Carbon\Carbon::parse($service::since())->format('d.m.Y') }}@switch($mode)
                                     @case($service::MODE_PROJECTS), у которых есть действующий проект@break
                                     @case($service::MODE_ARCHIVE), проект которых отправлен в архив@break
                                     @default; по умолчанию — те, к которым ещё не привязано КП

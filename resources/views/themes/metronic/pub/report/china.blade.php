@@ -44,7 +44,7 @@
                                     </span>
                                 </div>
 
-                                <? foreach ($currencies as $cur):
+                                <?php foreach ($currencies as $cur):
                                         if(!empty(!empty($rates[$cur->slug]->amount))) {
                                             $rate = $rates[$cur->slug]->amount < 1 ? round($rates[$cur->slug]->amount, 5) : round($rates[$cur->slug]->amount, 2);
                                         } else {
@@ -66,7 +66,7 @@
                                                    value="{{ $rate }}" style="width: 80px">
                                         </span>
                                     </div>
-                                <? endforeach; ?>
+                                <?php endforeach; ?>
                             </div>
 
                             <h4 class="mt-5">Таблица</h4>

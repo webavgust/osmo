@@ -8,7 +8,7 @@
         <div class="container-fluid">
             <div class="row">
                 <div class="col-12">
-                            <div id="filter">
+                            <div id="filter" class="bt-toolbar">
                                 @if(auth()->user()->isAdmin())
                                     <button data-url="/url" type="button" class="btn btn-light-primary btn-progress-bar" onclick="javascript:progress($(this), '{{ route('api.user.sync_all', ['_token' => auth()->user()->ajax_token ]) }}')">
                                         <loader>

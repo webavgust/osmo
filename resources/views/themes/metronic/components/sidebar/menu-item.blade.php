@@ -9,7 +9,14 @@
         ->contains(fn($c) => $c->getUrl() && rtrim(parse_url($c->getUrl(), PHP_URL_PATH) ?? '', '/') === $path);
 @endphp
 
-@if(!$item->parent_id)
+@if($item->parent_id && $item->name === '---' && !$url && !$hasChildren)
+    {{-- Разделитель подгрупп внутри раздела: пункт меню с именем «---» без адреса (patch v27) --}}
+    <div class="menu-item">
+        <div class="menu-content py-2">
+            <div class="separator"></div>
+        </div>
+    </div>
+@elseif(!$item->parent_id)
     {{-- Корневой раздел = подпись группы (аналог nav-small-cap в MaterialPro) --}}
     <div class="menu-item pt-4">
         <div class="menu-content">

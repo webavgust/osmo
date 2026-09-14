@@ -1,9 +1,11 @@
 @extends('layouts.layout')
 
 @section('breadcrumb_right')
-    <x-ui.a.default btn_type="info" href="{{ route('company.edit', $company) }}">
-        Редактировать
-    </x-ui.a.default>
+    @if(empty($log_state)){{-- patch v29: в режиме состояния на момент редактирования нет --}}
+        <x-ui.a.default btn_type="info" href="{{ route('company.edit', $company) }}">
+            Редактировать
+        </x-ui.a.default>
+    @endif
 @endsection
 
 @section('content')
@@ -56,22 +58,22 @@
                                 {{ $company->country?->name ?? '' }}
                             </x-ui.card.card_table_tr>
 
-                            <div class="mt-4 mb-2 fs-4 fw-bold">Контактные данные</div>
+                            <div class="mt-6 mb-2 fs-4 fw-bold">Контактные данные</div>
                             <x-ui.card.card_table_tr field="Телефон">-</x-ui.card.card_table_tr>
                             <x-ui.card.card_table_tr field="Эл.почта">-</x-ui.card.card_table_tr>
                             <x-ui.card.card_table_tr field="Адрес">-</x-ui.card.card_table_tr>
                             <x-ui.card.card_table_tr field="Контактное лицо">-</x-ui.card.card_table_tr>
 
 
-                            <div class="mt-4 mb-2 fs-4 fw-bold">Финансовые показатели</div>
+                            <div class="mt-6 mb-2 fs-4 fw-bold">Финансовые показатели</div>
                             <x-ui.card.card_table_tr field="Оплаты (полученные)">
                                 @if($company->payments['past']->isNotEmpty())
                                     <a href="javascript:void(0)"
                                        onclick="javascript:box({href:'{{ route('payment.box_past', $company) }}'})"
                                        class="mt-1 ms-1">
-                                        {{ $company->payments['past']->count() }} шт.
-                                        на {{ tools()->cost_normalize($company->payments['past']->sum('amount_fact')) }}
-                                        ₽</a>
+                                        <strong>{{ $company->payments['past']->count() }} шт.</strong>
+                                        на <strong>{{ tools()->cost_normalize($company->payments['past']->sum('amount_fact')) }}
+                                        ₽</strong></a>
                                 @else
                                     нет
                                 @endif
@@ -81,9 +83,9 @@
                                     <a href="javascript:void(0)"
                                        onclick="javascript:box({href:'{{ route('payment.box_future', $company) }}'})"
                                        class="mt-1 ms-1">
-                                        {{ $company->payments['future']->count() }} шт.
-                                        на {{ tools()->cost_normalize($company->payments['future']->sum('amount_plan')) }}
-                                        ₽</a>
+                                        <strong>{{ $company->payments['future']->count() }} шт.</strong>
+                                        на <strong>{{ tools()->cost_normalize($company->payments['future']->sum('amount_plan')) }}
+                                        ₽</strong></a>
                                 @else
                                     нет
                                 @endif
@@ -105,12 +107,11 @@
                     </div>
 
                     @if($company->projects->isNotEmpty())
-                        <table class="table table-bordered">
+                        <table class="table table-bordered mb-0">
                             <tr>
-                                <th width="140">Номер</th>
-                                <th width="110">Срок (мес)</th>
-                                <th width="40">Потоков</th>
-                                <th>Коммент</th>
+                                <th>Номер / Коммент</th>
+                                <th width="1">Срок</th>
+                                <th width="1">Потоков</th>
                                 <th width="1"/>
                             </tr>
                             @foreach($company->projects as $project)
@@ -118,7 +119,7 @@
                                     <td colspan="6" class="fw-bold">
                                         <div class="d-flex justify-content-between align-items-center">
                                             <div>
-                                                <mark>{{ $project->prefix }}</mark>
+                                                <code class="m-0">{{ $project->prefix }}</code>
                                                 <span class="fs-6 ms-2">{{ $project->name }}</span>
 
                                                 <x-ui.a.box_clear href="{{ route('project.box.edit', $project) }}"
@@ -129,10 +130,11 @@
 
                                             <div class="btn-toolbar" role="toolbar"
                                                  aria-label="Toolbar with button groups">
-                                                <x-ui.a.box btn_type="success"
+                                                <x-ui.a.box btn_type="secondary"
                                                             href="{{ route('project_configuration.box.add', $project) }}"
-                                                            class=" ms-2">
+                                                            class="p-1 px-2 ms-2">
                                                     <x-ui.icon.regular icon="fa-plus-circle"/>
+                                                    спец.
                                                 </x-ui.a.box>
                                             </div>
                                         </div>
@@ -141,8 +143,12 @@
                                 @forelse($project->configurations_available as $configuration)
                                     <tr>
                                         <td class="fs-5">
-                                            <code>{{ $configuration->number }}</code>
-                                            <div class="fs-2">{{ \App\Modules\Pub\ProjectConfiguration\Models\ProjectConfigurationPlatform::from($configuration->platform)->data()['label'] }}</div>
+                                            <mark class="fs-8 mb-1">{{ $configuration->number }}</mark>
+                                            <div class="fs-6">{{ \App\Modules\Pub\ProjectConfiguration\Models\ProjectConfigurationPlatform::from($configuration->platform)->data()['label'] }}</div>
+
+                                            @if(!empty($configuration->comment))
+                                                <div class="mt-3 fst-italic fs-7">{{ $configuration->comment }}</div>
+                                            @endif
                                         </td>
                                         <td class="text-center">@if($configuration->duration > 0)
                                                 {{ $configuration->duration }} мес.
@@ -150,11 +156,6 @@
                                                 Бессрочно
                                             @endif</td>
                                         <td class="text-center">{{ $configuration->streams }}</td>
-                                        <td>
-                                            @if(!empty($configuration->comment))
-                                                {{ $configuration->comment }}
-                                            @endif
-                                        </td>
                                         <td>
                                             <x-ui.a.box_clear href="{{ route('project_configuration.box.edit', $configuration) }}">
                                                 <x-ui.icon.regular icon="fa-edit"/>
@@ -249,19 +250,23 @@
                     </div>
                 </div>
 
-                <div class="card mt-2">
+                <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h3>Лицензионные ключи</h3>
-                        <a href="javascript:void(0)"
-                           onclick="javascript:box({href:'{{ route('license-keys.box_add', ['company' => $company->id]) }}'})"
-                           class="ms-2">
-                            Прикрепить
-                        </a>
+                        <h3 class="mb-0">Лицензионные ключи</h3>
+
+                        <div class="btn-toolbar" role="toolbar" aria-label="Toolbar with button groups">
+                            <a href="javascript:void(0)"
+                               onclick="javascript:box({href:'{{ route('license-keys.box_add', ['company' => $company->id]) }}'})"
+                               class="fs-2">
+                                <x-ui.icon.regular icon="fa-plus-circle"/>
+                            </a>
+                        </div>
+
                     </div>
-                    <div class="card-body p-1">
+                    <div class="card-body p-0">
                         @if($company->license_keys->isNotEmpty())
                             @foreach($company->license_keys as $key)
-                                <div class="border-top border-1 p-3 position-relative key_row">
+                                <div @class(["border-top" => !$loop->first, "border-1 p-3 position-relative key_row"])>
                                     <div class="mb-2 fs-9 fw-bold d-flex">
                                         <span>{{ $key->key }}</span>
 
@@ -362,12 +367,12 @@
                             </a>
                         </div>
 
-                        <table class="table table-bordered">
+                        <table class="table table-bordered mb-0">
                             <tr>
                                 <th>Тип</th>
                                 <th class="text-center">Номер</th>
                                 <th class="min-w-250px">Название</th>
-                                <th>
+                                <th class="min-w-200px">
                                     <div class="d-flex justify-content-between">
                                         <span>Ключи</span>
 
@@ -399,8 +404,7 @@
                                                     <x-ui.icon.regular :icon="$type_decorate['icon']" class="me-1 fs-5"/>
                                                     {{ $type_decorate['label'] }}
                                                 </span>
-                                                    <div class="fs-8  text-secondary"
-                                                         style="margin-left: 29px;">{{ $spec->contract->organization->name }}</div>
+                                                    <div class="fs-8  text-secondary ms-7">{{ $spec->contract->organization->name }}</div>
                                                 </td>
 
                                                 <td class="px-1 text-center"  rowspan="{{ $instance['specs']->count() }}">
@@ -532,20 +536,23 @@
                                                 <div class="fw-bold text-end text-nowrap">{{ tools()->cost_normalize($spec->amount) }} ₽</div>
 
                                                 @if(!empty($check) && empty($check['skip']) && empty($check['ok']))
-                                                    <div @class(['mt-2 p-2 rounded text-start', 'bg-light-danger' => $check['hard'], 'bg-light-warning' => !$check['hard']])>
-                                                        <div @class(['fs-2 fw-bold', 'text-danger' => $check['hard'], 'text-warning' => !$check['hard']])>
-                                                            <i class="fas fa-triangle-exclamation me-1"></i>Расхождение
-                                                        </div>
+                                                    @php
+                                                        // подробности уезжают в поповер: в ячейке остаётся только метка
+                                                        $check_details = collect($check['reasons'])
+                                                            ->map(fn($reason) => '<div class="mb-1">' . e($reason) . '</div>')
+                                                            ->implode('')
+                                                            . '<div class="text-muted mt-2">платежи =' . tools()->cost_normalize(round($check['payments']))
+                                                            . ($check['proposals'] !== null ? '<br/>КП = ' . tools()->cost_normalize(round($check['proposals'])) : '')
+                                                            . '</div>';
+                                                    @endphp
 
-                                                        @foreach($check['reasons'] as $reason)
-                                                            <div class="fs-8 text-dark" style="text-wrap: pretty">{{ $reason }}</div>
-                                                        @endforeach
-
-                                                        <div class="fs-8 text-muted mt-1">
-                                                            платежи {{ tools()->cost_normalize(round($check['payments'])) }}
-                                                            @if($check['proposals'] !== null)
-                                                                · КП {{ tools()->cost_normalize(round($check['proposals'])) }}
-                                                            @endif
+                                                    <div @class(['mt-2 p-2 rounded text-start cursor-pointer', 'bg-light-danger' => $check['hard'], 'bg-light-warning' => !$check['hard']])
+                                                         role="button" tabindex="0"
+                                                         data-bs-toggle="popover" data-bs-trigger="focus" data-bs-container="body"
+                                                         data-bs-placement="left" data-bs-html="true"
+                                                         data-bs-content="{{ $check_details }}">
+                                                        <div @class(['fs-7 fw-bold d-flex align-items-center', 'text-danger' => $check['hard'], 'text-warning' => !$check['hard']])>
+                                                            <i class="fas fa-triangle-exclamation me-1"></i> Расхождение
                                                         </div>
                                                     </div>
                                                 @endif

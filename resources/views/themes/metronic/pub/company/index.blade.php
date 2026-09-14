@@ -6,6 +6,9 @@
     <link rel="stylesheet" href="/dist/modules/daterangepicker/daterangepicker.css" />
 
     <style>
+        /* панель bootstrap-table не нужна: «Фильтр» — в тулбаре страницы, поиск — в шапке карточки */
+        .fixed-table-toolbar { display: none; }
+
         .comment div.alert   {
             cursor: pointer;
         }
@@ -38,20 +41,19 @@
 @endsection
 
 
-@section('content')
-    <div id="filter">
-        <button class="btn btn-light-primary" data-bs-toggle="modal" data-bs-target="#filter-modal">
+@section('breadcrumb_right')
+    {{-- Тулбар страницы. Обёртка #filter нужна скрипту ($("#filter .count"));
+         секция выводится раньше content, к форме скрипт обращается как form#filter.
+         Класс bt-toolbar не ставить — osmo-fix.css прячет его вне панели таблицы --}}
+    <div id="filter" class="d-flex align-items-center gap-2">
+        <button class="btn btn-light-info" data-bs-toggle="modal" data-bs-target="#filter-modal">
             <i class="fa-light fa-filter"></i>
-            Фильтр <span class="count @unless($filter) d-none @endunless">(@if($filter){{ count($filter) }}) @endif</span>
+            Фильтр <span class="count filter-count @unless($filter) d-none @endunless">@if($filter){{ count($filter) }}@endif</span>
         </button>
 
-        <button type="button" id="filter_clear" class="
-                @unless($filter) d-none @endunless
-            btn btn-sm btn-icon btn-pure btn-outline
-            delete-row-btnКу
-" data-bs-toggle="tooltip" data-original-title="Delete" data-bs-original-title="" title="">
-            <i class="fa-light fa-xmark" aria-hidden="true"></i> Убрать
-        </button>
+        <a href="javascript:void(0);" id="filter_clear" class="@unless($filter) d-none @endunless me-2 text-dark-500 text-hover-dark">
+            <i class="fa-light fa-xmark fs-5 me-2" aria-hidden="true"></i> Убрать
+        </a>
 
         <x-ui.a.default href="{{ route('company.create') }}" btn_type="info" class="ms-1">
             <x-ui.icon.light icon="fa-plus"/>
@@ -59,16 +61,30 @@
         </x-ui.a.default>
 
     </div>
+@endsection
+
+
+@section('content')
     <div class="container-fluid">
         <div class="row">
             <div class="col-12">
                 <div class="card">
-                    <div class="card-body pt-2">
+                    <div class="card-header py-4 min-h-auto">
+                        <div class="card-title m-0">
+                            <h3 class="m-0">Список компаний</h3>
+                        </div>
+                        <div class="card-toolbar m-0 d-flex align-items-center gap-4">
+                            {{-- поиск по таблице: передаётся встроенному поиску bootstrap-table, его поле спрятано --}}
+                            <input type="search" id="table_search" class="form-control form-control-sm w-250px"
+                                   placeholder="Поиск" autocomplete="off"/>
+                        </div>
+                    </div>
+
+                    <div class="card-body p-2">
                         <table class="table"
                                id="table_data"
                                data-search="true"
                                {{--                                data-search-text="Баба"--}}
-                               data-toolbar="#filter"
                                data-page="1"
                                data-pagination="true"
                                data-page-size="50"
@@ -161,6 +177,16 @@
             $table = $('#table_data');
             $table.bootstrapTable('resetView', {height: false});
 
+            // поиск из шапки карточки: с паузой, как у встроенного поля таблицы
+            var search_timer;
+            $('#table_search').on('input', function () {
+                var value = this.value;
+                clearTimeout(search_timer);
+                search_timer = setTimeout(function () {
+                    $('#table_data').bootstrapTable('resetSearch', value);
+                }, 300);
+            });
+
             $(".select2").select2({
                 dropdownParent: $("#filter-modal .modal-body"),
                 width: '100%'
@@ -237,7 +263,7 @@
                         $('#table_data').bootstrapTable('refresh');
 
                         if (response.rules_count > 0) {
-                            $("#filter .count").removeClass("d-none").html('(' + response.rules_count + ')');
+                            $("#filter .count").removeClass("d-none").html(response.rules_count);
                             $("#filter_clear").removeClass("d-none");
                         } else {
                             $("#filter .count").addClass("d-none");

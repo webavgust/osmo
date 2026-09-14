@@ -14,6 +14,9 @@
         .comment .title { display: flex; justify-content: space-between; font-weight: bold; font-size: 11px; }
         tr.unactive td { background: var(--bs-gray-100); color: var(--bs-gray-500); }
 
+        /* панель bootstrap-table не нужна: «Фильтр» — в тулбаре страницы, поиск — в шапке карточки */
+        .fixed-table-toolbar { display: none; }
+
         /* панель инструментов bootstrap-table */
         .fixed-table-toolbar .bs-bars { padding-top: 0; }
         .fixed-table-toolbar .search .form-control { min-width: 240px; }
@@ -21,53 +24,44 @@
         .fixed-table-container thead th .desc { background-position-y: 8px; }
         .fixed-table-container thead th .asc { background-position-y: 17px; }
 
-        #table_data td { padding: 0; }
-        #table_data .cell { padding: 8px 2px; }
+        .table_data td { padding: 0!important; }
+
+        th[data-field='date'] .th-inner { padding-left: 0!important }
     </style>
 @endsection
 
 
-@section('content')
-    {{-- Тулбар таблицы «Все» (bootstrap-table переносит его в свою панель) --}}
-    <div id="filter" class="d-flex flex-wrap gap-2">
-        <button class="btn btn-light-primary" data-bs-toggle="modal" data-bs-target="#filter-modal">
+@section('breadcrumb_right')
+    {{-- Один тулбар на все вкладки. Обёртка #filter нужна скрипту: счётчик
+         обновляется через $("#filter .count"). Секция выводится в DOM раньше
+         content, поэтому этот #filter — первый на странице; к форме фильтра
+         скрипт обращается как form#filter. Класс bt-toolbar не ставить —
+         osmo-fix.css прячет его вне панели таблицы --}}
+    <div id="filter" class="d-flex align-items-center gap-2">
+        <button class="btn btn-light-info" data-bs-toggle="modal" data-bs-target="#filter-modal">
             <i class="fa-light fa-filter fs-5 me-2"></i>
-            Фильтр <span class="count @unless($filter) d-none @endunless">(@if($filter){{ count($filter) }}) @endif</span>
+            Фильтр <span class="count filter-count @unless($filter) d-none @endunless">@if($filter){{ count($filter) }}@endif</span>
         </button>
 
-        <button type="button" id="filter_clear" class="btn btn-light-danger @unless($filter) d-none @endunless"
-                data-bs-toggle="tooltip" title="Сбросить фильтр">
+        <a href="javascript:void(0);" id="filter_clear" class="@unless($filter) d-none @endunless me-2 text-dark-500 text-hover-dark">
             <i class="fa-light fa-xmark fs-5 me-2" aria-hidden="true"></i> Убрать
-        </button>
+        </a>
 
         <a href="{{ route('proposal.create') }}" class="btn btn-primary">
             <i class="fa-light fa-plus fs-5 me-2"></i>
             Создать КП
         </a>
     </div>
+@endsection
 
-    @foreach($managers as $manager)
-        <div id="filter_{{ $manager->id }}" class="d-flex flex-wrap gap-2">
-            <button class="btn btn-light-primary" data-bs-toggle="modal" data-bs-target="#filter-modal">
-                <i class="fa-light fa-filter fs-5 me-2"></i>
-                Фильтр <span class="count @unless($filter) d-none @endunless">(@if($filter){{ count($filter) }}) @endif</span>
-            </button>
 
-            <button type="button" id="filter_clear" class="btn btn-light-danger @unless($filter) d-none @endunless"
-                    data-bs-toggle="tooltip" title="Сбросить фильтр">
-                <i class="fa-light fa-xmark fs-5 me-2" aria-hidden="true"></i> Убрать
-            </button>
-
-            <a href="{{ route('proposal.create') }}" class="btn btn-primary">
-                <i class="fa-light fa-plus fs-5 me-2"></i>
-                Создать КП
-            </a>
-        </div>
-    @endforeach
-
+@section('content')
     <div class="card">
-        <div class="card-header pt-4 min-h-auto">
-            <div class="card-toolbar m-0">
+        {{-- вкладки прижаты к нижней границе шапки, отступ сверху — у них самих;
+             поле поиска по высоте шапки центрируется, отступы сверху и снизу равны --}}
+        <div class="card-header min-h-auto flex-nowrap">
+            {{-- вкладок много: при нехватке места переносятся они, а поле поиска остаётся справа --}}
+            <div class="card-toolbar m-0 pt-4 flex-grow-1 min-w-0">
                     <ul class="nav nav-tabs nav-line-tabs nav-line-tabs-2x border-0 fs-6 fw-semibold" role="tablist">
                         <li class="nav-item">
                             <a class="nav-link active" data-bs-toggle="tab" href="#tab_all" role="tab">Все</a>
@@ -82,15 +76,20 @@
                     </ul>
             </div>
 
+            <div class="card-toolbar m-0 d-flex align-items-center gap-4 flex-shrink-0 ms-4">
+                {{-- один поиск на все вкладки: уходит встроенному поиску bootstrap-table
+                     таблицы активной вкладки, её поле спрятано --}}
+                <input type="search" id="proposal_search" class="form-control form-control-sm w-250px"
+                       placeholder="Поиск" autocomplete="off"/>
+            </div>
         </div>
 
-        <div class="card-body pt-2">
+        <div class="card-body p-2">
             <div class="tab-content">
                 <div class="tab-pane active" id="tab_all" role="tabpanel">
                     <table class="table table_data"
                            id="table_data"
                            data-search="true"
-                           data-toolbar="#filter"
                            data-page="1"
                            data-pagination="true"
                            data-page-size="50"
@@ -109,7 +108,6 @@
                         <table class="table table_data"
                                id="table_data_{{ $manager->id }}"
                                data-search="true"
-                               data-toolbar="#filter_{{ $manager->id }}"
                                data-page="1"
                                data-pagination="true"
                                data-page-size="50"
@@ -272,6 +270,38 @@
                $(this).bootstrapTable('resetView', {height: false});
             });
 
+            /**
+             * Отдать текст из шапки карточки поиску таблицы активной вкладки.
+             *
+             * Таблиц по одной на вкладку, поле поиска одно. Таблицу берём по [id]:
+             * у bootstrap-table есть клон шапки с тем же классом table_data, но без id.
+             * Если таблица уже ищет этот текст, сервер не дёргаем.
+             *
+             * @return {void}
+             */
+            var proposal_search_apply = function () {
+                var $table = $('.tab-content > .tab-pane.active table.table_data[id]').first();
+                if (!$table.length || !$table.data('bootstrap.table')) return;
+
+                var value = $('#proposal_search').val();
+                if ($.trim(value) === ($table.bootstrapTable('getOptions').searchText || '')) return;
+
+                $table.bootstrapTable('resetSearch', value);
+            };
+
+            // поиск из шапки карточки: с паузой, как у встроенного поля таблицы
+            var search_timer;
+            $('#proposal_search').on('input', function () {
+                clearTimeout(search_timer);
+                search_timer = setTimeout(proposal_search_apply, 300);
+            });
+
+            // на другой вкладке своя таблица: применяем к ней текущий текст поиска
+            $('.card-header a[data-bs-toggle="tab"]').on('shown.bs.tab', function () {
+                clearTimeout(search_timer);
+                proposal_search_apply();
+            });
+
             let select_params = { width: '100%' };
 
             $("select[select2]").select2(select_params);
@@ -386,7 +416,7 @@
                             $(this).bootstrapTable('refresh');
                         });
                         if (response.rules_count > 0) {
-                            $("#filter .count").removeClass("d-none").html('(' + response.rules_count + ')');
+                            $("#filter .count").removeClass("d-none").html(response.rules_count);
                             $("#filter_clear").removeClass("d-none");
                         } else {
                             $("#filter .count").addClass("d-none");
@@ -410,118 +440,12 @@
         }
 
 
-
-
-
-
-        function IDFormatter(value, row) {
-            if(value) {
-                @can('education_application_view')
-                    return '<a href="{{ route('proposal.detail') }}/' + row.id+ '">' + row.id + '</a>';
-                @else
-                    return row.id;
-                @endcan
-            } else {
-                return '';
-            }
-        }
-
-        function activeFormatter(value, row) {
-            if(row.active) {
-                return `<i class="fa-solid fa-check text-success fs-6"></i>`;
-            } else {
-                return `<i class="fa-regular fa-xmark text-muted fs-6"></i>`;
-            }
-        }
-
-        function typeFormatter(value) {
-
-            return `<span class="fw-bold">`
-                    + value.label
-                + `</span>`;
-        }
-
-        function nameFormatter(value, row) {
-
-            str = '';
-                    if(row.hasEmptyScenarios)
-                str += `<i class="fa-solid fa-triangle-exclamation me-1 text-danger cursor-help" title="Есть сценарии без указанных нейросервисов"></i>`;
-            str +=  `<a href="` + row.link.detail + `">`
-                + row.name
-                + `</a>`
-                + `<sup class="ms-1">`
-                    + row.iteration
-                + `</sup>`
-                ;
-
-                return str;
-        }
-        function companyFormatter(value, row) {
-            if(!row.company) return `?`;
-            return `<a href="` + row.link.company + `">`
-                + row.company.name
-                + `</a>`;
-        }
-
-        function partnerFormatter(value, row) {
-
-            return `<span class="cursor-help" title="` + row.partner.grade_decorate.description + `" >`
-                    + row.partner.name
-                + `</span>`;
-        }
-
-        function regionFormatter(value) {
-
-            return `<span class="fw-bold">` + (value ?? '-') + `</span>`;
-        }
-
-        function actionFormatter(value, row) {
-            ret = `
-                <div class="dropdown-action">
-                    <div class="dropdown">
-                        <button class="btn btn-icon btn-sm btn-light btn-active-light-primary" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            <i class="fa-light fa-ellipsis-vertical fs-4"></i>
-                        </button>
-                        <div class="dropdown-menu dropdown-menu-end py-2">
-                            <a class="dropdown-item px-4 py-2" href="` + row.link.edit + `">
-                                <i class="fa-light fa-pen text-warning me-2"></i> Редактировать
-                            </a>
-                            <a class="dropdown-item px-4 py-2" href="javascript:row_delete('` +  row.link.delete + `')">
-                                <i class="fa-light fa-trash text-danger me-2"></i> Удалить
-                            </a>`;
-
-            if(row.iteration > 1)
-                ret += `<a class="dropdown-item px-4 py-2" href="javascript:sidebar({ href: '{{ route('proposal.sidebar_iterations') }}/` + row.id + `'})">
-                                <i class="fa-light fa-copy text-primary me-2"></i> Посмотреть редакции
-                </a>`;
-
-            ret += `
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            return ret;
-        }
-
-        function variantFormatter(value, row) {
-            if(!row.variants[0] || !row.variants[0].cost_total) {
-                return '-';
-            } else {
-                return `<span class="text-nowrap">` + cost_normalize(row.variants[0].cost_total) + `₽</span>`;
-            }
-        }
-
-        function dateFormatter(value, row) {
-            return moment(value).format('DD.MM.YYYY');
-        }
-
         var columns  =[
             {
                 field: "number",
                 title: "Номер",
                 align: "center",
-                width: 75,
+                width: 1,
                 sortable: true,
             },
             {
@@ -534,45 +458,46 @@
                 field: "partner",
                 title: "Партнёр и компания",
                 align: "left",
+                width: 1,
             },
             {
                 field: "cost",
                 title: "Стоимость",
                 align: "right",
-                width: 125,
-                sortable: false,
+                width: 1  ,
+                // sortable: true, TODO: сделать сортировку по стоимость последнего варианта
             },
             {
                 field: "deal",
                 title: "Сделка",
                 align: "center",
-                width: 130,
+                width: 1,
             },
             {
                 field: "date",
                 title: "Дата КП",
                 align: "center",
-                width: 85,
+                width: 1,
                 sortable: true,
             },
             {
                 field: "updated_at",
                 title: "Изменено",
                 align: "center",
-                width: 85,
+                width: 1,
                 sortable: true,
             },
             {
                 field: "status",
                 title: "Статус",
                 align: "center",
-                width: 120,
+                width: 1,
                 sortable: true,
             },
             {
                 field: "summary",
                 title: " ",
-                width: 40,
+                width: 1,
                 align: "center",
             },
         ];

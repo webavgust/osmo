@@ -3,6 +3,7 @@
 namespace App\Modules\Pub\ProposalTools\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Pub\Breadcrumbs\Traits\HasBreadcrumb;
 use App\Modules\Pub\Company\Models\Company;
 use App\Modules\Pub\Currency\Models\Currency;
 use App\Modules\Pub\Partner\Models\Partner;
@@ -16,6 +17,8 @@ use Illuminate\Support\Facades\View;
 
 class ProposalToolsController extends Controller
 {
+    use HasBreadcrumb;
+
     /**
      * История изменения цен по итерациям КП
      *
@@ -25,6 +28,9 @@ class ProposalToolsController extends Controller
      */
     public function price_history(Request $request, Proposal $proposal)
     {
+        $this->breadcrumb_add(route('proposal.detail', $proposal), $proposal->name);
+        $this->breadcrumb_add(null, "История цен");
+
         $rows = ProposalPriceHistoryService::iterations($proposal->group);
         if ($rows->isEmpty()) abort(404);
 
@@ -72,6 +78,7 @@ class ProposalToolsController extends Controller
             'diff_total' => ProposalPriceHistoryService::diffTotal($diff),
             'diff_convert' => $diff_convert,
             'diff_currency' => $diff_currency,
+            'breadcrumbs' => $this->breadcrumb
         ]);
     }
 

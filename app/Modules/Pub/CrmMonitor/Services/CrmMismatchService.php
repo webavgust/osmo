@@ -3,6 +3,7 @@
 namespace App\Modules\Pub\CrmMonitor\Services;
 
 use App\Modules\Bitrix\CrmDeal\Models\CrmDeal;
+use App\Modules\Pub\Constant\Models\Constant;
 use App\Modules\Pub\Currency\Services\CurrencyService;
 use App\Modules\Pub\Proposal\Models\Proposal;
 use App\Modules\Pub\Proposal\Models\ProposalCrmDeal;
@@ -24,7 +25,10 @@ use Illuminate\Support\Collection;
  */
 class CrmMismatchService
 {
-    /** Допустимое расхождение сумм, в единицах валюты */
+    /**
+     * Допустимое расхождение сумм, в единицах валюты.
+     * По умолчанию; рабочее значение — consts.crm_amount_tolerance (читать через amountTolerance())
+     */
     public const AMOUNT_TOLERANCE = 1;
 
     /** Статусы, для которых сделка в Битриксе обязательна */
@@ -33,6 +37,17 @@ class CrmMismatchService
     /** Стадии Битрикса: успех / провал */
     public const SEMANTIC_SUCCESS = 'S';
     public const SEMANTIC_FAIL = 'F';
+
+    /**
+     * Допустимое расхождение сумм КП и сделок, в единицах валюты
+     * (consts.crm_amount_tolerance, по умолчанию AMOUNT_TOLERANCE)
+     *
+     * @return float
+     */
+    public static function amountTolerance(): float
+    {
+        return max(0.0, Constant::float('crm_amount_tolerance', (float) static::AMOUNT_TOLERANCE));
+    }
 
     /**
      * Виды расхождений
@@ -46,7 +61,7 @@ class CrmMismatchService
                 'label' => 'Сумма не сходится',
                 'color' => 'danger',
                 'icon' => 'fa-scale-unbalanced',
-                'hint' => 'Сумма сделок в Битриксе отличается от последнего варианта КП',
+                'hint' => 'Сумма сделок в Битрикс24 отличается от последнего варианта КП',
             ],
             'currency' => [
                 'label' => 'Разная валюта',
@@ -55,7 +70,7 @@ class CrmMismatchService
                 'hint' => 'Валюта сделки не совпадает с валютой КП',
             ],
             'missing' => [
-                'label' => 'Сделки нет в Битриксе',
+                'label' => 'Сделки нет в Битрикс24',
                 'color' => 'dark',
                 'icon' => 'fa-link-slash',
                 'hint' => 'Привязка есть, но такой сделки нет в выгрузке: её удалили или не синхронизировали',
@@ -64,7 +79,7 @@ class CrmMismatchService
                 'label' => 'Сделка не привязана',
                 'color' => 'warning',
                 'icon' => 'fa-unlink',
-                'hint' => 'КП отправлено или выиграно, но сделки Битрикса у него нет',
+                'hint' => 'КП отправлено или выиграно, но сделки Битрикс24 у него нет',
             ],
             'stage' => [
                 'label' => 'Статус спорит со стадией',
@@ -168,14 +183,15 @@ class CrmMismatchService
         $issues = [];
         $deals_total = 0.0;
         $single = $links->count() === 1;
+        $tolerance = static::amountTolerance();
 
-        $links = $links->map(function ($link) use ($deals, $currency, $total, $single, &$issues, &$deals_total, $status) {
+        $links = $links->map(function ($link) use ($deals, $currency, $total, $single, &$issues, &$deals_total, $status, $tolerance) {
             $deal = $deals->get($link->crm_deal_id);
             $link->deal = $deal;
             $link->error = null;
 
             if (empty($deal)) {
-                $link->error = 'нет в выгрузке Битрикса';
+                $link->error = 'нет в выгрузке Битрикс24';
                 $issues['missing'] = 'Сделка #' . $link->crm_deal_id . ' не найдена в выгрузке';
                 return $link;
             }
@@ -189,7 +205,7 @@ class CrmMismatchService
                     . ', а у КП ' . $currency;
             }
 
-            if ($single && abs((float) $deal->opportunity - $total) > static::AMOUNT_TOLERANCE) {
+            if ($single && abs((float) $deal->opportunity - $total) > $tolerance) {
                 $issues['amount'] = 'Сделка ' . tools()->cost_normalize(round((float) $deal->opportunity))
                     . ' против ' . tools()->cost_normalize(round($total)) . ' в КП';
             }
@@ -212,7 +228,7 @@ class CrmMismatchService
 
         $diff = $deals_total - $total;
 
-        if (!$single && $links->isNotEmpty() && abs($diff) > static::AMOUNT_TOLERANCE) {
+        if (!$single && $links->isNotEmpty() && abs($diff) > $tolerance) {
             $issues['amount'] = 'Сумма ' . $links->count() . ' сделок '
                 . tools()->cost_normalize(round($deals_total))
                 . ' против ' . tools()->cost_normalize(round($total)) . ' в КП';

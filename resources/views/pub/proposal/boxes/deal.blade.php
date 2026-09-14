@@ -29,7 +29,7 @@
                         <div class="overflow-hidden">
                             <div class="fw-bold text-truncate">
                                 <span class="text-muted me-2">#{{ $link->crm_deal_id }}</span>
-                                {{ $link->deal?->title ?: 'Сделка не найдена в выгрузке Битрикса' }}
+                                {{ $link->deal?->title ?: 'Сделка не найдена в выгрузке Битрикс24' }}
                                 <span class="badge badge-success fs-9 ms-2 deal-main-badge @if(!$link->is_main) d-none @endif">главная</span>
                             </div>
                             <div class="fs-8 text-muted text-truncate">

@@ -39,23 +39,23 @@
 @endsection
 
 
+@section('breadcrumb_right')
+    {{-- «Фильтр» и «Убрать» — в тулбаре страницы; модалка — в конце content.
+         Обёртка #filter не нужна: скрипт обращается только к #filter_clear и form#filter --}}
+    <button class="btn btn-light-info" data-bs-toggle="modal" data-bs-target="#filter-modal">
+        <i class="fa-light fa-filter"></i>
+        Фильтр <span class="count filter-count @unless($filter) d-none @endunless">@if($filter){{ count($filter) }}@endif</span>
+    </button>
+
+    <a href="javascript:void(0);" id="filter_clear" class="@unless($filter) d-none @endunless me-2 text-dark-500 text-hover-dark">
+        <i class="fa-light fa-xmark fs-5 me-2" aria-hidden="true"></i> Убрать
+    </a>
+@endsection
+
+
 @section('content')
 
     <div class="container-fluid">
-
-        <div id="filter" class="mb-3">
-            <button class="btn btn-light-primary" data-bs-toggle="modal" data-bs-target="#filter-modal">
-                <i class="fa-light fa-filter"></i>
-                Фильтр <span class="count @unless($filter) d-none @endunless">(@if($filter){{ count($filter) }}) @endif</span>
-            </button>
-
-            <button type="button" id="filter_clear" class="
-                @unless($filter) d-none @endunless
-            btn btn-sm btn-icon btn-pure btn-outline
-            delete-row-btnКу" data-bs-toggle="tooltip" data-original-title="Delete" data-bs-original-title="" title="">
-                <i class="fa-light fa-xmark" aria-hidden="true"></i> Убрать
-            </button>
-        </div>
 
         <div class="table-responsive fs-6">
             <table class="bg-white table table-bordered" id="payments">

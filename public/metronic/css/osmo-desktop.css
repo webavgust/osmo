@@ -1,0 +1,288 @@
+/*
+ * Рабочий стол (patch v30): оболочка виджетов и общие классы их тел.
+ *
+ * Блок может быть любого размера: пользователь снимает замок размеров и тянет угол как
+ * хочет. Поэтому содержимое считается не от сетки, а от самого блока — .desk-widget
+ * объявлен контейнером (container-type: size, имя dw), а размеры шрифтов заданы в
+ * контейнерных единицах (cqw — процент ширины блока, cqh — его высоты). Крупное число
+ * в блоке 4x2 и в блоке 7x3 занимает одинаковую долю площади.
+ *
+ * --desk-font-scale — настройка «Размер шрифта» виджета (множитель ко всему тексту).
+ * --desk-cell — сторона ячейки сетки, её выставляет страница стола; нужна только там,
+ * где размер должен совпадать у соседних блоков (например заголовок ряда).
+ *
+ * Ступени размера блока приходят классами от оболочки: desk-w-xs|sm|md|lg|xl (ширина
+ * 1–2, 3–5, 6–11, 12–23, 24+ колонок) и desk-h-xs|sm|md|lg|xl (высота 1, 2, 3–5, 6–9,
+ * 10+ ячеек). Те же ступени вьюха получает в $dw и $dh — ими решается, что показывать,
+ * а контейнерными запросами — как это выглядит.
+ */
+
+.desk-widget {
+    --desk-font-scale: 1;
+    container-type: size;
+    container-name: dw;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--bs-body-bg);
+    /* рамка и тень заметнее фона страницы: соседние блоки не сливаются */
+    border: 1px solid var(--bs-gray-300);
+    border-radius: .625rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .05), 0 6px 16px -6px rgba(0, 0, 0, .14);
+    overflow: hidden;
+    color: var(--bs-gray-900);
+}
+
+.desk-font-s { --desk-font-scale: .85; }
+.desk-font-m { --desk-font-scale: 1; }
+.desk-font-l { --desk-font-scale: 1.2; }
+.desk-font-xl { --desk-font-scale: 1.45; }
+
+.desk-widget-head {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .55rem .85rem 0;
+    min-height: 28px;
+    font-size: calc(12px * var(--desk-font-scale));
+    font-weight: 600;
+    color: var(--bs-gray-700);
+}
+.desk-widget-icon { color: var(--bs-gray-500); }
+.desk-widget-title { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.desk-widget-source { color: var(--bs-gray-500); }
+.desk-widget-source:hover { color: var(--bs-primary); }
+
+.desk-widget-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    position: relative;
+    padding: .5rem .85rem .7rem;
+    overflow: hidden;
+    font-size: calc(13px * var(--desk-font-scale));
+}
+
+/* низкий блок: заголовок и отступы плотнее, иначе содержимому не остаётся места */
+@container dw (max-height: 96px) {
+    .desk-widget-head { padding: .3rem .6rem 0; min-height: 20px; font-size: calc(11px * var(--desk-font-scale)); }
+    .desk-widget-body { padding: .25rem .6rem .35rem; font-size: calc(12px * var(--desk-font-scale)); }
+    .desk-widget-body .form-select-sm { padding-top: .2rem; padding-bottom: .2rem; font-size: 12px; min-height: 0; }
+}
+/* узкий блок: отступы по бокам меньше */
+@container dw (max-width: 150px) {
+    .desk-widget-head { padding-left: .5rem; padding-right: .5rem; }
+    .desk-widget-body { padding-left: .5rem; padding-right: .5rem; }
+}
+
+/* тело во всю площадь блока (баннер, картинка) */
+.desk-widget-body:has(> .desk-bleed) { padding: 0; }
+
+/* блок без рамки и фона (Widget::framed() = false) */
+.desk-widget-bare.desk-fill-none { background: transparent; border-color: transparent; box-shadow: none; }
+
+/* заливки */
+.desk-fill-light { background: var(--bs-gray-100); border-color: transparent; }
+.desk-fill-light-primary { background: var(--bs-primary-light); border-color: transparent; }
+.desk-fill-light-info { background: var(--bs-info-light); border-color: transparent; }
+.desk-fill-light-success { background: var(--bs-success-light); border-color: transparent; }
+.desk-fill-light-warning { background: var(--bs-warning-light); border-color: transparent; }
+.desk-fill-light-danger { background: var(--bs-danger-light); border-color: transparent; }
+.desk-fill-primary { background: var(--bs-primary); border-color: transparent; }
+.desk-fill-info { background: var(--bs-info); border-color: transparent; }
+.desk-fill-success { background: var(--bs-success); border-color: transparent; }
+.desk-fill-dark { background: var(--bs-dark); border-color: transparent; }
+
+.desk-widget-dark,
+.desk-widget-dark .desk-value { color: #fff; }
+.desk-widget-dark .desk-widget-head,
+.desk-widget-dark .desk-widget-icon,
+.desk-widget-dark .desk-widget-source,
+.desk-widget-dark .desk-label,
+.desk-widget-dark .desk-muted { color: rgba(255, 255, 255, .75); }
+.desk-widget-dark .desk-list > li,
+.desk-widget-dark .desk-table td { border-color: rgba(255, 255, 255, .18); }
+.desk-widget-dark .desk-table th { color: rgba(255, 255, 255, .75); border-color: rgba(255, 255, 255, .3); }
+
+/* общие классы тел */
+.desk-center { height: 100%; display: flex; flex-direction: column; justify-content: center; min-width: 0; overflow: hidden; }
+.desk-center .form-select { min-width: 0; }
+.desk-scroll { height: 100%; overflow: auto; }
+/* без веса селектора: text-primary, text-danger и другие утилиты Metronic перебивают приглушение */
+:where(.desk-muted) { color: var(--bs-gray-600); }
+.desk-grow { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.desk-link { color: inherit; text-decoration: none; }
+.desk-link:hover .fw-bold { color: var(--bs-primary); }
+.desk-label { font-size: .88em; color: var(--bs-gray-600); line-height: 1.25; }
+.desk-nowrap { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* содержимое выше блока: обрезается с растворением, чтобы было видно, что есть ещё */
+.desk-clip {
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(#000 calc(100% - 14px), transparent);
+    mask-image: linear-gradient(#000 calc(100% - 14px), transparent);
+}
+
+/* колонка на всю высоту: шапка сверху, список растягивается, итог снизу */
+.desk-stack { height: 100%; display: flex; flex-direction: column; min-height: 0; gap: .35rem; overflow: hidden; }
+.desk-stack > .desk-stack-grow { flex: 1 1 auto; min-height: 0; }
+
+/*
+ * Крупные значения. Размер — доля площади самого блока: min(доля ширины, доля высоты),
+ * с нижней и верхней границей, чтобы в крошечном блоке текст остался читаемым, а в
+ * огромном не превращался в вывеску
+ */
+.desk-value {
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-variant-numeric: tabular-nums;
+    color: var(--bs-gray-900);
+    font-size: calc(clamp(15px, min(13cqw, 34cqh), 64px) * var(--desk-font-scale));
+}
+.desk-value-sm { font-size: calc(clamp(13px, min(9cqw, 22cqh), 34px) * var(--desk-font-scale)); }
+.desk-value-lg { font-size: calc(clamp(17px, min(18cqw, 46cqh), 92px) * var(--desk-font-scale)); }
+
+.desk-delta { font-size: .88em; font-weight: 600; white-space: nowrap; }
+.desk-delta.up { color: var(--bs-success); }
+.desk-delta.down { color: var(--bs-danger); }
+.desk-delta.flat { color: var(--bs-gray-600); }
+
+.desk-list { list-style: none; margin: 0; padding: 0; }
+.desk-list > li {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .32rem 0;
+    border-bottom: 1px dashed var(--bs-gray-200);
+    min-width: 0;
+}
+.desk-list > li:last-child { border-bottom: 0; }
+.desk-list .desk-grow { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* в низком блоке строки плотнее */
+@container dw (max-height: 96px) {
+    .desk-list > li { padding: .18rem 0; }
+}
+
+.desk-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.desk-table th {
+    font-size: .85em;
+    font-weight: 600;
+    color: var(--bs-gray-600);
+    text-align: left;
+    padding: .25rem .4rem;
+    border-bottom: 1px solid var(--bs-gray-200);
+    white-space: nowrap;
+}
+.desk-table td { padding: .28rem .4rem; border-bottom: 1px solid var(--bs-gray-100); white-space: nowrap; }
+.desk-table th:first-child, .desk-table td:first-child { padding-left: 0; }
+.desk-table th:last-child, .desk-table td:last-child { padding-right: 0; }
+.desk-table .num { text-align: right; }
+.desk-table .desk-cut { max-width: 0; width: 99%; overflow: hidden; text-overflow: ellipsis; }
+@container dw (max-height: 96px) {
+    .desk-table th, .desk-table td { padding-top: .12rem; padding-bottom: .12rem; }
+}
+
+/* график ApexCharts: занимает всё свободное место блока */
+.desk-chart { position: relative; width: 100%; height: 100%; min-height: 0; overflow: hidden; }
+/* ApexCharts рисует холст на десяток пикселей выше контейнера (скрытые подсказки осей) —
+   без обрезки блок виджета начинал прокручиваться */
+.desk-chart .apexcharts-canvas { margin: 0 auto; }
+
+/* полоска-шкала в строке списка или таблицы */
+.desk-bar { height: .55em; border-radius: 99px; background: var(--bs-gray-200); overflow: hidden; min-width: 24px; }
+.desk-bar > i { display: block; height: 100%; border-radius: 99px; }
+/* цвет по умолчанию без веса селектора: bg-gray-400 и другие утилиты Metronic его перебивают */
+:where(.desk-bar) > :where(i) { background-color: var(--bs-primary); }
+
+/* полоска из долей: сегменты разных цветов в одну линию (статусы, корзины) */
+.desk-split { display: flex; height: .4rem; border-radius: 99px; overflow: hidden; background: var(--bs-gray-200); }
+.desk-split > * { height: 100%; }
+
+/* сетка из равных колонок: месяц в «Календаре», разрезы по дням недели */
+.desk-grid-7 { display: grid; grid-template-columns: repeat(7, 1fr); }
+
+/* плитки показателей: сами переносятся и сужаются под блок */
+.desk-tiles { display: flex; flex-wrap: wrap; gap: .4rem; align-content: flex-start; }
+.desk-tiles > * { flex: 1 1 7rem; min-width: 0; }
+
+.desk-empty,
+.desk-error {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    text-align: center;
+    font-size: .92em;
+    color: var(--bs-gray-500);
+}
+.desk-error { color: var(--bs-warning); }
+
+/*
+ * Служебные классы «показать, если есть место»: содержимое одно на все размеры,
+ * лишнее прячется по реальной площади блока, а не по объявленному размеру
+ */
+/* прячем, пока места мало, а когда хватает — display не трогаем: элемент с d-flex или ячейка
+   таблицы показываются как свёрстаны (d-* у Bootstrap с !important перебивали display: none) */
+@container dw (width < 230px) { .desk-only-w-md { display: none !important; } }
+@container dw (width < 420px) { .desk-only-w-lg { display: none !important; } }
+@container dw (width < 620px) { .desk-only-w-xl { display: none !important; } }
+@container dw (height < 110px) { .desk-only-h-md { display: none !important; } }
+@container dw (height < 230px) { .desk-only-h-lg { display: none !important; } }
+
+@container dw (max-width: 170px) { .desk-hide-narrow { display: none !important; } }
+@container dw (max-height: 96px) { .desk-hide-short { display: none !important; } }
+
+/* баннер */
+.desk-banner { height: 100%; display: flex; align-items: center; gap: 1.5rem; padding: 0 2rem; }
+.desk-banner-gradient { background: linear-gradient(110deg, var(--bs-primary) 0%, var(--bs-info) 100%); }
+.desk-banner-text { min-width: 0; }
+.desk-banner-headline {
+    font-weight: 700;
+    line-height: 1.15;
+    font-size: calc(clamp(15px, min(4cqw, 34cqh), 42px) * var(--desk-font-scale));
+}
+.desk-banner-sub {
+    margin-top: .3rem;
+    opacity: .85;
+    font-size: calc(clamp(11px, min(2.2cqw, 18cqh), 22px) * var(--desk-font-scale));
+}
+.desk-banner-btn {
+    flex: none;
+    color: inherit !important;
+    background: rgba(255, 255, 255, .2);
+    border: 1px solid rgba(255, 255, 255, .35) !important;
+}
+.desk-banner-btn:hover { background: rgba(255, 255, 255, .32); }
+.desk-banner.text-gray-900 .desk-banner-btn { background: rgba(0, 0, 0, .05); border-color: rgba(0, 0, 0, .12) !important; }
+@container dw (max-width: 420px) { .desk-banner { padding: 0 1rem; gap: .75rem; } }
+
+/* заголовок ряда: кегль от высоты блока, но не мельче читаемого и не крупнее шапки раздела */
+.desk-heading { font-size: calc(clamp(13px, min(55cqh, 8cqw), 34px) * var(--desk-font-scale)); line-height: 1.15; }
+
+/* шкала в строке списка: занимает свободное место, но не съедает подписи */
+.desk-bar-fill { flex: 1 1 auto; min-width: 40px; }
+
+/* итоговая строка таблицы виджета */
+.desk-table .desk-total td,
+.desk-table tfoot td {
+    font-weight: 700;
+    border-top: 1px solid var(--bs-gray-300);
+    border-bottom: 0;
+}
+
+/* подгон под размер блока (osmo-desktop-fit.js): строки, не влезшие целиком, спрятаны */
+.desk-fit { min-height: 0; min-width: 0; overflow: hidden; }
+.desk-fit-out { display: none !important; }
+
+/* шапка таблицы в прокручиваемом теле остаётся на месте (матрицы и реестры) */
+.desk-scroll .desk-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--bs-body-bg);
+    box-shadow: inset 0 -1px 0 var(--bs-gray-200);
+}

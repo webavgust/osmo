@@ -2,6 +2,7 @@
 
 namespace App\Modules\Pub\Proposal\Services;
 
+use App\Modules\Pub\EntityLog\Services\EntityLogService;
 use App\Modules\Pub\Proposal\Models\Proposal;
 use App\Modules\Pub\Proposal\Models\ProposalLostReason;
 use App\Modules\Pub\Proposal\Models\ProposalStatus;
@@ -18,7 +19,7 @@ class ProposalStatusService
      *
      * @param Proposal $proposal Любая итерация КП
      * @param ProposalStatus $status Новый статус
-     * @param ProposalLostReason|null $reason Причина (обязательна для проигрыша/заморозки/отмены)
+     * @param ProposalLostReason|null $reason Причина (обязательна для проигрыша)
      * @param string|null $comment Комментарий менеджера
      * @return Proposal Обновлённая итерация
      */
@@ -39,13 +40,14 @@ class ProposalStatusService
             $reason = null;
         }
 
-        Proposal::where('group', $proposal->group)->update([
+        // patch v29: массовый update без событий модели — журнал изменений оборачивается явно
+        EntityLogService::around($proposal, fn() => Proposal::where('group', $proposal->group)->update([
             'status' => $status->value,
             'status_reason' => $reason?->value,
             'status_comment' => $comment,
             'status_changed_at' => now(),
             'status_changed_by' => auth()->id(),
-        ]);
+        ]));
 
         return $proposal->refresh();
     }

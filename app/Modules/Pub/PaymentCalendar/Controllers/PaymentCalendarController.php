@@ -3,6 +3,7 @@
 namespace App\Modules\Pub\PaymentCalendar\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Pub\Breadcrumbs\Traits\HasBreadcrumb;
 use App\Modules\Pub\Company\Models\Company;
 use App\Modules\Pub\Partner\Models\Partner;
 use App\Modules\Pub\PaymentCalendar\Services\PaymentCalendarService;
@@ -11,6 +12,8 @@ use Illuminate\Support\Facades\View;
 
 class PaymentCalendarController extends Controller
 {
+    use HasBreadcrumb;
+
     /**
      * Платёжный календарь
      *
@@ -19,6 +22,8 @@ class PaymentCalendarController extends Controller
      */
     public function index(Request $request)
     {
+        $this->breadcrumb_add(null, 'Платёжный календарь');
+
         $years = PaymentCalendarService::years();
         $year = (int) $request->input('year', in_array((int) now()->year, $years) ? now()->year : ($years[0] ?? now()->year));
 
@@ -31,7 +36,8 @@ class PaymentCalendarController extends Controller
 
         $params = [
             'year' => $year,
-            'month' => (int) $request->input('month') ?: null,
+            // «за все годы» отменяет месяц: один фильтр вместо двух противоречащих
+            'month' => $request->boolean('all_years') ? null : ((int) $request->input('month') ?: null),
             // показатели ведут на выборку за все годы: просрочка прошлых лет
             // и платежи без дат в отбор по году не попадают
             'all_years' => $request->boolean('all_years'),
@@ -75,6 +81,7 @@ class PaymentCalendarController extends Controller
             'chips' => static::chips($params),
             'partners' => PaymentCalendarService::partners(),
             'companies' => PaymentCalendarService::companies(),
+            'breadcrumbs' => $this->breadcrumb,
         ]);
     }
 
@@ -107,7 +114,9 @@ class PaymentCalendarController extends Controller
 
         // статус по умолчанию тоже показываем: иначе непонятно, почему части
         // платежей нет на экране
-        foreach ($params['spec_status'] as $status) {
+        // Отбор по умолчанию («в процессе + оплаченные») плашкой не показываем: это не выбор
+        // пользователя, а поведение страницы; плашка есть только у статуса, выбранного руками
+        foreach ($params['spec_status_strict'] ? $params['spec_status'] : [] as $status) {
             if ($status === 'all') continue;
 
             $ret[] = [

@@ -35,7 +35,7 @@
                     flex-column
                     flex-lg-row
               ">
-                <h4 class="card-title mb-0">{{ $name }}</h4>
+                  <h4 class="card-title mb-0">{{ $name }}</h4>
                 <div class="mt-2 mt-md-0">
                     @if($preset['count'] > 0)
                         <x-ui.badge.light type="secondary">{{ tools()->num_rus($preset['count'], ['файла', 'файл', 'файлов'], 1) }}</x-ui.badge.light>

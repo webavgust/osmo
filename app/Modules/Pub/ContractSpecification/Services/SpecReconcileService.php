@@ -2,6 +2,7 @@
 
 namespace App\Modules\Pub\ContractSpecification\Services;
 
+use App\Modules\Pub\Constant\Models\Constant;
 use App\Modules\Pub\ContractSpecification\Models\ContractSpecification;
 use App\Modules\Pub\ContractSpecification\Models\ContractSpecificationStatus;
 use App\Modules\Pub\Currency\Services\CurrencyService;
@@ -19,11 +20,38 @@ use Illuminate\Support\Collection;
  */
 class SpecReconcileService
 {
-    /** Расхождение до этой суммы — округление, а не ошибка */
+    /**
+     * Расхождение до этой суммы — округление, а не ошибка.
+     * По умолчанию; рабочее значение — consts.spec_reconcile_tolerance (читать через tolerance())
+     */
     public const TOLERANCE = 1.0;
 
-    /** Расхождение выше этой доли считается грубым */
+    /**
+     * Расхождение выше этой доли считается грубым.
+     * По умолчанию; рабочее значение — consts.spec_reconcile_hard_share (читать через hardShare())
+     */
     public const HARD_SHARE = 0.05;
+
+    /**
+     * Допуск расхождения в единицах валюты спецификации
+     * (consts.spec_reconcile_tolerance, по умолчанию TOLERANCE)
+     *
+     * @return float
+     */
+    public static function tolerance(): float
+    {
+        return max(0.0, Constant::float('spec_reconcile_tolerance', static::TOLERANCE));
+    }
+
+    /**
+     * Доля расхождения, выше которой оно грубое (consts.spec_reconcile_hard_share, по умолчанию HARD_SHARE)
+     *
+     * @return float
+     */
+    public static function hardShare(): float
+    {
+        return max(0.0, Constant::float('spec_reconcile_hard_share', static::HARD_SHARE));
+    }
 
     /**
      * Сверка одной спецификации
@@ -54,6 +82,7 @@ class SpecReconcileService
         if ($ret['skip']) return $ret;
 
         $ret['diff_payments'] = $ret['payments'] - $ret['amount'];
+        $tolerance = static::tolerance();
 
         // сумма прикреплённых КП — только если валюты совпадают: приводить КП
         // к валюте спецификации по сегодняшнему курсу здесь нечестно
@@ -66,18 +95,18 @@ class SpecReconcileService
         $symbol = $spec->currency->symbol ?? '';
 
         if ($ret['amount'] <= 0 && $ret['payments'] > 0) {
-            $ret['reasons']['no_amount'] = 'Сумма спецификации не заполнена, а платежи на '
-                . tools()->cost_normalize(round($ret['payments'])) . ' ' . $symbol . ' есть';
+            $ret['reasons']['no_amount'] = 'Сумма спецификации не заполнена, но есть платежи на '
+                . tools()->cost_normalize(round($ret['payments'])) . ' ' . $symbol;
         } elseif ($ret['amount'] > 0 && $ret['payments_count'] === 0) {
             $ret['reasons']['no_payments'] = 'График платежей пуст: спецификация на '
                 . tools()->cost_normalize(round($ret['amount'])) . ' ' . $symbol . ' не разложена по платежам';
-        } elseif (abs($ret['diff_payments']) > static::TOLERANCE) {
+        } elseif (abs($ret['diff_payments']) > $tolerance) {
             $ret['reasons']['payments'] = 'Платежи расходятся со спецификацией на '
                 . ($ret['diff_payments'] > 0 ? '+' : '−')
                 . tools()->cost_normalize(round(abs($ret['diff_payments']))) . ' ' . $symbol;
         }
 
-        if ($ret['diff_proposals'] !== null && abs($ret['diff_proposals']) > static::TOLERANCE && $ret['amount'] > 0) {
+        if ($ret['diff_proposals'] !== null && abs($ret['diff_proposals']) > $tolerance && $ret['amount'] > 0) {
             $ret['reasons']['proposals'] = 'Сумма прикреплённых КП расходится на '
                 . ($ret['diff_proposals'] > 0 ? '+' : '−')
                 . tools()->cost_normalize(round(abs($ret['diff_proposals']))) . ' ' . $symbol;
@@ -87,7 +116,7 @@ class SpecReconcileService
 
         $base = max($ret['amount'], $ret['payments']);
         $ret['hard'] = !$ret['ok'] && $base > 0
-            && abs($ret['diff_payments']) / $base > static::HARD_SHARE;
+            && abs($ret['diff_payments']) / $base > static::hardShare();
 
         return $ret;
     }

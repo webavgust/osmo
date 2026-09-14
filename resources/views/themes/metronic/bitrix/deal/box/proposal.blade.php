@@ -3,9 +3,13 @@
 
     Обратная сторона попапа «Прикрепление сделки к Битрикс24» с карточки КП
     (pub/proposal/boxes/deal.blade.php): там к КП подбирают сделки, здесь к
-    сделке подбирают КП. Правила общие (ProposalDealService): одна сделка
-    принадлежит одному КП, у КП сделок может быть несколько, привязка живёт
-    на всей группе итераций.
+    сделке подбирают КП. Правило (правка владельца 12.09.2026): привязка
+    один к одному — одна сделка принадлежит одному КП, и одно КП занимает
+    одну сделку. Привязка живёт на всей группе итераций.
+
+    Отсюда две вещи в выдаче: если к сделке уже привязано КП, кнопки
+    «Привязать» нет ни у одной строки (сначала «Отвязать»), а КП, у которого
+    сделка уже есть, показывается как «занято».
 
     Если партнёр сделки известен (компания Битрикса сопоставлена с партнёром
     портала, patch v23), в выдаче только его КП: чужие в этой сделке всё равно
@@ -43,11 +47,13 @@
         <span class="text-muted">Сделка:</span>
         <a href="{{ $deal_url }}" target="_blank" class="badge badge-light-primary fs-7 text-decoration-none">
             #{{ $deal->id }} {{ \Illuminate\Support\Str::limit($deal->title, 70) }}
-            <i class="fa-light fa-arrow-up-right-from-square fs-8 ms-1"></i>
+            <i class="fa-light fa-arrow-up-right-from-square fs-8 ms-2"></i>
         </a>
 
         @if($deal->company_name)
-            <span class="badge badge-light-warning fs-7">{{ $deal->company_name }}</span>
+            <x-ui.badge.light type="info" class="text-info-700 bg-hover-info text-hover-white">
+                {{ $deal->company_name }}
+            </x-ui.badge.light>
         @endif
 
         @if((float) $deal->opportunity > 0)
@@ -102,7 +108,7 @@
             <label class="form-check form-check-custom form-check-solid flex-shrink-0"
                    title="Показать КП всех партнёров, а не только {{ $partner->name }}">
                 <input class="form-check-input" type="checkbox" id="deal_proposal_all"/>
-                <span class="form-check-label fs-7 text-nowrap">КП всех партнёров</span>
+                <span class="form-check-label fs-7 text-nowrap">показать КП всех партнёров</span>
             </label>
         @else
             <span></span>
@@ -110,11 +116,11 @@
 
         <div class="text-muted fs-8 text-end" id="deal_proposal_hint">
             @if($partner)
-                Партнёр сделки — {{ $partner->name }}, показаны только его КП.
+                Показаны только КП партнёра {{ $partner->name }}.
             @else
                 Поиск подставил компанию сделки.
             @endif
-            Одна сделка принадлежит одному КП; у КП сделок может быть несколько.
+            Привязка один к одному: одна сделка — одно КП.
         </div>
     </div>
 
@@ -133,6 +139,10 @@
             var timer = null;
             var dirty = false;
 
+            // к этой сделке уже привязано КП: пока не отвяжут, привязывать нечего.
+            // Внутри попапа состояние не меняется — и привязка, и отвязка его закрывают
+            var attached = @json(!empty($proposal));
+
             /** Отрисовать выдачу поиска */
             function render(rows) {
                 if (!rows || !rows.length) {
@@ -149,6 +159,20 @@
                     var amount = row.amount ? cost_normalize(Math.round(row.amount)) + ' ' + (row.currency || '') : '';
                     var sub = [row.partner, row.company, row.manager, row.date].filter(Boolean).join(' · ');
 
+                    // привязка один к одному, поэтому кнопка появляется только
+                    // когда свободны обе стороны: и сделка, и само КП
+                    var action;
+                    if (attached) {
+                        action = '';
+                    } else if (row.deals_count) {
+                        action = '<span class="badge badge-light-secondary fs-7 text-nowrap"'
+                            + ' title="У этого КП уже есть сделка">занято</span>';
+                    } else {
+                        action = '<button type="button" class="btn btn-sm btn-light-primary text-nowrap"'
+                            + ' onclick="deal_proposal_attach(\'' + esc(row.group) + '\')">'
+                            + '<i class="fa-light fa-link fs-6 me-2"></i>Привязать</button>';
+                    }
+
                     html += '<div class="row-line d-flex align-items-center justify-content-between py-3 px-3">'
                         +   '<div class="pe-3 overflow-hidden">'
                         +     '<div class="fw-semibold text-truncate">'
@@ -159,13 +183,7 @@
                         +   '</div>'
                         +   '<div class="d-flex align-items-center flex-shrink-0 gap-3">'
                         +     (amount ? '<span class="fw-bold text-nowrap">' + esc(amount) + '</span>' : '')
-                        +     (row.deals_count
-                                ? '<span class="badge badge-light-secondary fs-8 text-nowrap" title="Сделок уже привязано к этому КП">'
-                                  + row.deals_count + ' сдел.</span>'
-                                : '')
-                        +     '<button type="button" class="btn btn-sm btn-light-primary text-nowrap"'
-                        +       ' onclick="deal_proposal_attach(\'' + esc(row.group) + '\')">'
-                        +       '<i class="fa-light fa-link fs-6 me-2"></i>Привязать</button>'
+                        +     action
                         +   '</div>'
                         + '</div>';
                 });

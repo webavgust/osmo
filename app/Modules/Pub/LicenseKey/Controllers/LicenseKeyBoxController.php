@@ -18,8 +18,9 @@ class LicenseKeyBoxController extends Controller
     public function renewal(Request $request)
     {
         $days = (int) $request->input('days', 90);
-        if (!in_array($days, LicenseRenewalService::HORIZONS)) {
-            $days = max(LicenseRenewalService::HORIZONS);
+        $horizons = LicenseRenewalService::horizons();
+        if (!in_array($days, $horizons)) {
+            $days = max($horizons);
         }
 
         return View::make('pub.license_key.boxes.renewal', [

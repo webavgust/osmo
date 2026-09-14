@@ -59,7 +59,7 @@ class CrmDealBoxController extends Controller
         $partner = DealProjectService::resolvePartner($deal);
 
         // партнёра нет — ищем словами: подставляем компанию сделки
-        $q = $partner ? '' : trim((string) ($deal->company_name ?: $deal->dealUf?->uf_crm_1717755645));
+        $q = $partner ? '' : trim((string) ($deal->company_name ?: $deal->dealUf?->{CrmDealRegistryService::ufCustomer()}));
 
         return View::make('bitrix.deal.box.proposal', [
             'title' => 'Привязка КП к сделке #' . $deal->id,

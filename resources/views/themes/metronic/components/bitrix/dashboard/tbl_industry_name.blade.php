@@ -20,9 +20,9 @@
             <th class="text-center">
             </th>
             @foreach($data['columns'] as $column)
-                <th class="py-1 fs-6">{{ $column }}</th>
+                <th class="py-1 fs-7 align-content-center">{{ $column }}</th>
             @endforeach
-            <th class="text-end" style="background: #F0F0F0">Итого</th>
+            <th class="text-end align-content-center" style="background: #f5f5f5">Итого</th>
         </tr>
         </thead>
         <tbody>
@@ -35,9 +35,13 @@
                     $row_total = 0;
                 @endphp
                 <tr>
-                    <td class="text-start text-nowrap">{{ $row }}</td>
+                    <td class="text-start fs-7">
+                        <div class="text-truncate w-200px cursor-help" title="{{ $row }}">
+                            {{ $row }}
+                        </div>
+                    </td>
                     @foreach($data['columns'] as $column)
-                        <td class="text-end text-nowrap  fw-bolder">
+                        <td class="text-end text-nowrap fw-semibold align-content-center">
                             @if(!empty($data['matrix'][$row][$column]))
                                 @php
                                     $row_total += $data['matrix'][$row][$column]['amount'];
@@ -47,7 +51,7 @@
                                 <a href="javascript:void(0);" onclick="javascript:box({href: '{{ route('dashboard.box.industry_name', [
                                     'row' => \Illuminate\Support\Str::replace("/", "_", base64_encode($row)),
                                     'column' => \Illuminate\Support\Str::replace("/", "_", base64_encode($column)),
-                                 ]) }}'})" class="p-0">
+                                 ]) }}'})" class="p-0 fs-7">
                                     {{ tools()->cost_normalize(
                                          round($data['matrix'][$row][$column]['amount']),
                                          mode: 'M',
@@ -61,7 +65,7 @@
                         <a href="javascript:void(0);" onclick="javascript:box({href: '{{ route('dashboard.box.industry_name', [
                                     'row' => \Illuminate\Support\Str::replace("/", "_", base64_encode($row)),
                                     'column' => 'all',
-                                 ]) }}'})" class="p-0">
+                                 ]) }}'})" class="p-0 fs-6">
                             {{ tools()->cost_normalize(
                                  round($row_total),
                                  mode: 'M',
@@ -75,7 +79,7 @@
         <tr>
             <td class="text-end p-1" style="background: #F0F0F0"></td>
             @foreach($data['columns'] as $column)
-                <td class="text-end fs-2 text-nowrap" style="font-weight: 600; background: #F0F0F0">
+                <td class="text-end fw-bolder fs-6 text-nowrap align-content-center" style="font-weight: 600; background: #F0F0F0">
                     <a href="javascript:void(0);" onclick="javascript:box({href: '{{ route('dashboard.box.industry_name', [
                                     'row' => 'all',
                                     'column' => \Illuminate\Support\Str::replace("/", "_", base64_encode($column)),
@@ -88,11 +92,11 @@
                     </a>
                 </td>
             @endforeach
-            <td class="text-end fs-2 text-nowrap" style="font-weight: 600; background: #E5E5E5">
+            <td class="text-end text-nowrap align-content-center" style=" background: #E5E5E5">
                 <a href="javascript:void(0);" onclick="javascript:box({href: '{{ route('dashboard.box.industry_name', [
                                     'row' => 'all',
                                     'column' => 'all',
-                                 ]) }}'})" class="p-0">
+                                 ]) }}'})" class="p-0 fs-5">
                     {{ tools()->cost_normalize(
                          round($column_total->sum()),
                          mode: 'M',

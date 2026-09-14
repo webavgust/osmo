@@ -7,4 +7,5 @@ Route::group(['prefix' => 'notify'], function () {
     Route::get('/clear', [\App\Modules\Pub\Notify\Controllers\NotifyController::class, 'clear'])->name('notify.clear');
 
     Route::get('/list', [\App\Modules\Pub\Notify\Controllers\NotifyController::class, 'list'])->name('notify.list');
+    Route::post('/set/dates', [\App\Modules\Pub\Notify\Controllers\NotifyController::class, 'set_dates'])->name('notify.set_dates');
 });

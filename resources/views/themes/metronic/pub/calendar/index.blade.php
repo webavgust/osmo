@@ -162,7 +162,7 @@
                 </div>
             </div>
         </div>
-        <div class="modal-backdrop bckdrop hide"></div>
+        <div class="modal-backdrop bckdrop d-none"></div>
         <!-- Modal Add Category -->
         <div class="modal none-border" id="add-new-event">
             <div class="modal-dialog">

@@ -6,25 +6,50 @@ use App\Modules\Bitrix\CrmDeal\Models\CrmDeal;
 use App\Modules\Bitrix\CrmDeal\Models\CrmDealIssues;
 use App\Modules\Bitrix\Dashboard\Services\DashboardDataService;
 use App\Modules\Bitrix\Dashboard\Services\DashboardFilterService;
+use App\Modules\Pub\Constant\Models\Constant;
 use Illuminate\Support\Facades\DB;
 
 class CrmDealRepository
 {
-    /** Поле компании «Страна» в Битрикс24 */
+    /**
+     * Поле компании «Страна» в Битрикс24.
+     * По умолчанию; рабочее значение — consts.bitrix_uf_country (читать через ufCountry())
+     */
     public const UF_COUNTRY = 'uf_crm_1719404976291';
+
+    /**
+     * Поле crm_company_uf со страной компании (consts.bitrix_uf_country, по умолчанию UF_COUNTRY).
+     * Имя подставляется в SQL как колонка, поэтому допускаются только латиница, цифры и `_`.
+     *
+     * @return string
+     */
+    public static function ufCountry(): string
+    {
+        $field = trim((string) Constant::value('bitrix_uf_country', static::UF_COUNTRY));
+
+        return preg_match('/^[a-z0-9_]+$/i', $field) ? $field : static::UF_COUNTRY;
+    }
 
     public static function getAll()
     {
         return CrmDeal::all();
     }
 
-    public static function getFiltered()
+    /**
+     * Сделки с полями crm_deal_uf, отобранные фильтром страницы воронки
+     *
+     * @param bool $apply_filter false — тот же запрос без фильтра страницы (patch v30: рабочий стол)
+     * @return \Illuminate\Support\Collection
+     */
+    public static function getFiltered(bool $apply_filter = true)
     {
-        $filter = DashboardFilterService::getFilter();
+        // patch v30: без фильтра страницы — для виджетов рабочего стола
+        $filter = $apply_filter ? DashboardFilterService::getFilter() : [];
         $builder = CrmDeal::query();
         $builder->join('crm_deal_uf', 'crm_deal.id', '=', 'crm_deal_uf.deal_id');
 
         $rows = $builder->get();
+        $country_field = static::ufCountry();
 
         if(!empty($filter)) {
             foreach ($filter as $field => $value) {
@@ -48,8 +73,8 @@ class CrmDealRepository
 
                     // страна получения средств — поле компании, а не сделки
                     case "country":
-                        $rows = $rows->filter(function ($deal) use ($value) {
-                            $country = $deal->crm_company?->companyUf?->{static::UF_COUNTRY} ?? "Неизвестно";
+                        $rows = $rows->filter(function ($deal) use ($value, $country_field) {
+                            $country = $deal->crm_company?->companyUf?->{$country_field} ?? "Неизвестно";
                             return in_array($country, $value, true);
                         });
                         break;
@@ -79,6 +104,7 @@ class CrmDealRepository
     public static function getFilterOptions(): array
     {
         $deals = CrmDeal::with('crm_company.companyUf')->get();
+        $country_field = static::ufCountry();
 
         return [
             'assigned_by' => $deals->pluck('assigned_by')->filter()->unique()->sort()->values(),
@@ -92,7 +118,7 @@ class CrmDealRepository
                 ->values(),
 
             'country' => $deals
-                ->map(fn($deal) => $deal->crm_company?->companyUf?->{static::UF_COUNTRY} ?? "Неизвестно")
+                ->map(fn($deal) => $deal->crm_company?->companyUf?->{$country_field} ?? "Неизвестно")
                 ->filter()
                 ->unique()
                 ->sort()

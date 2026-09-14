@@ -26,10 +26,9 @@
             </a>
         @else
             <a href="javascript:box({href: '{{ $url }}'})"
-               class="fs-7 badge badge-light-secondary d-inline-flex align-items-center text-decoration-none"
+               class="fs-7 badge badge-light-secondary d-inline-flex align-items-center text-decoration-none bg-hover-light-primary text-hover-primary"
                title="Привязать сделку Битрикс24">
-                <i class="fa-light fa-link-slash fs-8 me-2"></i>
-                Нет сделки
+                <i class="fa-light fa-link-slash fs-8"></i>
             </a>
         @endif
     </div>

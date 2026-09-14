@@ -66,7 +66,7 @@
 
                 <div class="card mb-3">
                     <div class="card-body d-flex justify-content-between">
-                        <h4 class="card-title mb-0">Информация о приложении</h4>
+                          <h4 class="card-title mb-0">Информация о приложении</h4>
                         <div>
                             <x-evaluation.status :evaluation="$evaluation" class="mt-2 mt-sm-0"></x-evaluation.status>
                         </div>
@@ -196,7 +196,7 @@
                 @if(!empty($files))
                     <div class="card">
                         <div class="card-body d-flex justify-content-between align-items-center py-2 pe-2">
-                            <h4 class="card-title mb-0">Файлы</h4>
+                              <h4 class="card-title mb-0">Файлы</h4>
                             <x-ui.a.box href="{{ route('evaluation.box_files', $evaluation) }}" class="p-1 fs-2 px-2" btn_type="info">
                                 <x-ui.icon.regular icon="fa-download" class="me-1"/>
                                 Загрузить
@@ -205,7 +205,7 @@
                         <div class="card-body p-0">
                             @foreach($files as $chr => $row)
                                 <div class="card-body-title py-2 px-2">
-                                    <h4 class="card-title mb-0">{{ $row['presets']['name'] }}</h4>
+                                      <h4 class="card-title mb-0">{{ $row['presets']['name'] }}</h4>
                                 </div>
 
                                 @foreach($row['files'] as $file)
@@ -266,7 +266,7 @@
                     <div class="card object mb-2">
                         <div
                             class="card-body d-flex justify-content-between align-items-center flex-column flex-md-row">
-                            <h4 class="card-title mb-0">
+                              <h4 class="card-title mb-0">
                                 <x-ui.icon.regular icon="fa-industry" class="me-2"></x-ui.icon.regular>
                                 {{ $object->name }}
                             </h4>

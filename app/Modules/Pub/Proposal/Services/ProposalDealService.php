@@ -3,6 +3,10 @@
 namespace App\Modules\Pub\Proposal\Services;
 
 use App\Modules\Bitrix\CrmDeal\Models\CrmDeal;
+use App\Modules\Bitrix\CrmDeal\Services\CrmDealRegistryService;
+use App\Modules\Pub\Constant\Models\Constant;
+use App\Modules\Pub\DealProject\Services\DealProjectService;
+use App\Modules\Pub\EntityLog\Services\EntityLogService;
 use App\Modules\Pub\Proposal\Models\Proposal;
 use App\Modules\Pub\Proposal\Models\ProposalCrmDeal;
 
@@ -19,8 +23,22 @@ use App\Modules\Pub\Proposal\Models\ProposalCrmDeal;
  */
 class ProposalDealService
 {
-    /** Сколько сделок отдавать в выдаче поиска */
+    /**
+     * Сколько сделок отдавать в выдаче поиска.
+     * По умолчанию; рабочее значение — consts.proposal_deal_search_limit (читать через searchLimit())
+     */
     public const SEARCH_LIMIT = 50;
+
+    /**
+     * Сколько строк отдавать в выдаче поиска сделок и КП
+     * (consts.proposal_deal_search_limit, по умолчанию SEARCH_LIMIT)
+     *
+     * @return int
+     */
+    public static function searchLimit(): int
+    {
+        return max(1, Constant::int('proposal_deal_search_limit', static::SEARCH_LIMIT));
+    }
 
     /**
      * Привязки КП: строки pivot с подтянутой сделкой
@@ -75,6 +93,8 @@ class ProposalDealService
         $q = trim((string) ($params['q'] ?? ''));
         $onlyFree = (bool) ($params['only_free'] ?? true);
         $group = $params['proposal_group'] ?? null;
+        $limit = static::searchLimit();
+        $customer_field = 'crm_deal_uf.' . CrmDealRegistryService::ufCustomer();
 
         $builder = CrmDeal::query()
             ->leftJoin('crm_deal_uf', 'crm_deal.id', '=', 'crm_deal_uf.deal_id')
@@ -91,9 +111,9 @@ class ProposalDealService
                 'crm_deal.closedate',
                 'crm_deal.date_create',
                 // конечный заказчик
-                'crm_deal_uf.uf_crm_1717755645 as customer_name',
+                $customer_field . ' as customer_name',
                 // плановый квартал исполнения
-                'crm_deal_uf.uf_crm_1722255711522 as plan_quarter',
+                'crm_deal_uf.' . DealProjectService::ufQuarter() . ' as plan_quarter',
                 // стоимость лицензий (без НДС)
                 'crm_deal_uf.uf_crm_1718977752420 as amount_licenses',
                 // стоимость услуг (с НДС)
@@ -113,11 +133,11 @@ class ProposalDealService
                 $words = preg_split('/\s+/u', $q, -1, PREG_SPLIT_NO_EMPTY);
 
                 foreach ($words as $word) {
-                    $builder->where(function ($builder) use ($word) {
+                    $builder->where(function ($builder) use ($word, $customer_field) {
                         $like = '%' . $word . '%';
                         $builder->where('crm_deal.title', 'like', $like)
                             ->orWhere('crm_deal.company_name', 'like', $like)
-                            ->orWhere('crm_deal_uf.uf_crm_1717755645', 'like', $like);
+                            ->orWhere($customer_field, 'like', $like);
                     });
                 }
             }
@@ -136,9 +156,9 @@ class ProposalDealService
 
         if (!empty($params['company'])) {
             $like = '%' . $params['company'] . '%';
-            $builder->where(function ($builder) use ($like) {
+            $builder->where(function ($builder) use ($like, $customer_field) {
                 $builder->where('crm_deal.company_name', 'like', $like)
-                    ->orWhere('crm_deal_uf.uf_crm_1717755645', 'like', $like);
+                    ->orWhere($customer_field, 'like', $like);
             });
         }
 
@@ -146,7 +166,7 @@ class ProposalDealService
             $builder->whereIn('crm_deal.stage_name', (array) $params['stage']);
         }
 
-        $builder->orderByDesc('crm_deal.date_create')->limit(static::SEARCH_LIMIT * 3);
+        $builder->orderByDesc('crm_deal.date_create')->limit($limit * 3);
 
         $rows = $builder->get();
 
@@ -163,7 +183,7 @@ class ProposalDealService
             $rows = $rows->where('is_taken', false);
         }
 
-        return $rows->take(static::SEARCH_LIMIT)->values();
+        return $rows->take($limit)->values();
     }
 
     /**
@@ -186,7 +206,7 @@ class ProposalDealService
     public static function searchProposals(array $params = [])
     {
         $q = trim((string) ($params['q'] ?? ''));
-        $limit = (int) ($params['limit'] ?? static::SEARCH_LIMIT);
+        $limit = (int) ($params['limit'] ?? static::searchLimit());
 
         $builder = Proposal::query()
             ->latestIteration()
@@ -314,9 +334,10 @@ class ProposalDealService
      */
     public static function detach(Proposal $proposal, int $dealId = null): void
     {
-        ProposalCrmDeal::where('proposal_group', $proposal->group)
+        // patch v29: удаление без событий модели — журнал изменений оборачивается явно (корень — последняя редакция)
+        EntityLogService::around(static::lastProposal($proposal), fn() => ProposalCrmDeal::where('proposal_group', $proposal->group)
             ->when($dealId, fn($builder) => $builder->where('crm_deal_id', $dealId))
-            ->delete();
+            ->delete());
 
         static::syncMain($proposal->group);
     }
@@ -330,12 +351,15 @@ class ProposalDealService
      */
     public static function setMain(Proposal $proposal, int $dealId): void
     {
-        ProposalCrmDeal::where('proposal_group', $proposal->group)
-            ->update(['is_main' => false]);
+        // patch v29: массовый update без событий модели — журнал изменений оборачивается явно (корень — последняя редакция)
+        EntityLogService::around(static::lastProposal($proposal), function () use ($proposal, $dealId) {
+            ProposalCrmDeal::where('proposal_group', $proposal->group)
+                ->update(['is_main' => false]);
 
-        ProposalCrmDeal::where('proposal_group', $proposal->group)
-            ->where('crm_deal_id', $dealId)
-            ->update(['is_main' => true]);
+            ProposalCrmDeal::where('proposal_group', $proposal->group)
+                ->where('crm_deal_id', $dealId)
+                ->update(['is_main' => true]);
+        });
 
         static::syncMain($proposal->group);
     }
@@ -351,18 +375,21 @@ class ProposalDealService
      */
     public static function syncMain(string $group): void
     {
-        $main = ProposalCrmDeal::forGroup($group)->first();
+        // patch v29: массовый update без событий модели — журнал изменений оборачивается явно (корень — последняя редакция)
+        EntityLogService::around(static::lastProposal($group), function () use ($group) {
+            $main = ProposalCrmDeal::forGroup($group)->first();
 
-        // если главная не выбрана, но привязки есть — делаем главной первую
-        if ($main && !$main->is_main) {
-            $main->update(['is_main' => true]);
-        }
+            // если главная не выбрана, но привязки есть — делаем главной первую
+            if ($main && !$main->is_main) {
+                $main->update(['is_main' => true]);
+            }
 
-        Proposal::where('group', $group)->update([
-            'crm_deal_id' => $main?->crm_deal_id,
-            'crm_deal_linked_at' => $main?->linked_at,
-            'crm_deal_linked_by' => $main?->linked_by,
-        ]);
+            Proposal::where('group', $group)->update([
+                'crm_deal_id' => $main?->crm_deal_id,
+                'crm_deal_linked_at' => $main?->linked_at,
+                'crm_deal_linked_by' => $main?->linked_by,
+            ]);
+        });
     }
 
     /**
@@ -438,7 +465,7 @@ class ProposalDealService
             $list = [];
 
             if (empty($deal)) {
-                $errors[$link->crm_deal_id] = ['Сделки нет в выгрузке Битрикса — сверить сумму не с чем'];
+                $errors[$link->crm_deal_id] = ['Сделки нет в выгрузке Битрикс24 — сверить сумму не с чем'];
                 continue;
             }
 
@@ -488,7 +515,7 @@ class ProposalDealService
             'summary' => match (true) {
                 $links->isEmpty() => null,
                 empty($errors) => 'Суммы сходятся: ' . static::money($amount) . ' ' . $currency,
-                default => 'Расхождение с Битриксом: ' . count($errors) . ' сделк(и)',
+                default => 'Расхождение с Битрикс24 по ' . tools()->num_rus(count($errors), ['сделкам', 'сделке', 'сделкам'], 1),
             },
         ];
     }

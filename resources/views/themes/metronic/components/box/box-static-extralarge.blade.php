@@ -10,6 +10,10 @@
                             {!! $title ?? '?' !!}
                         @endif
                     </h4>
+                    {{-- необязательная правая часть шапки: попап задаёт её секцией header_right --}}
+                    @hasSection('header_right')
+                        <div class="ms-auto">@yield('header_right')</div>
+                    @endif
                     <button type="button" class="btn btn-icon btn-sm btn-active-light-primary ms-2" data-bs-dismiss="modal" aria-label="Закрыть">
                         <i class="fa-light fa-xmark fs-3"></i>
                     </button>
@@ -18,15 +22,17 @@
             <div class="modal-body">
                 @yield('body')
             </div>
-            <div class="modal-footer">
-                @hasSection('footer')
-                    @yield('footer')
-                @else
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">
-                        Закрыть
-                    </button>
+                @if(empty($hide_footer))
+                    <div class="modal-footer">
+                        @hasSection('footer')
+                            @yield('footer')
+                        @else
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">
+                                Закрыть
+                            </button>
+                        @endif
+                    </div>
                 @endif
-            </div>
         </div>
     </div>
 </div>

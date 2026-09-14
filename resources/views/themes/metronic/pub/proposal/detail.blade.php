@@ -187,6 +187,7 @@
                                             <h3 class="font-weight-medium text-uppercase m-0">
                                                 КОММЕРЧЕСКОЕ ПРЕДЛОЖЕНИЕ
                                             </h3>
+                                            @if(empty($log_state)){{-- patch v29: в режиме состояния на момент меню действий скрыто --}}
                                             <div class="dropdown-action ms-2 mb-1" style="margin-top: 1px">
                                                 <div class="dropdown todo-action-dropdown">
                                                     <button class="btn btn-link text-dark p-1 text-decoration-none todo-action-dropdown" type="button" id="more-action-1" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -225,11 +226,12 @@
                                                     </div>
                                                 </div>
                                             </div>
+                                            @endif
                                         </div>
 
 
                                         <div class="d-flex align-items-center flex-wrap justify-content-end gap-2">
-                                            <x-proposal.status :proposal="$proposal" editable="1" as="btn"/>
+                                            <x-proposal.status :proposal="$proposal" :editable="empty($log_state) ? 1 : 0" as="btn"/>
                                             <x-proposal.deal :proposal="$proposal" as="btn"/>
                                             <x-proposal.summary :proposal="$proposal"/>
                                         </div>
@@ -317,10 +319,12 @@
                                                                                 @foreach($frame_by_block['license'] as $frame_spec)
                                                                                     <code class="fw-bold" title="Спецификация: {{ $frame_spec->name }}">{{ $frame_spec->contract->number ?? 'б/н' }}</code>
                                                                                 @endforeach
+                                                                                @if(empty($log_state)){{-- patch v29: в режиме состояния на момент спецификацию не прикрепить --}}
                                                                                 <a href="javascript:void(0)" class="ms-1" title="Прикрепить спецификацию по ПО"
                                                                                    onclick="javascript:box({href:'{{ route('contract_spec.box_spec', [$proposal, 'license']) }}'})">
                                                                                     <x-ui.icon.regular icon="{{ $frame_by_block['license']->isEmpty() ? 'fa-link' : 'fa-edit' }}"/>
                                                                                 </a>
+                                                                                @endif
                                                                             </span>
                                                                         </div>
                                                                     </td>
@@ -339,7 +343,7 @@
                                                                     @continue(!$software->count)
                                                                     <tr @class(["bg-light-warning text-warning" => !$software->proposal_software->cb_process])>
                                                                         <td class="text-center align-center">{{ $loop->iteration }}</td>
-                                                                        <td class="align-center fs-3 textarea">{!! $software->proposal_software->description !!}</td>
+                                                                        <td class="align-center fs-6 textarea">{!! $software->proposal_software->description !!}</td>
                                                                         <td class="align-center text-center">
                                                                             <div><nobr>{!! cost_out($software->cost, $proposal) !!}</nobr></div>
                                                                         </td>
@@ -374,7 +378,7 @@
                                                                                     {!! cost_out($software->total, $proposal) !!}
                                                                                 </nobr></div>
                                                                         </td>
-                                                                        <td class="align-center fs-3 text-center textarea">
+                                                                        <td class="align-center fs-6 text-center textarea">
                                                                             @if(!empty($software->proposal_software->notice))
                                                                                 <div class="mb-3">{!! $software->proposal_software->notice !!}</div>
                                                                             @endif
@@ -428,10 +432,12 @@
                                                                                 @foreach($frame_by_block['platform'] as $frame_spec)
                                                                                     <code class="fw-bold" title="Спецификация: {{ $frame_spec->name }}">{{ $frame_spec->contract->number ?? 'б/н' }}</code>
                                                                                 @endforeach
+                                                                                @if(empty($log_state)){{-- patch v29: в режиме состояния на момент спецификацию не прикрепить --}}
                                                                                 <a href="javascript:void(0)" class="ms-1" title="Прикрепить спецификацию по платформе"
                                                                                    onclick="javascript:box({href:'{{ route('contract_spec.box_spec', [$proposal, 'platform']) }}'})">
                                                                                     <x-ui.icon.regular icon="{{ $frame_by_block['platform']->isEmpty() ? 'fa-link' : 'fa-edit' }}"/>
                                                                                 </a>
+                                                                                @endif
                                                                             </span>
                                                                         </div>
                                                                     </td>
@@ -666,10 +672,12 @@
                                                                                 @foreach($frame_by_block['services'] as $frame_spec)
                                                                                     <code class="fw-bold" title="Спецификация: {{ $frame_spec->name }}">{{ $frame_spec->contract->number ?? 'б/н' }}</code>
                                                                                 @endforeach
+                                                                                @if(empty($log_state)){{-- patch v29: в режиме состояния на момент спецификацию не прикрепить --}}
                                                                                 <a href="javascript:void(0)" class="ms-1" title="Прикрепить спецификацию по услугам"
                                                                                    onclick="javascript:box({href:'{{ route('contract_spec.box_spec', [$proposal, 'services']) }}'})">
                                                                                     <x-ui.icon.regular icon="{{ $frame_by_block['services']->isEmpty() ? 'fa-link' : 'fa-edit' }}"/>
                                                                                 </a>
+                                                                                @endif
                                                                             </span>
                                                                         </div>
                                                                     </td>
@@ -802,7 +810,7 @@
                                                                         @endif
                                                                     </td>
                                                                     <td colspan="2"/>
-                                                                    <td class="text-end">
+                                                                    <td class="text-end text-nowrap">
                                                                         <span class="fw-bold">=
                                                                             {!! cost_out($variant->work_cost_total, $proposal) !!}
                                                                         </span>
@@ -817,17 +825,17 @@
                                                                 </tr>
                                                             @endif
 
-                                                            <tr class="fs-3" style="border-top: 4px solid #AAA">
+                                                            <tr class="fs-6" style="border-top: 4px solid #AAA">
                                                                 <td colspan="3"/>
                                                                 <td class="text-end">
-                                                                    <div class="fw-bold fs-3">
+                                                                    <div class="fw-bold fs-6">
                                                                         @if(array_sum($discount_total['customer']) > 0)
                                                                             {!! cost_out(array_sum($discount_total['customer']), $proposal) !!}
                                                                         @endif
                                                                     </div>
                                                                 </td>
                                                                 <td class="text-end">
-                                                                    <div class="fw-bold fs-3">
+                                                                    <div class="fw-bold fs-6">
                                                                         @if(array_sum($discount_total['partner']) > 0)
                                                                             {!! cost_out(array_sum($discount_total['partner']), $proposal) !!}
                                                                         @endif
@@ -835,7 +843,7 @@
                                                                 </td>
                                                                 <td colspan="2"/>
                                                                 <td class="text-end">
-                                                                    <div class="fw-bold fs-3">
+                                                                    <div class="fw-bold fs-6">
                                                                         {!! cost_out(round($variant->cost_total, 2), $proposal) !!}
                                                                     </div>
                                                                     @if($variant->nds_cost_total)
@@ -861,9 +869,11 @@
                                     </div>
                                 @endforeach
 
+                                @if(empty($log_state)){{-- patch v29: в режиме состояния на момент таблицы логов нет --}}
                                 <div class="mt-4">
                                     <x-proposal.log-table :proposal="$proposal" />
                                 </div>
+                                @endif
                 @endif
             </div>
         </div>

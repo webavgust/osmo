@@ -1,0 +1,195 @@
+/*
+ * Рабочий стол (patch v30): библиотека виджетов — панель снизу поверх сетки.
+ * Разметка — pub/desktop/library.blade.php, поведение — osmo-desktop-library.js.
+ *
+ * Высота панели — --desk-lib-height (ставит скрипт; пользователь тянет за верхний край),
+ * не меньше 30 % окна. Левая граница — --desk-lib-left: край области контента, правее
+ * бокового меню. Пока панель открыта, у стола снизу отступ на её высоту — нижний ряд
+ * блоков можно докрутить до видимой части.
+ */
+
+.desk-lib {
+    position: fixed;
+    left: var(--desk-lib-left, 0px);
+    right: 0;
+    bottom: 0;
+    z-index: 1040;
+    height: var(--desk-lib-height, 30vh);
+    min-height: 30vh;
+    max-height: calc(100vh - 80px);
+    display: flex;
+    flex-direction: column;
+    background: var(--bs-body-bg);
+    border-top: 1px solid var(--bs-gray-300);
+    border-radius: .875rem .875rem 0 0;
+    box-shadow: 0 -16px 40px rgba(0, 0, 0, .14);
+    transform: translateY(105%);
+    visibility: hidden;
+    transition: transform .22s ease, visibility 0s linear .22s;
+}
+.desk-lib.is-open {
+    transform: none;
+    visibility: visible;
+    transition: transform .22s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+    .desk-lib, .desk-lib.is-open { transition: none; }
+}
+
+body.desk-lib-open .desk-root { padding-bottom: calc(var(--desk-lib-height, 30vh) + 1.5rem); }
+
+/* верхний край панели: потянуть — изменить высоту */
+.desk-lib-grip {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 14px;
+    z-index: 2;
+    cursor: ns-resize;
+    touch-action: none;
+}
+.desk-lib-grip::before {
+    content: '';
+    position: absolute;
+    top: 5px;
+    left: 50%;
+    width: 44px;
+    height: 4px;
+    margin-left: -22px;
+    border-radius: 99px;
+    background: var(--bs-gray-300);
+    transition: background-color .15s ease;
+}
+.desk-lib-grip:hover::before,
+body.desk-lib-sizing .desk-lib-grip::before { background: var(--bs-primary); }
+body.desk-lib-sizing { cursor: ns-resize; user-select: none; }
+
+/* шапка в одну строку: название, поиск, вкладки категорий, закрыть */
+.desk-lib-head {
+    flex: none;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .6rem 1rem;
+    padding: 1.1rem 1.25rem .7rem;
+    border-bottom: 1px solid var(--bs-gray-200);
+}
+.desk-lib-title { flex: none; font-size: 1.1rem; font-weight: 700; color: var(--bs-gray-900); white-space: nowrap; }
+.desk-lib-search-wrap { position: relative; flex: 0 1 260px; min-width: 180px; }
+.desk-lib-close { flex: none; margin-left: auto; }
+
+.desk-lib-tabs {
+    flex: 1 1 360px;
+    min-width: 0;
+    display: flex;
+    gap: .35rem;
+    overflow-x: auto;
+    padding-bottom: .15rem;
+    scrollbar-width: thin;
+}
+.desk-lib-tab {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .3rem .65rem;
+    border: 1px solid var(--bs-gray-200);
+    border-radius: 999px;
+    background: var(--bs-body-bg);
+    color: var(--bs-gray-700);
+    font-size: .8rem;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+}
+.desk-lib-tab:hover { color: var(--bs-primary); border-color: var(--bs-primary); }
+.desk-lib-tab:focus-visible { outline: 2px solid var(--bs-primary); outline-offset: 2px; }
+.desk-lib-tab.active { background: var(--bs-primary); border-color: var(--bs-primary); color: #fff; }
+.desk-lib-count { font-size: .72rem; opacity: .7; font-variant-numeric: tabular-nums; }
+
+.desk-lib-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: .25rem 1.25rem 1.5rem;
+}
+
+/* категория: карточки сеткой во всю ширину панели */
+.desk-lib-cat {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: .75rem;
+    padding-top: .75rem;
+}
+.desk-lib-cat-head { grid-column: 1 / -1; margin: .25rem 0 0; }
+.desk-lib-cat-name { font-size: .8rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--bs-gray-600); }
+.desk-lib-cat-desc { font-size: .8rem; color: var(--bs-gray-500); margin-top: .15rem; }
+
+.desk-lib-item {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    border: 1px solid var(--bs-gray-200);
+    border-radius: .625rem;
+    background: var(--bs-body-bg);
+    overflow: hidden;
+}
+.desk-lib-item:hover { border-color: var(--bs-primary); }
+
+/* превью: блок в своём масштабе на фоне с точками сетки */
+.desk-lib-preview-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 96px;
+    padding: .9rem;
+    background-color: var(--bs-gray-100);
+    background-image: radial-gradient(var(--bs-gray-300) 1px, transparent 1.2px);
+    background-size: 14px 14px;
+}
+.desk-lib-preview { position: relative; flex: none; max-width: 100%; }
+.desk-lib-preview .desk-widget { box-shadow: 0 2px 6px rgba(0, 0, 0, .06); }
+.desk-lib-film {
+    position: absolute;
+    inset: 0;
+    cursor: grab;
+    z-index: 2;
+}
+.desk-lib-film:active { cursor: grabbing; }
+
+.desk-lib-info { flex: 1 1 auto; padding: .7rem .9rem .8rem; border-top: 1px solid var(--bs-gray-200); }
+.desk-lib-name { font-weight: 600; color: var(--bs-gray-900); line-height: 1.3; }
+.desk-lib-desc { font-size: .8rem; color: var(--bs-gray-600); margin-top: .2rem; line-height: 1.35; }
+.desk-lib-sizes { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .55rem; }
+.desk-lib-size {
+    border: 0;
+    cursor: pointer;
+    font-variant-numeric: tabular-nums;
+}
+.desk-lib-size:hover { background: var(--bs-primary); color: #fff; }
+
+.desk-lib-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 3rem 1rem;
+    color: var(--bs-gray-500);
+}
+
+/* помощник перетаскивания: только превью, с тенью */
+.desk-lib-helper {
+    border: 0;
+    margin: 0;
+    background: transparent;
+    z-index: 10050 !important;
+    pointer-events: none;
+}
+.desk-lib-helper .desk-lib-preview { box-shadow: 0 18px 40px rgba(0, 0, 0, .2); border-radius: .625rem; }
+body.desk-lib-dragging .desk-lib { opacity: .55; }
+
+@media (max-width: 575.98px) {
+    .desk-lib-cat { grid-template-columns: 1fr; }
+    .desk-lib-search-wrap { flex-basis: 100%; }
+}

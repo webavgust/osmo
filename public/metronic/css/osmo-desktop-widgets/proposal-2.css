@@ -1,0 +1,153 @@
+/*
+ * Рабочий стол (patch v30): стили виджетов КП, группа proposal-2 —
+ * proposal_status, proposals_aging, proposals_by_manager, proposals_mine, proposals_nodeal, proposals_recent.
+ * Каждый селектор начинается с .desk-widget[data-widget="{id}"], кегль — контейнерными единицами.
+ */
+
+/*** КП ПО СТАТУСАМ — proposal_status ***/
+
+/* низкий блок, одна строка: подписи статусов — в широком, конверсия — от 320 px */
+.desk-widget[data-widget="proposal_status"] .ps-line-label,
+.desk-widget[data-widget="proposal_status"] .ps-line-conv { display: none; }
+/* узкая строка: три значка статусов не влезают — остаются цвет бейджа и число */
+@container dw (max-width: 230px) {
+    .desk-widget[data-widget="proposal_status"] .ps-line-icon { display: none; }
+}
+@container dw (min-width: 320px) {
+    .desk-widget[data-widget="proposal_status"] .ps-line-conv { display: revert; }
+}
+@container dw (min-width: 580px) {
+    .desk-widget[data-widget="proposal_status"] .ps-line-label { display: revert; }
+}
+
+/* плитки: по умолчанию 2×2; вытянутый по ширине блок — в ряд, по высоте — в колонку */
+.desk-widget[data-widget="proposal_status"] .ps-tiles {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: minmax(0, 1fr);
+    gap: .45rem .75rem;
+    min-height: 0;
+}
+@container dw (min-aspect-ratio: 2/1) {
+    .desk-widget[data-widget="proposal_status"] .ps-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@container dw (max-aspect-ratio: 7/10) {
+    .desk-widget[data-widget="proposal_status"] .ps-tiles { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* плитка — сама контейнер: число и подписи считаются от её размера */
+.desk-widget[data-widget="proposal_status"] .ps-tile {
+    container-type: size;
+    container-name: pstile;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: .15rem;
+}
+.desk-widget[data-widget="proposal_status"] .ps-head { display: flex; align-items: center; gap: .4rem; min-width: 0; }
+.desk-widget[data-widget="proposal_status"] .ps-num {
+    font-size: calc(clamp(13px, min(22cqw, 42cqh), 64px) * var(--desk-font-scale));
+}
+.desk-widget[data-widget="proposal_status"] .ps-sub { display: none; white-space: nowrap; }
+
+/* высокая плитка — доля под числом */
+@container pstile (min-height: 82px) {
+    .desk-widget[data-widget="proposal_status"] .ps-sub { display: block; }
+    .desk-widget[data-widget="proposal_status"] .ps-num { font-size: calc(clamp(13px, min(22cqw, 36cqh), 64px) * var(--desk-font-scale)); }
+}
+
+/* низкая плитка — точка и число в строку, подпись уходит в подсказку */
+@container pstile (max-height: 44px) {
+    .desk-widget[data-widget="proposal_status"] .ps-tile { flex-direction: row; align-items: center; justify-content: flex-start; gap: .4rem; }
+    .desk-widget[data-widget="proposal_status"] .ps-name { display: none; }
+    .desk-widget[data-widget="proposal_status"] .ps-num { font-size: calc(clamp(13px, min(20cqw, 70cqh), 64px) * var(--desk-font-scale)); }
+}
+/* узкая плитка — подпись не влезет, остаётся точка */
+@container pstile (max-width: 70px) {
+    .desk-widget[data-widget="proposal_status"] .ps-name { display: none; }
+}
+
+/*** ВОЗРАСТ КП — proposals_aging ***/
+
+/* число и сводка сбоку (низкий и широкий низкий блок): не шире половины */
+.desk-widget[data-widget="proposals_aging"] .pa-side { max-width: 45%; }
+.desk-widget[data-widget="proposals_aging"] .pa-chips { min-width: 0; }
+
+/* список корзин: в высоком блоке строки расходятся по высоте, а не жмутся кверху */
+.desk-widget[data-widget="proposals_aging"] .pa-spread { display: flex; flex-direction: column; }
+@container dw (min-height: 380px) {
+    .desk-widget[data-widget="proposals_aging"] .pa-spread { justify-content: space-around; }
+}
+
+/* плитки корзин справа от числа */
+.desk-widget[data-widget="proposals_aging"] .pa-tiles > a {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: .2rem;
+}
+
+/* столбики корзин */
+.desk-widget[data-widget="proposals_aging"] .pa-bars { min-height: 0; }
+.desk-widget[data-widget="proposals_aging"] .pa-col {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .25rem;
+    text-align: center;
+}
+.desk-widget[data-widget="proposals_aging"] .pa-track {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: min(100%, 3.5rem);
+    position: relative;
+    display: block;
+    background: var(--bs-gray-100);
+    border-radius: .35rem;
+    overflow: hidden;
+}
+.desk-widget[data-widget="proposals_aging"] .pa-track > i {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: block;
+    min-height: 2px;
+    border-radius: .35rem .35rem 0 0;
+}
+.desk-widget[data-widget="proposals_aging"] .pa-col-share { display: none; }
+@container dw (min-height: 300px) {
+    .desk-widget[data-widget="proposals_aging"] .pa-col-share { display: revert; }
+}
+
+/* средняя высота с чипами: число ниже, иначе в широком блоке чипы уходят за нижний край */
+.desk-widget[data-widget="proposals_aging"] .pa-value-chips {
+    font-size: calc(clamp(15px, min(13cqw, 24cqh), 64px) * var(--desk-font-scale));
+}
+
+/*** КП ПО МЕНЕДЖЕРАМ — proposals_by_manager ***/
+
+/* число менеджеров в итоговой строке — только когда вся строка влезает */
+.desk-widget[data-widget="proposals_by_manager"] .pbm-managers { display: none; }
+@container dw (min-width: 340px) {
+    .desk-widget[data-widget="proposals_by_manager"] .pbm-managers { display: revert; }
+}
+
+/*** КП БЕЗ СДЕЛКИ — proposals_nodeal ***/
+
+/* счётчик слева от таблицы или номеров: не шире трети блока */
+.desk-widget[data-widget="proposals_nodeal"] .nd-side { max-width: 34%; }
+.desk-widget[data-widget="proposals_nodeal"] .nd-chips { min-width: 0; }
+
+/* счётчик над списком: ниже обычного, чтобы под ним уместились строки */
+.desk-widget[data-widget="proposals_nodeal"] .nd-value-list {
+    font-size: calc(clamp(15px, min(13cqw, 20cqh), 64px) * var(--desk-font-scale));
+}

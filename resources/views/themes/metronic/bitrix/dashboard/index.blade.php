@@ -12,7 +12,9 @@
 @endsection
 
 @section('content')
-    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    {{-- версия закреплена: без неё CDN отдавал ApexCharts 5, который конфликтует с SVG.js из бандла
+         Metronic — при первой же перерисовке (resize) падал «e.put is not a function» и график пропадал --}}
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.54.1/dist/apexcharts.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
     <div id="dashboard">
@@ -38,10 +40,10 @@
         <div class="row g-4">
             <div class="col-12 col-xxl-6">
                 <div class="card">
-                    <div class="card-header min-h-auto align-items-end">
-                        <h3 class="card-title align-items-start flex-column mb-3 mt-5">
+                    <div class="card-header min-h-auto pt-5 pb-0 border-bottom d-flex justify-content-between align-items-center">
+                        <h4 class="mb-5">
                             <span class="card-label fw-bold text-gray-900">Кварталы</span>
-                        </h3>
+                        </h4>
                         <div class="card-toolbar m-0">
                             <ul class="nav nav-tabs nav-line-tabs nav-stretch border-0 fs-6 fw-semibold" role="tablist">
                                 <li class="nav-item">
@@ -72,10 +74,10 @@
 
             <div class="col-12 col-xxl-6">
                 <div class="card">
-                    <div class="card-header min-h-auto align-items-end">
-                        <h3 class="card-title align-items-start flex-column mb-3 mt-5">
+                    <div class="card-header min-h-auto pt-5 pb-0 border-bottom d-flex justify-content-between align-items-center">
+                        <h4 class="mb-5">
                             <span class="card-label fw-bold text-gray-900">6 месяцев</span>
-                        </h3>
+                        </h4>
                         <div class="card-toolbar m-0">
                             <ul class="nav nav-tabs nav-line-tabs nav-stretch border-0 fs-6 fw-semibold" role="tablist">
                                 <li class="nav-item">
@@ -112,31 +114,30 @@
     <div class="d-flex align-items-center flex-wrap gap-2">
 
         @if($deals_issues->count())
-            <x-ui.a.box href="{{ route('crm-deal.box.issues') }}" btn_type="danger" class="fw-bold">
-                <i class="fa-light fa-triangle-exclamation text-white me-2"></i>
+            <x-ui.a.box href="{{ route('crm-deal.box.issues') }}" btn_type="danger" class="fw-bold d-flex align-items-center">
+                <i class="fa-solid fa-triangle-exclamation text-white"></i>
                 <span>{{ $deals_issues->count() }}</span>
             </x-ui.a.box>
         @endif
 
-        <x-ui.a.box href="{{ route('dashboard.box.currency') }}" btn_type="light-success" class="fw-bold">
-            <i class="fa-solid fa-ruble-sign me-2"></i>
+        <x-ui.a.box href="{{ route('dashboard.box.currency') }}" btn_type="light-info" class="fw-bold d-flex align-items-center">
             {{ $currency->slug }} ({{ $currency->symbol }})
         </x-ui.a.box>
 
-        <x-ui.a.box href="{{ route('dashboard.box.filter') }}" :btn_type="empty($filter) ? 'light' : 'success'" class="fw-bold">
-            <i class="fa-light fa-filter me-2"></i>
+        <x-ui.a.box href="{{ route('dashboard.box.filter') }}" btn_type="light-info" class="fw-bold d-flex align-items-center">
+            <i class="fa-light fa-filter"></i>
             Фильтр
             @if(!empty($filter))
-                ({{ count($filter) }})
+                <span class="count filter-count">{{ count($filter) }}</span>
             @endif
         </x-ui.a.box>
 
         @if(!empty($filter))
             <x-ui.a.ajax url="{{ route('api.bitrix.dashboard.remove_filter') }}" reload="1"
                          confirm-message="Вы действительно хотите убрать фильтр?"
-                         class="btn btn-light-danger fw-bold">
-                <i class="fa-light fa-xmark me-2"></i>
-                Убрать
+                         btn_type="link" class="p-0 me-2 text-dark-500 text-hover-dark">
+                {{-- компонент всегда даёт .btn: btn-link без отступов выглядит простой ссылкой --}}
+                <i class="fa-light fa-xmark fs-5 me-2" aria-hidden="true"></i> Убрать
             </x-ui.a.ajax>
         @endif
 

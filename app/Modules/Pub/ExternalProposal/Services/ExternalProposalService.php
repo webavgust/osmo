@@ -2,6 +2,7 @@
 
 namespace App\Modules\Pub\ExternalProposal\Services;
 
+use App\Modules\Pub\Constant\Models\Constant;
 use App\Modules\Pub\Currency\Models\Currency;
 use App\Modules\Pub\Currency\Repository\CurrencyRepository;
 use App\Modules\Pub\ExternalProposal\Mappers\OsmoviewCpMapper;
@@ -12,6 +13,7 @@ use App\Modules\Pub\Proposal\Repositories\ProposalRepository;
 use App\Modules\Pub\ProposalVariantExtraPay\Services\ProposalVariantExtraPayService;
 use App\Modules\Pub\User\Models\User;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -29,14 +31,47 @@ class ExternalProposalService
 {
     public const SOURCE = ExternalProposal::SOURCE_OSMOVIEW_CP;
 
-    /** Сколько detail тянуть за один sync (чтобы не упереться в таймаут запроса) */
+    /**
+     * Сколько detail тянуть за один sync (чтобы не упереться в таймаут запроса).
+     * По умолчанию; рабочее значение — consts.osmoview_detail_batch (читать через detailBatch())
+     */
     public const DETAIL_BATCH = 30;
+
+    /**
+     * Отбор «Перенесено» (patch v27).
+     *
+     * Значения прежние (`all|yes|no`) — их понимает scope `transferred()`,
+     * поменялись только подписи: теперь это обычное правило фильтра.
+     */
+    public const TRANSFERRED = [
+        'all' => 'не важно',
+        'yes' => 'да',
+        'no' => 'нет',
+    ];
+
+    /** Значения фильтра по умолчанию: пусто / «не важно» (patch v27) */
+    public const DEFAULTS = [
+        'q' => '',
+        'currency' => '',
+        'license' => '',
+        'transferred' => 'all',
+    ];
 
     private OsmoviewCpClient $client;
 
     public function __construct(?OsmoviewCpClient $client = null)
     {
         $this->client = $client ?? new OsmoviewCpClient();
+    }
+
+    /**
+     * Сколько detail тянуть за один sync (consts.osmoview_detail_batch, по умолчанию DETAIL_BATCH)
+     *
+     * @return int
+     */
+    public static function detailBatch(): int
+    {
+        return max(1, Constant::int('osmoview_detail_batch', static::DETAIL_BATCH));
     }
 
     /*** SYNC ***/
@@ -68,7 +103,7 @@ class ExternalProposalService
                         ->orWhereColumn('fetched_at', '<', 'updated_at_remote');
                 })
                 ->orderBy('updated_at_remote', 'desc')
-                ->limit(static::DETAIL_BATCH)
+                ->limit(static::detailBatch())
                 ->get();
 
             foreach ($pending as $external) {
@@ -364,9 +399,103 @@ class ExternalProposalService
     /*** LIST ***/
 
     /**
+     * Привести отбор к нормальному виду (patch v27)
+     *
+     * @param Request|array|null $input
+     * @return array q, currency, license, transferred
+     */
+    public static function params($input = null): array
+    {
+        $input = $input instanceof Request ? $input->all() : (array) $input;
+
+        // валюта — код из payload: приводим к виду «USD», список не сверяем
+        // (незнакомая валюта просто ничего не найдёт)
+        $currency = strtoupper(preg_replace('/[^A-Za-z]/', '', (string) ($input['currency'] ?? '')));
+
+        $license = trim((string) ($input['license'] ?? ''));
+        if (!array_key_exists($license, ExternalProposal::LICENSE_TYPES)) {
+            $license = static::DEFAULTS['license'];
+        }
+
+        $transferred = trim((string) ($input['transferred'] ?? ''));
+        if (!array_key_exists($transferred, static::TRANSFERRED)) {
+            $transferred = static::DEFAULTS['transferred'];
+        }
+
+        return [
+            'q' => trim((string) ($input['q'] ?? '')),
+            'currency' => $currency,
+            'license' => $license,
+            'transferred' => $transferred,
+        ];
+    }
+
+    /**
+     * Фильтр отличается от значений по умолчанию (patch v27)
+     *
+     * @param array $params
+     * @return bool
+     */
+    public static function filtered(array $params): bool
+    {
+        foreach (static::DEFAULTS as $key => $default) {
+            if (($params[$key] ?? $default) !== $default) return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Валюты из самих записей (patch v27).
+     *
+     * Отдельной колонки нет — валюта лежит в payload, поэтому список
+     * собирается из загруженных detail (аксессор подставляет RUB, если поля
+     * в payload нет). Записей десятки, выборка дешёвая.
+     *
+     * @return array ['EUR', 'RUB', 'USD']
+     */
+    public static function currencies(): array
+    {
+        return ExternalProposal::source(static::SOURCE)
+            ->whereNotNull('payload')
+            ->get(['id', 'payload'])
+            ->filter(fn(ExternalProposal $row) => $row->has_payload)
+            ->map(fn(ExternalProposal $row) => $row->currency)
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Списки для фильтра страницы (patch v27).
+     *
+     * Пары id/name — их ждёт `x-ui.select.single`.
+     *
+     * @return array currencies, licenses, transferred_list
+     */
+    public static function options(): array
+    {
+        return [
+            'currencies' => collect(static::currencies())
+                ->map(fn($code) => ['id' => $code, 'name' => $code])
+                ->values()
+                ->all(),
+            'licenses' => collect(ExternalProposal::LICENSE_TYPES)
+                ->map(fn($row, $code) => ['id' => $code, 'name' => $row['label']])
+                ->values()
+                ->all(),
+            'transferred_list' => collect(static::TRANSFERRED)
+                ->map(fn($label, $code) => ['id' => $code, 'name' => $label])
+                ->values()
+                ->all(),
+        ];
+    }
+
+    /**
      * Строки для таблицы
      *
-     * @param array $params q, transferred (yes|no|all)
+     * @param array $params q, transferred (yes|no|all), currency, license (patch v27)
      * @return Collection<ExternalProposal>
      */
     public function rows(array $params = []): Collection
@@ -387,7 +516,23 @@ class ExternalProposalService
             });
         }
 
-        return $builder->orderBy('updated_at_remote', 'desc')->orderBy('id', 'desc')->get();
+        $rows = $builder->orderBy('updated_at_remote', 'desc')->orderBy('id', 'desc')->get();
+
+        // Валюта и тип лицензий живут в JSON-поле payload, отдельных колонок
+        // нет — поэтому по ним фильтруется уже собранная коллекция (записей
+        // десятки, это дешевле и понятнее JSON-запросов к MySQL).
+        // Записи без detail под такой отбор не попадают: валюты у них нет.
+        $currency = strtoupper(trim((string) ($params['currency'] ?? '')));
+        if ($currency !== '') {
+            $rows = $rows->filter(fn(ExternalProposal $row) => $row->has_payload && $row->currency === $currency);
+        }
+
+        $license = trim((string) ($params['license'] ?? ''));
+        if ($license !== '') {
+            $rows = $rows->filter(fn(ExternalProposal $row) => $row->has_payload && $row->license_type === $license);
+        }
+
+        return $rows->values();
     }
 
     /*** HELPERS ***/

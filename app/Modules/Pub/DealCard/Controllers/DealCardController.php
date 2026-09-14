@@ -3,12 +3,14 @@
 namespace App\Modules\Pub\DealCard\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Pub\Breadcrumbs\Traits\HasBreadcrumb;
 use App\Modules\Pub\DealCard\Services\DealChainService;
 use App\Modules\Pub\Proposal\Models\Proposal;
 use Illuminate\Support\Facades\View;
 
 class DealCardController extends Controller
 {
+    use HasBreadcrumb;
     /**
      * Сводная информация по сделке
      *
@@ -17,11 +19,15 @@ class DealCardController extends Controller
      */
     public function index(Proposal $proposal)
     {
+        $this->breadcrumb_add(route('proposal.detail', $proposal), $proposal->name);
+        $this->breadcrumb_add(null, "Сводная информация");
+
         $data = DealChainService::build($proposal);
 
         return View::make('pub.deal_card.index', array_merge($data, [
             'title' => 'Сводная информация: ' . ($data['proposal']->name ?? ''),
             'bottleneck' => DealChainService::bottleneck($data['steps']),
+            'breadcrumbs' => $this->breadcrumb
         ]));
     }
 }

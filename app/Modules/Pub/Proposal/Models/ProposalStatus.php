@@ -12,14 +12,16 @@ namespace App\Modules\Pub\Proposal\Models;
  *
  * «Выиграно» теперь ставится и автоматически — при прикреплении КП к
  * спецификации рамочного договора (см. SpecProposalService).
+ *
+ * Патч v27: остались три статуса — «В работе», «Выиграно», «Проиграно».
+ * «Заморожено» и «Отменено» стали причинами проигрыша (ProposalLostReason);
+ * записи переведены миграцией patch_v27_proposal_status.sql.
  */
 enum ProposalStatus: string
 {
     case IN_WORK = 'in_work';
     case WON = 'won';
     case LOST = 'lost';
-    case FROZEN = 'frozen';
-    case CANCELED = 'canceled';
 
     public function data(): array
     {
@@ -28,7 +30,7 @@ enum ProposalStatus: string
                 'label' => 'В работе',
                 'color' => 'secondary',
                 'sort' => __LINE__,
-                'icon' => 'fa-pen-ruler',
+                'icon' => 'fa-play',
                 'final' => false,
             ],
             ProposalStatus::WON => [
@@ -44,22 +46,6 @@ enum ProposalStatus: string
                 'color' => 'danger',
                 'sort' => __LINE__,
                 'icon' => 'fa-thumbs-down',
-                'final' => true,
-                'need_reason' => true,
-            ],
-            ProposalStatus::FROZEN => [
-                'label' => 'Заморожено',
-                'color' => 'warning',
-                'sort' => __LINE__,
-                'icon' => 'fa-snowflake',
-                'final' => false,
-                'need_reason' => true,
-            ],
-            ProposalStatus::CANCELED => [
-                'label' => 'Отменено',
-                'color' => 'dark',
-                'sort' => __LINE__,
-                'icon' => 'fa-ban',
                 'final' => true,
                 'need_reason' => true,
             ],

@@ -3,6 +3,7 @@
 namespace App\Modules\Pub\ContractSpecification\Models;
 
 use App\Models\ModuleModel;
+use App\Models\Traits\HasLogger;
 use App\Modules\Pub\Company\Models\Company;
 use App\Modules\Pub\Contract\Models\Contract;
 use App\Modules\Pub\Contract\Models\ContractType;
@@ -20,6 +21,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class ContractSpecification extends ModuleModel
 {
+    use HasLogger;
+
     public $timestamps = false;
     protected $fillable = ['name', 'date_create', 'amount', 'status', 'is_signed', 'report_data', 'currency'];
     protected $casts = ['is_signed' => 'boolean', 'report_data' => 'json', 'date_create' => 'date'];
@@ -71,7 +74,10 @@ class ContractSpecification extends ModuleModel
 
     public function canDelete()
     {
-        return is_admin();
+        // patch v28: раньше is_admin(), но «админом» был каждый (право super_user у всех).
+        // Признак админа стал доступом в админ-панель, а удаление спецификаций владелец
+        // оставил всем пользователям портала
+        return auth()->check();
     }
 
     public function getAmountPastAttribute()
@@ -123,5 +129,53 @@ class ContractSpecification extends ModuleModel
     public function getDateAttribute()
     {
         return $this->date_create ?? $this->contract?->date;
+    }
+
+    /*** ЖУРНАЛ ИЗМЕНЕНИЙ (patch v29) ***/
+
+    public static function logParentRelation(): ?string
+    {
+        return 'contract';
+    }
+
+    public static function logLabel(): string
+    {
+        return 'Спецификация';
+    }
+
+    public function logTitle(?int $index = null): string
+    {
+        $name = static::logText($this->name, 80);
+
+        return 'Спецификация «' . ($name !== '' ? $name : '#' . $this->id) . '»';
+    }
+
+    public static function logChildren(): array
+    {
+        return [
+            'payments' => Payment::class,
+            'contract_specification_scenarios' => ContractSpecificationScenario::class,
+            'proposal_links' => ContractSpecificationProposal::class,
+            'license_keys' => LicenseKey::class,
+        ];
+    }
+
+    public static function logIgnore(): array
+    {
+        return ['report_data', 'project_configuration_id'];
+    }
+
+    public static function logFields(): array
+    {
+        return [
+            'name' => ['label' => 'Название'],
+            'status' => ['label' => 'Статус', 'enum' => ContractSpecificationStatus::class],
+            'company_id' => ['label' => 'Компания', 'relation' => 'company'],
+            'currency_slug' => ['label' => 'Валюта', 'relation' => 'currency', 'title' => 'name'],
+            'date_create' => ['label' => 'Дата', 'type' => 'date'],
+            'is_signed' => ['label' => 'Подписана', 'type' => 'bool'],
+            'amount' => ['label' => 'Сумма', 'type' => 'money'],
+            'closed_at' => ['label' => 'Дата закрытия', 'type' => 'date'],
+        ];
     }
 }

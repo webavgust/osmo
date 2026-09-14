@@ -35,6 +35,7 @@
     {{-- Прикладные стили проекта --}}
     <link href="/css/app.css" rel="stylesheet" />
     <link href="/css/fix.css" rel="stylesheet" />
+    <link href="/css/palette.css" rel="stylesheet" />
 
     {{-- Левое меню (в бандле demo48 стилей app-sidebar нет — они здесь) --}}
     <link href="/metronic/css/osmo-sidebar.css" rel="stylesheet" />

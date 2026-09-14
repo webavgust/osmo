@@ -921,7 +921,7 @@
                                                                     <div class="fs-7 mt-1">Альтернативное название (отображается в КП)</div>
                                                                     <input name="scenario[{{ $i }}][mnemonic_name]"
                                                                            type="text"
-                                                                           class="form-control fs-2 py-1 px-2"
+                                                                           class="form-control fs-7 py-1 px-2"
                                                                            value="{{ $scenario['mnemonic_name'] ?? '' }}">
                                                                 </div>
 

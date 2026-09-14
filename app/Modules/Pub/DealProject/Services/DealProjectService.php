@@ -3,7 +3,9 @@
 namespace App\Modules\Pub\DealProject\Services;
 
 use App\Modules\Bitrix\CrmDeal\Models\CrmDeal;
+use App\Modules\Pub\EntityLog\Services\EntityLogService;
 use App\Modules\Pub\Company\Models\Company;
+use App\Modules\Pub\Constant\Models\Constant;
 use App\Modules\Pub\ContractSpecification\Models\ContractSpecification;
 use App\Modules\Pub\ContractSpecification\Models\ContractSpecificationProposal;
 use App\Modules\Pub\DealProject\Models\DealProject;
@@ -42,10 +44,16 @@ class DealProjectService
         'Completed',
     ];
 
-    /** Поле сделки «Плановый квартал исполнения» */
+    /**
+     * Поле сделки «Плановый квартал исполнения».
+     * По умолчанию; рабочее значение — consts.bitrix_uf_quarter (читать через ufQuarter())
+     */
     public const UF_QUARTER = 'uf_crm_1722255711522';
 
-    /** Поле сделки «Конечный заказчик» (название текстом) */
+    /**
+     * Поле сделки «Конечный заказчик» (название текстом).
+     * По умолчанию; рабочее значение — consts.bitrix_uf_customer (читать через ufCustomer())
+     */
     public const UF_CUSTOMER = 'uf_crm_1717755645';
 
     /** Карта «сделка → проект» на время запроса */
@@ -53,6 +61,32 @@ class DealProjectService
 
     /** Карта «компания Битрикса → партнёр» на время запроса */
     protected static ?array $partners = null;
+
+    /**
+     * Поле crm_deal_uf «Плановый квартал исполнения» (consts.bitrix_uf_quarter, по умолчанию UF_QUARTER).
+     * Имя подставляется в SQL как колонка, поэтому допускаются только латиница, цифры и `_`.
+     *
+     * @return string
+     */
+    public static function ufQuarter(): string
+    {
+        $field = trim((string) Constant::value('bitrix_uf_quarter', static::UF_QUARTER));
+
+        return preg_match('/^[a-z0-9_]+$/i', $field) ? $field : static::UF_QUARTER;
+    }
+
+    /**
+     * Поле crm_deal_uf «Конечный заказчик» (consts.bitrix_uf_customer, по умолчанию UF_CUSTOMER).
+     * Та же константа, что у реестра сделок (CrmDealRegistryService::ufCustomer()).
+     *
+     * @return string
+     */
+    public static function ufCustomer(): string
+    {
+        $field = trim((string) Constant::value('bitrix_uf_customer', static::UF_CUSTOMER));
+
+        return preg_match('/^[a-z0-9_]+$/i', $field) ? $field : static::UF_CUSTOMER;
+    }
 
     /**
      * Карта «id сделки → проект».
@@ -201,7 +235,7 @@ class DealProjectService
     public static function customerName(CrmDeal $deal): ?string
     {
         // в реестре поле уже выбрано алиасом customer_name, иначе тянем UF
-        return $deal->customer_name ?? $deal->dealUf?->{static::UF_CUSTOMER};
+        return $deal->customer_name ?? $deal->dealUf?->{static::ufCustomer()};
     }
 
     /**
@@ -488,7 +522,8 @@ class DealProjectService
         $id = (int) ($deal instanceof CrmDeal ? $deal->id : $deal);
         $project = static::forDeal($id);
 
-        DealProjectDeal::where('crm_deal_id', $id)->delete();
+        // массовое удаление не вызывает событий модели — журнал проекта отмечаем сами
+        EntityLogService::around($project, fn() => DealProjectDeal::where('crm_deal_id', $id)->delete());
         static::flush();
 
         // спецификации из КП открепившейся сделки больше не «прибиты»
@@ -571,9 +606,10 @@ class DealProjectService
 
         $keep = $locked->merge($manual)->unique()->values();
 
-        DealProjectSpecification::where('deal_project_id', $project->id)
+        // массовые delete/update не вызывают событий модели — журнал проекта отмечаем сами
+        EntityLogService::around($project, fn() => DealProjectSpecification::where('deal_project_id', $project->id)
             ->whereNotIn('contract_specification_id', $keep->all() ?: [0])
-            ->delete();
+            ->delete());
 
         $exists = DealProjectSpecification::where('deal_project_id', $project->id)
             ->pluck('from_proposal', 'contract_specification_id');
@@ -592,9 +628,9 @@ class DealProjectService
 
             // признак мог смениться: КП прикрепили или открепили
             if ((bool) $exists->get($spec_id) !== $from_proposal) {
-                DealProjectSpecification::where('deal_project_id', $project->id)
+                EntityLogService::around($project, fn() => DealProjectSpecification::where('deal_project_id', $project->id)
                     ->where('contract_specification_id', $spec_id)
-                    ->update(['from_proposal' => $from_proposal]);
+                    ->update(['from_proposal' => $from_proposal]));
             }
         }
     }

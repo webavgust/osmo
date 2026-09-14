@@ -3,12 +3,15 @@
 namespace App\Modules\Pub\Partner\Models;
 
 use App\Models\ModuleModel;
+use App\Models\Traits\HasLogger;
 use App\Modules\Pub\Company\Models\Company;
 use App\Modules\Pub\Contract\Models\Contract;
 use Illuminate\Database\Eloquent\Builder;
 
 class Partner extends ModuleModel
 {
+    use HasLogger;
+
     protected $fillable = ['active', 'name', 'region', 'type', 'grade', 'contact', 'phone'];
     protected $searchable = ["name", "region"];
     protected $casts = ['active' => 'bool'];
@@ -73,4 +76,36 @@ class Partner extends ModuleModel
         return $builder;
     }
 
+    /*** ЖУРНАЛ ИЗМЕНЕНИЙ (patch v29) ***/
+
+    public static function logLabel(): string
+    {
+        return 'Партнёр';
+    }
+
+    public function logUrl(): ?string
+    {
+        return route('partner.detail', $this);
+    }
+
+    public static function logChildren(): array
+    {
+        return [
+            'contracts' => Contract::class,
+            'crm_companies' => PartnerCrmCompany::class,
+        ];
+    }
+
+    public static function logFields(): array
+    {
+        return [
+            'active' => ['label' => 'Активность', 'type' => 'bool'],
+            'name' => ['label' => 'Название'],
+            'type' => ['label' => 'Тип партнёра', 'enum' => PartnerType::class],
+            'grade' => ['label' => 'Уровень партнёрства', 'enum' => PartnerGrade::class],
+            'region' => ['label' => 'Регион'],
+            'contact' => ['label' => 'Контактное лицо'],
+            'phone' => ['label' => 'Телефон'],
+        ];
+    }
 }

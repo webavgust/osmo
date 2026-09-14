@@ -3,6 +3,7 @@
 namespace App\Modules\Pub\DealProject\Models;
 
 use App\Models\ModuleModel;
+use App\Models\Traits\HasLogger;
 use App\Modules\Bitrix\CrmDeal\Models\CrmDeal;
 use App\Modules\Pub\Company\Models\Company;
 use App\Modules\Pub\Partner\Models\Partner;
@@ -22,6 +23,8 @@ use Illuminate\Support\Collection;
  */
 class DealProject extends ModuleModel
 {
+    use HasLogger;
+
     protected $table = 'deal_projects';
 
     protected $fillable = [
@@ -61,12 +64,13 @@ class DealProject extends ModuleModel
 
     public function author()
     {
-        return $this->belongsTo(User::class, 'created_by');
+        // withTrashed: имя не пропадает у мягко удалённого пользователя
+        return $this->belongsTo(User::class, 'created_by')->withTrashed();
     }
 
     public function archiver()
     {
-        return $this->belongsTo(User::class, 'archived_by');
+        return $this->belongsTo(User::class, 'archived_by')->withTrashed();
     }
 
     /*** SCOPES ***/
@@ -139,5 +143,67 @@ class DealProject extends ModuleModel
     {
         return 'Проект от ' . ($this->date_start?->format('d.m.Y') ?? '—')
             . ($this->is_pilot ? ' (пилот)' : '');
+    }
+    /*** ЖУРНАЛ ИЗМЕНЕНИЙ (patch v32) ***/
+
+    public static function logLabel(): string
+    {
+        return 'Проект';
+    }
+
+    public function logTitle(?int $index = null): string
+    {
+        $partner = $this->partner_id ? static::logText($this->partner()->value('name'), 60) : '';
+
+        return $this->label . ($partner !== '' ? ' · ' . $partner : '');
+    }
+
+    /**
+     * Своей страницы у проекта нет: ведём в реестр сделок на вкладку проектов (или архива)
+     * с поиском по первой сделке проекта
+     *
+     * @return string|null
+     */
+    public function logUrl(): ?string
+    {
+        $deal_id = $this->deals()->value('crm_deal_id');
+
+        return route('crm-deal.index', array_filter([
+            'mode' => $this->archived_at ? 'archive' : 'projects',
+            'q' => $deal_id,
+        ]));
+    }
+
+    /** Состояние на дату для проекта не строится: карточка проекта — попап, а не страница */
+    public static function logStateView(): bool
+    {
+        return false;
+    }
+
+    public static function logChildren(): array
+    {
+        return [
+            'deals' => DealProjectDeal::class,
+            'specifications' => DealProjectSpecification::class,
+        ];
+    }
+
+    public static function logIgnore(): array
+    {
+        return ['created_by'];
+    }
+
+    public static function logFields(): array
+    {
+        return [
+            'partner_id' => ['label' => 'Партнёр', 'relation' => 'partner', 'title' => 'name'],
+            'company_id' => ['label' => 'Компания', 'relation' => 'company', 'title' => 'name'],
+            'date_start' => ['label' => 'Дата начала', 'type' => 'date'],
+            'is_pilot' => ['label' => 'Пилот', 'type' => 'bool'],
+            'deadline' => ['label' => 'Срок пилота', 'type' => 'date'],
+            'comment' => ['label' => 'Комментарий'],
+            'archived_at' => ['label' => 'В архиве с', 'type' => 'datetime'],
+            'archived_by' => ['label' => 'Отправил в архив', 'relation' => 'archiver', 'title' => 'full_name'],
+        ];
     }
 }

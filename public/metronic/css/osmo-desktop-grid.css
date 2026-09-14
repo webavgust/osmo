@@ -1,0 +1,249 @@
+/*
+ * Рабочий стол (patch v30): страница стола — сетка GridStack, режимы, перетаскивание.
+ *
+ * Оболочка и тела виджетов — osmo-desktop.css. --desk-cell (сторона ячейки в px)
+ * выставляет osmo-desktop.js на #desk_grid. Режим редактирования — класс
+ * desk-editing на #desk_root и desk-edit-mode на body (кнопки тулбара).
+ */
+
+/* кнопки тулбара по режимам */
+body:not(.desk-edit-mode) .desk-edit-only { display: none !important; }
+body.desk-edit-mode .desk-view-only { display: none !important; }
+
+.desk-switch-menu { min-width: 260px; max-height: 70vh; overflow-y: auto; }
+
+.desk-root { position: relative; padding-bottom: 2.5rem; }
+.desk-root .grid-stack { border-radius: .625rem; transition: background-color .2s ease; }
+
+/* редактирование: точки в узлах сетки, место под новые блоки */
+.desk-root.desk-editing .grid-stack {
+    min-height: calc(var(--desk-cell, 40px) * 8);
+    background-color: var(--bs-gray-100);
+    background-image: radial-gradient(circle, var(--bs-gray-400) 1.2px, transparent 1.6px);
+    background-size: var(--desk-cell, 40px) var(--desk-cell, 40px);
+    background-position: calc(var(--desk-cell, 40px) / -2) calc(var(--desk-cell, 40px) / -2);
+    box-shadow: 0 0 0 1px var(--bs-gray-200);
+}
+
+/* блок */
+.desk-root .grid-stack > .grid-stack-item > .grid-stack-item-content {
+    overflow: hidden;
+    border-radius: .625rem;
+}
+.desk-item { position: relative; height: 100%; }
+.desk-item-body { height: 100%; }
+.desk-item-body > .desk-widget { height: 100%; }
+
+/* в редактировании тело блока не ловит клики: ссылки и поля не мешают перетаскиванию */
+.desk-root.desk-editing .desk-item-body { pointer-events: none; user-select: none; }
+.desk-root.desk-editing .grid-stack-item-content { cursor: move; }
+.desk-root.desk-editing .grid-stack-item-content::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 1px dashed transparent;
+    border-radius: .625rem;
+    pointer-events: none;
+    transition: border-color .15s ease;
+}
+.desk-root.desk-editing .grid-stack-item:hover > .grid-stack-item-content::after { border-color: var(--bs-primary); }
+
+/* перерисовка поверх старого содержимого */
+.desk-item-loading .desk-item-body { opacity: .55; transition: opacity .15s ease; }
+
+/* скелетон до первой загрузки */
+.desk-skeleton {
+    height: 100%;
+    border-radius: .625rem;
+    border: 1px solid var(--bs-gray-200);
+    background: linear-gradient(100deg, var(--bs-gray-100) 30%, var(--bs-gray-200) 50%, var(--bs-gray-100) 70%);
+    background-size: 300% 100%;
+    animation: desk-shimmer 1.6s ease-in-out infinite;
+}
+@keyframes desk-shimmer {
+    from { background-position: 100% 0; }
+    to { background-position: 0 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .desk-skeleton { animation: none; }
+    .desk-root .grid-stack,
+    .desk-item-tools { transition: none; }
+}
+
+/* ошибка загрузки и недоступный виджет */
+.desk-load-error .desk-error { flex-direction: column; gap: .35rem; }
+.desk-unavailable .desk-empty { flex-direction: column; gap: .35rem; }
+
+/* инструменты блока: в редактировании — настройки и удаление, в просмотре — «Обновить» на наведение */
+.desk-item-tools {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    z-index: 3;
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .15s ease;
+}
+.desk-item-tools .btn.btn-icon.btn-sm {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--bs-body-bg);
+    color: var(--bs-gray-700);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, .14);
+}
+.desk-item-tools .btn.btn-icon.btn-sm i { font-size: 12px; color: inherit; }
+.desk-item-tools .btn.btn-icon.btn-sm:hover { color: var(--bs-primary); }
+.desk-item-tools .btn.desk-tool-remove:hover { color: var(--bs-danger); }
+
+/* блок высотой в одну ячейку: инструменты уходят левее уголка ресайза, иначе накрывают его */
+.desk-root.desk-editing .grid-stack-item.desk-item-short .desk-item-tools { top: 4px; right: 24px; }
+.desk-root.desk-editing .grid-stack-item.desk-item-short .desk-item-tools .btn.btn-icon.btn-sm {
+    width: 22px;
+    height: 22px;
+}
+
+.desk-root:not(.desk-editing) .desk-tool-edit { display: none; }
+.desk-root.desk-editing .desk-tool-view { display: none; }
+.desk-root:not(.desk-editing) .grid-stack-item:hover .desk-item-tools,
+.desk-root.desk-editing .desk-item-tools { opacity: 1; pointer-events: auto; }
+.desk-dragging .desk-item-tools { opacity: 0 !important; }
+
+/* заглушка GridStack — место приземления: пунктир и полупрозрачная копия блока */
+.desk-root .grid-stack-placeholder > .placeholder-content {
+    background: transparent;
+    border: 2px dashed var(--bs-primary);
+    border-radius: .625rem;
+    overflow: hidden;
+}
+.desk-ghost {
+    height: 100%;
+    opacity: .45;
+    pointer-events: none;
+    user-select: none;
+}
+.desk-ghost .desk-item-tools,
+.desk-ghost .ui-resizable-handle { display: none !important; }
+
+/* ресайз шагами: блок держит размер заглушки (переменные ставит osmo-desktop.js),
+   иначе GridStack тянул бы его плавно и казалось бы, что размер может быть любым */
+/* своя ручка ресайза: размер меняется шагами по разрешённым размерам виджета */
+.desk-resize {
+    position: absolute;
+    right: 2px;
+    bottom: 2px;
+    width: 18px;
+    height: 18px;
+    display: none;
+    cursor: se-resize;
+    z-index: 5;
+    border-radius: 0 0 .5rem 0;
+}
+.desk-resize::before {
+    content: "";
+    position: absolute;
+    right: 4px;
+    bottom: 4px;
+    width: 9px;
+    height: 9px;
+    border-right: 2px solid var(--bs-gray-500);
+    border-bottom: 2px solid var(--bs-gray-500);
+    border-radius: 0 0 3px 0;
+}
+.desk-root.desk-editing .desk-resize { display: block; }
+.desk-resize:hover::before,
+.desk-resizing-item .desk-resize::before { border-color: var(--bs-primary); }
+.desk-root.desk-resizing { cursor: se-resize; }
+.grid-stack-item.desk-resizing-item { z-index: 10000; }
+.grid-stack-item.desk-resizing-item > .grid-stack-item-content { box-shadow: 0 18px 40px rgba(0, 0, 0, .18); }
+
+/* панель размеров блока: открывается на ручке ресайза и висит, пока не щёлкнут мимо.
+   Размер ставится нажатием на него, замок снимает ограничение размерами виджета */
+.desk-size-panel {
+    position: fixed;
+    z-index: 10100;
+    display: flex;
+    align-items: center;
+    gap: .3rem;
+    padding: .35rem .5rem;
+    background: var(--bs-body-bg);
+    border: 1px solid var(--bs-gray-200);
+    border-radius: .5rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .14);
+    font-size: 12px;
+    white-space: nowrap;
+}
+.desk-size-label { color: var(--bs-gray-600); margin-right: .15rem; }
+.desk-size-chip {
+    padding: .1rem .4rem;
+    border: 0;
+    border-radius: .35rem;
+    background: var(--bs-gray-100);
+    color: var(--bs-gray-700);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    transition: background-color .15s ease, color .15s ease;
+}
+.desk-size-chip:hover { background: var(--bs-gray-300); color: var(--bs-gray-900); }
+.desk-size-chip.is-active { background: var(--bs-primary); color: #fff; font-weight: 600; }
+
+/* текущий размер: нужен, когда замок отжат и размер не из списка */
+.desk-size-now {
+    display: none;
+    padding: .1rem .4rem;
+    border-radius: .35rem;
+    border: 1px dashed var(--bs-primary);
+    color: var(--bs-primary);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+.desk-size-panel.is-free .desk-size-now { display: inline-block; }
+.desk-size-panel.is-free .desk-size-chip { opacity: .55; }
+.desk-size-panel.is-free .desk-size-chip:hover { opacity: 1; }
+
+.desk-size-lock {
+    width: 22px;
+    height: 22px;
+    margin-left: .15rem;
+    padding: 0;
+    border: 0;
+    border-radius: .35rem;
+    background: var(--bs-gray-100);
+    color: var(--bs-gray-700);
+    cursor: pointer;
+}
+.desk-size-lock i { font-size: 12px; }
+.desk-size-lock:hover { background: var(--bs-gray-300); color: var(--bs-gray-900); }
+.desk-size-lock.is-open { background: var(--bs-primary); color: #fff; }
+
+/* блок, к которому относится панель */
+.grid-stack-item.desk-size-target > .grid-stack-item-content { outline: 2px solid var(--bs-primary); outline-offset: -1px; }
+
+/* блок, который тянут или меняют размер: идёт за курсором с тенью поверх соседей */
+.grid-stack-item.desk-gs-item.ui-draggable-dragging,
+.grid-stack-item.desk-gs-item.ui-resizable-resizing { z-index: 10000; }
+.grid-stack-item.desk-gs-item.ui-draggable-dragging > .grid-stack-item-content,
+.grid-stack-item.desk-gs-item.ui-resizable-resizing > .grid-stack-item-content {
+    opacity: 1;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, .18);
+}
+
+/* ручки ресайза самого GridStack не используются: он выключен, размер меняет .desk-resize */
+.grid-stack-item > .ui-resizable-handle { display: none !important; }
+
+/* пустой стол */
+.desk-empty-state {
+    text-align: center;
+    padding: 4rem 1rem;
+    border: 1px dashed var(--bs-gray-300);
+    border-radius: .625rem;
+    background: var(--bs-body-bg);
+}
+.desk-empty-state-icon { font-size: 4rem; line-height: 1; color: var(--bs-gray-400); margin-bottom: 1.25rem; }
+.desk-root.desk-editing .desk-empty-state { display: none; }
+
+/* плашка системного пресета */
+.desk-notice .btn { flex: none; }

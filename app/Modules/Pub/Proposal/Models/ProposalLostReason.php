@@ -5,11 +5,16 @@ namespace App\Modules\Pub\Proposal\Models;
 /**
  * Причина, по которой КП не дошло до сделки.
  *
- * Обязательна для статусов «Проиграно», «Заморожено», «Отменено».
+ * Обязательна для статуса «Проиграно».
  * Из неё строится отчёт «почему мы теряем деньги».
+ *
+ * Патч v27: «Заморожено» и «Отменено» были отдельными статусами, теперь —
+ * причины проигрыша (коды совпадают с прежними кодами статусов).
  */
 enum ProposalLostReason: string
 {
+    case FROZEN = 'frozen';
+    case CANCELED = 'canceled';
     case PRICE = 'price';
     case COMPETITOR = 'competitor';
     case BUDGET = 'budget';
@@ -23,6 +28,18 @@ enum ProposalLostReason: string
     public function data(): array
     {
         return match ($this) {
+            ProposalLostReason::FROZEN => [
+                'label' => 'Заморожено',
+                'hint' => 'Заказчик поставил проект на паузу',
+                'color' => 'warning',
+                'sort' => __LINE__,
+            ],
+            ProposalLostReason::CANCELED => [
+                'label' => 'Отменено',
+                'hint' => 'Заказчик отменил закупку или проект',
+                'color' => 'secondary',
+                'sort' => __LINE__,
+            ],
             ProposalLostReason::PRICE => [
                 'label' => 'Дорого',
                 'hint' => 'Цена не устроила заказчика',

@@ -175,7 +175,7 @@ class DashboardBoxController extends Controller
                 if($r2 !== 'all' && $r2 !== $status) continue;
 
                 foreach($temp2 as $quarter => $ar) {
-                    if($column !== 'all' && $column !== $quarter) continue;
+                    if($column !== 'all' && (string)$column !== (string)$quarter) continue;
 
                     $deals = $deals->merge($ar['deals']);
                 }
@@ -220,7 +220,7 @@ class DashboardBoxController extends Controller
                 if($r2 !== 'all' && $r2 !== $status) continue;
 
                 foreach($temp2 as $quarter => $ar) {
-                    if($column !== 'all' && $column !== $quarter) continue;
+                    if($column !== 'all' && (string)$column !== (string)$quarter) continue;
 
                     $deals = $deals->merge($ar['deals']);
                 }
@@ -253,27 +253,27 @@ class DashboardBoxController extends Controller
 
         $service = new DashboardDataService();
         $data = $service->country_status_month();
-
         $data = collect($data['matrix']);
 
         $deals = collect();
 
         foreach($data as $country => $temp) {
             if($r1 !== 'all' && $r1 !== $country) continue;
-
             foreach($temp as $status => $temp2) {
                 if($r2 !== 'all' && $r2 !== $status) continue;
 
                 foreach($temp2 as $quarter => $ar) {
-                    if($column !== 'all' && $column !== $quarter) continue;
+
+
+                    if($column !== 'all' && (string)$column !== (string)$quarter) continue;
+
 
                     $deals = $deals->merge($ar['deals']);
                 }
             }
         }
 
-        //$matrix[$country][$status][$quarter]['deals']++;
-
+        ////$matrix[$country][$status][$quarter]['deals']++;
 
 
         return View::make('bitrix.dashboard.box.industry_name', [
@@ -309,7 +309,7 @@ class DashboardBoxController extends Controller
                 if($r2 !== 'all' && $r2 !== $country) continue;
 
                 foreach($temp2 as $quarter => $ar) {
-                    if($column !== 'all' && $column !== $quarter) continue;
+                    if($column !== 'all' && (string)$column !== (string)$quarter) continue;
 
                     $deals = $deals->merge($ar['deals']);
                 }

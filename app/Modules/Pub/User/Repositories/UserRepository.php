@@ -116,9 +116,15 @@ class UserRepository
             ->keyBy('id');
     }
 
+    /**
+     * Получить всех, включая скрытых и удалённых (для исторических имён)
+     *
+     * @return \Illuminate\Support\Collection
+     */
     public static function getAllWithTrashed()
     {
-        return User::select(User::$showFields)
+        return User::withTrashed()
+            ->select(User::$showFields)
             ->orderBy('full_name', 'asc')
             ->orderBy('name', 'asc')
             ->get()

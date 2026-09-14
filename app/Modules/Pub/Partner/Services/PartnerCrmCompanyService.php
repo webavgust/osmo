@@ -4,8 +4,10 @@ namespace App\Modules\Pub\Partner\Services;
 
 use App\Modules\Bitrix\CrmCompany\Models\CrmCompany;
 use App\Modules\Bitrix\CrmDeal\Models\CrmDeal;
+use App\Modules\Pub\Constant\Models\Constant;
 use App\Modules\Pub\Partner\Models\Partner;
 use App\Modules\Pub\Partner\Models\PartnerCrmCompany;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 
@@ -21,8 +23,26 @@ use Illuminate\Validation\ValidationException;
  */
 class PartnerCrmCompanyService
 {
-    /** С какой даты считаем сделки партнёра (решение владельца по ТЗ) */
+    /**
+     * С какой даты считаем сделки партнёра (решение владельца по ТЗ).
+     * По умолчанию; рабочее значение — consts.partner_deals_from (читать через dealsFrom())
+     */
     public const DEALS_FROM = '2025-01-01';
+
+    /**
+     * Дата создания сделки, с которой считаются сделки партнёра, Y-m-d
+     * (consts.partner_deals_from, по умолчанию DEALS_FROM). Не дата — DEALS_FROM.
+     *
+     * @return string
+     */
+    public static function dealsFrom(): string
+    {
+        try {
+            return Carbon::parse(Constant::value('partner_deals_from', self::DEALS_FROM))->format('Y-m-d');
+        } catch (\Throwable) {
+            return self::DEALS_FROM;
+        }
+    }
 
     /**
      * Компании Битрикса для select2 в форме партнёра.
@@ -182,7 +202,7 @@ class PartnerCrmCompanyService
     }
 
     /**
-     * Число сделок по каждой компании с DEALS_FROM: crm_company_id => количество
+     * Число сделок по каждой компании с dealsFrom(): crm_company_id => количество
      *
      * @param array $company_ids
      * @return array
@@ -192,7 +212,7 @@ class PartnerCrmCompanyService
         if (empty($company_ids)) return [];
 
         return CrmDeal::whereIn('company_id', $company_ids)
-            ->where('date_create', '>=', self::DEALS_FROM)
+            ->where('date_create', '>=', self::dealsFrom())
             ->groupBy('company_id')
             ->selectRaw('company_id, COUNT(*) as deals_count')
             ->pluck('deals_count', 'company_id')

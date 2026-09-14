@@ -7,6 +7,7 @@ use App\Modules\Pub\Breadcrumbs\Traits\HasBreadcrumb;
 use App\Modules\Pub\Contract\Repositories\ContractRepository;
 use App\Modules\Pub\ContractSpecification\Repository\ContractSpecificationRepository;
 use App\Modules\Pub\Country\Repositories\CountryRepository;
+use App\Modules\Pub\EntityLog\Services\EntityLogViewService;
 use App\Modules\Pub\EducationApplication\Models\EducationApplication;
 use App\Modules\Pub\EducationApplication\Services\EducationApplicationListFilterService;
 use App\Modules\Pub\Company\Models\Company;
@@ -67,6 +68,10 @@ class CompanyController extends Controller
 
     public function detail(Company $company)
     {
+        // patch v29: просмотр состояния на момент (?at=)
+        $state = EntityLogViewService::state($company, request('at'));
+        if ($state) $company = $state['model'];
+
         $this->breadcrumb_add('', $company->name);
         $proposals = CompanyService::getProposalsGrouped($company);
         $contracts = ContractRepository::getGroupedProposal($company);
@@ -76,6 +81,8 @@ class CompanyController extends Controller
         return view('pub.company.detail', [
             'breadcrumbs' => $this->breadcrumb,
             'company' => $company,
+            'log_root' => $company, // patch v29: кнопка журнала изменений в крошках
+            'log_state' => $state,
             'proposals' => $proposals,
             'contracts' => $contracts,
             'specsGrouped' => $specsGrouped,

@@ -69,7 +69,7 @@
                         </button>
                     @endcan
                     <div class="card-body d-flex justify-content-between">
-                        <h4 class="card-title mb-0">Информация о заявке</h4>
+                          <h4 class="card-title mb-0">Информация о заявке</h4>
                         <div id="order_status">
                             <x-order.detail.status_badge :order="$order"></x-order.detail.status_badge>
                         </div>
@@ -87,7 +87,7 @@
                     </div>
                     @can('order_info_company')
                         <div class="card-body-title">
-                            <h4 class="card-title mb-0">Заказчик</h4>
+                              <h4 class="card-title mb-0">Заказчик</h4>
                         </div>
                         <div class="card-body">
                             <div class="card-table">
@@ -100,7 +100,7 @@
                     @endcan
 
                     {{--                    <div class="card-body-title">--}}
-                    {{--                        <h4 class="card-title mb-0">Панель куратора</h4>--}}
+                    {{--                          <h4 class="card-title mb-0">Панель куратора</h4>--}}
                     {{--                    </div>--}}
 
 
@@ -185,7 +185,7 @@
                         @can('order_task_view')
                             <div class="card order_task">
                                 <div class="card-body d-flex justify-content-between align-items-center">
-                                    <h4 class="card-title mb-0">Техническое задание</h4>
+                                      <h4 class="card-title mb-0">Техническое задание</h4>
 
                                     <div>
                                         @if(!empty($order->order_task->number))

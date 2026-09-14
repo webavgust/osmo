@@ -32,12 +32,14 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Laravel\Sanctum\HasApiTokens;
 
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    // SoftDeletes (patch v28): из админ-панели пользователь удаляется только мягко
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     public $access_service;
 
@@ -75,6 +77,9 @@ class User extends Authenticatable
         'last_hit_at' => 'datetime',
         'personal_photo' => JsonCast::class,
         'is_sync' => 'bool',
+        'is_admin' => 'bool',
+        'ui_theme_switch' => 'bool',
+        'log_view' => 'bool',
     ];
 
 
@@ -185,6 +190,41 @@ class User extends Authenticatable
     public function isAdmin()
     {
         return $this->is_admin || $this->can_do('super_user');
+    }
+
+    /**
+     * Флаг: доступ в админ-панель (patch v28).
+     *
+     * Только колонка is_admin — без super_user: суперпользователь даёт права
+     * на страницы портала, а не управление пользователями и константами.
+     *
+     * @return bool
+     */
+    public function isPanelAdmin(): bool
+    {
+        return (bool) $this->is_admin;
+    }
+
+    /**
+     * Флаг: может переключать тему оформления (patch v28).
+     * До миграции колонки нет — тогда ведём себя как раньше: можно.
+     *
+     * @return bool
+     */
+    public function canSwitchUiTheme(): bool
+    {
+        return (bool) ($this->ui_theme_switch ?? true);
+    }
+
+    /**
+     * Флаг: видит журнал изменений сущностей (patch v29).
+     * Администраторы панели — всегда, остальные — по флагу users.log_view
+     *
+     * @return bool
+     */
+    public function canViewEntityLog(): bool
+    {
+        return $this->isPanelAdmin() || (bool) ($this->log_view ?? false);
     }
 
 

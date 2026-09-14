@@ -22,6 +22,10 @@ Bitrix, API Алексея, партнёры ↔ сделки и проекты,
 | 4 | v24 | Сущность «Проект» по сделкам, вкладки «Проекты» / «Архив проектов», разовое автосоздание (ТЗ п.3, часть 2) | готов: модуль `DealProject`, попапы, колонка «Проект» и кнопка «проект» в реестре, вкладки «Сделки» / «Проекты» / «Архив проектов» **на `/bitrix/deal`** (правка владельца 10.09: не на карточке партнёра), привязка КП к сделке прямо из реестра, команда `deal-project:seed` — проверено локально (21 проект из 37 сделок, 16 ждут сопоставления партнёров), закоммичен 2026-09-11, на прод не выкачен |
 | 5 | v25 | Партия правок владельца 11.09.2026 (9 пунктов) + список КП без перезагрузки (п.6) | закоммичен 2026-09-11, на прод не выкачен; **значок проекта (п.4) не делался** — в партию не входил |
 | 6 | v26 | Скоринг партнёров: сделки и проекты вместо «КП за год», новые веса (п.5) | закоммичен 2026-09-11, на прод не выкачен |
+| 7 | v27 | Правки владельца 13.09.2026 (п. 13–35 ниже): меню, статусы КП, Битрикс24 и др. | не закоммичен |
+| 8 | v28 | Админ-панель: признак админа, пользователи, журнал входов, константы (см. «Итерация 7») | в работе: этап A готов и проверен (слепок прав до/после, вход под Алексеем); этап B (пользователи, мягкое удаление) готов и проверен в браузере (список, карточка, журнал входов, попап, флаг темы туда-обратно); этап C (константы: 30 в `consts`, 25 вынесено из кода, слепок расчётов до/после совпал) готов и проверен в браузере; не закоммичено; п.3 запроса ждёт владельца |
+| 9 | v29 | Журнал изменений сущностей: trait `HasLogger`, слепки и диффы, лента изменений, просмотр состояния на дату (см. «Итерация 8») | готов 14.09.2026: этап A (ядро: миграции, trait, модуль `EntityLog`, 19 моделей, baseline 655 слепков), B1 (лента `/timeline/{type}/{key}` с фильтрами, кнопка в крошках — проверено в браузере), B2 (состояние на дату `?at=` с баннером и скрытым редактированием, флаг `log_view` в админке, `patches/patch-v29/README.md`) — проверки агентов через HTTP-ядро; не закоммичено |
+| 10 | v30 | Рабочий стол: сетка виджетов 32 колонки, библиотека с превью, пресеты свои и системные (см. «Итерация 9») | в работе с 14.09.2026: проект и каталог 80 виджетов — артефакт https://claude.ai/code/artifact/8ad76927-7dc1-4663-a899-dccc237e891e; решения владельца получены; каркас (мой), A2 сервис и API, W1 и W2 (8 виджетов), W3 (реестр показателей `Desktop/Metrics/MetricRegistry` + kpi, proposal_status, scoring_top; показатели оплат и ключей добавил я через виджеты W2), W4 (funnel_table, country_month; показатели воронки в реестр добавил я) — готовы и проверены скриптами, первая партия — все 14 виджетов, у «Числа» 19 показателей; A3 страница — готова, перетаскивание с полупрозрачной копией в конечной позиции проверено мной в браузере; A4 (библиотека — агент завис, контроллер/разметку/JS/CSS написал я; попап настроек; столы, пресеты, пакетная отрисовка; домик/вход/меню/крошки/удаление `Pub/Dashboard`) — готов, всё проверено мной в браузере (окно 1600 px): добавление из библиотеки, перетаскивание карточки с копией в конечной позиции, применение настроек «Числа», меню и попап столов; README `patches/patch-v30/README.md`; не закоммичено; A4 (библиотека, настройки, столы, домик/меню) — после A3 |
 
 Параллельно ведутся только независимые итерации (v21, v22, v23-сопоставление):
 v23-вкладки опираются на таблицу реестра из v22, v24 — на v22 и v23,
@@ -30,6 +34,584 @@ v25 — на v24, v26 — на v23 и v24, поэтому идут после.
 После завершения итерации: обновить эту таблицу (патч, коммит, дата),
 дописать строку в `github.md` (раздел «Патчи»), README патча положить в
 `patches/patch-vNN/README.md`.
+
+## Итерация 7 · patch-v28 · Админ-панель (в работе, запрос владельца 13.09.2026)
+
+Запрос: признак админа (выдать Анне), ссылка «Админ-панель» рядом с «Мой профиль»;
+страницы: 1) пользователи — список, создание, редактирование, удаление, карточка
+пользователя (пока журнал авторизаций и запрет переключения на старую тему; дальше —
+статистика); 2) константы — таблица `consts` с кодом и примечанием, редактирование,
+вынос констант из кода; 3) — владелец не дописал, уточнить.
+
+Уточнение владельца: «убери у всех is_admin, пусть будут обычными пользователями, но
+чтобы не сломался доступ к страницам публичной части; переключатель тем — отдельным флагом».
+
+**Факты (разведка 13.09.2026):**
+- `users.is_admin` уже был у 5 из 7; `User::isAdmin()` = `is_admin || can_do('super_user')`,
+  а `super_user` (accesses.id = 6) стоял у всех семи — фактически админом был каждый.
+  Админу любое право выдаётся автоматически (`admin_invert = 0` у всех 9 прав).
+  В `access_user` у пользователей не было ничего, кроме `super_user`.
+- Права → Gate через `AuthServiceProvider` (class/method из `accesses`). У
+  `payment_calendar_view` и `deal_card_view` в class/method прописаны контроллеры —
+  эти Gate падают TypeError (давно, не связано с v28); `can_do()` по ним работает.
+- Gate `general_access` в `accesses` был привязан к `AccessPolicy::access_view` (проверял
+  «Просмотр доступов»). Слепок «после» показал: у обычных пользователей `can_do` = 1, а Gate = 0
+  и меню пустое. В `patch_v28_admin.sql` привязка исправлена на
+  `AccessGroupPolicy::general_access`.
+- Проверка `general_access` в `AuthCheckGlobalAccess` закомментирована; но пункты меню
+  «Работа», «Отчёты», «Справочники» привязаны к `general_access` — без него сайдбар пуст.
+- Кэш прав `can_do_{uid}` — навсегда; после любых правок прав — `cache:clear`.
+- Журнал входов уже пишется: `user_auth_attempts` (login, user_id, success, ip,
+  user_agent, attempted_at), `AuthAttemptService` из `UserController`.
+- `consts`: `name`, `key`, `value`, `system`; 5 записей; модуль `Pub/Constant`
+  (`/constants`, `can:constant_control` — такого права в `accesses` нет, страница закрыта всем).
+- На пользователя ссылаются 19 колонок без внешних ключей (proposals.manager_id,
+  payments.user_id, deal_projects.created_by, reminders, calendar и др.).
+
+**Решения:**
+- `is_admin` = доступ в админ-панель (Gate `admin_panel`, `User::isPanelAdmin()`), только Анна.
+  Обычным пользователям снят `super_user`, явно выданы `general_access`,
+  `payment_calendar_view`, `deal_card_view` (`patch_v28_admin.sql`). Раздел «Настройки»
+  (Меню, Доступы) у них пропадает.
+- Что перестаёт работать у обычных пользователей (было за счёт «все админы»): удаление
+  спецификаций (`ContractSpecification::canDelete` = `is_admin()`), правка чужих событий
+  календаря, напоминаний и заметок, скрытые уведомления, выбор любого пользователя в
+  напоминаниях (`getSubUsers`), пункт «Обновить доступы» и ID в меню профиля.
+- Переключатель тем — флаг `users.ui_theme_switch` (миграция, по умолчанию 1 — как было у
+  всех). При 0 переключатель скрыт, `ResolveUiTheme` принудительно ставит Metronic.
+- Удаление спецификаций договоров владелец вернул всем пользователям:
+  `ContractSpecification::canDelete()` = `auth()->check()` (было `is_admin()`); проверяют его
+  API `ApiContractSpecificationController::delete` и кнопка в попапе редактирования.
+- Удаление пользователя — мягкое (решение владельца): `users.deleted_at` + `SoftDeletes`,
+  данные и связи остаются, в списке фильтр «Удалённые» и «Восстановить»; связи других моделей
+  на пользователя — `withTrashed()`, чтобы имена не пропадали. Себя удалить нельзя.
+
+**Этапы:** A — права, флаг темы, Gate (сам); B — модуль админ-панели и пользователи (агент);
+C — константы (агент, после B); проверка слепком прав до/после (`scratchpad/access_*.json`).
+
+**Этап B — сделан (агент, 13.09.2026):**
+- Модули `app/Modules/Admin/Panel` (редирект `/admin` → список) и `app/Modules/Admin/Users`
+  (`UsersController`, `Api/ApiUsersController`, `Services/AdminUserService`); `config/modular.php`:
+  `Admin => ['Panel', 'Users']`, `can:admin_panel` в группе. Web-маршруты группы Admin получают
+  префикс `/admin` от `app/Providers/ModularProvider.php` (имена `admin.*` прописаны явно); API —
+  `/api/admin/users/*` под `can:admin_panel` + `ajax.api` (в `<meta name="_token">` — ajax_token,
+  CSRF сессии там нет, поэтому AJAX через api, как у соседних модулей).
+- Вьюхи только в теме: `themes/metronic/admin/{partials/nav, users/index, users/show,
+  users/boxes/form, users/partials/js}`. `ResolveUiTheme` на `/admin*` принудительно ставит
+  Metronic (в старой теме этих вьюх нет).
+- Список с отбором «Все / Активные / Отключённые / Удалённые», попап создания/правки
+  (пароль — `Hash::make`, bcrypt, как у `Auth::attempt`; email необязателен — у части
+  пользователей он пустой), запрет снять админа / отключить / удалить себя, новому
+  пользователю — права `general_access`, `payment_calendar_view`, `deal_card_view`.
+- Мягкое удаление: миграция `2026_09_13_100100_add_deleted_at_to_users_table`, `SoftDeletes` в
+  `User`, «Восстановить»; удалённый не входит и теряет сессию; `withTrashed()` у связей на
+  пользователя (`Proposal::manager/status_author`, `Payment::user`, `Reminder`, `Calendar`,
+  `UserNote`, `UserSetting`, `DealProject*`, `ProposalCrmDeal`, `ContractSpecificationProposal`,
+  `ExternalProposal::transferred_user`, `HasCreator::creator`); `getAllWithTrashed()` — с `withTrashed()`.
+- Карточка `/admin/users/{user}`: шапка, заглушка «Статистика», переключатель «Разрешить
+  переключение на старую тему», журнал авторизаций (по user_id и по логину/email, по 50).
+- Ссылка «Админ-панель» — в меню пользователя сайдбара (и в `header.blade.php` на будущее).
+
+**Этап C — сделан (агент, 13.09.2026):**
+- Миграция `2026_09_13_100200_add_note_to_consts_table`: `consts.note` + уникальный индекс
+  `consts_key_unique`. Колонка `key` не переименована — в интерфейсе это «Код».
+- `Constant`: `get`/`set` как были (`set` подставляет `name` при вставке), новые `value` / `int` /
+  `float` / `json` / `flush` с кэшем на запрос (сброс на `saved`/`deleted`).
+- Модуль `app/Modules/Admin/Consts` (`/admin/consts`, попап создания/правки, удаление несистемных;
+  JSON — форматированно в форме, компактно в БД, с проверкой; у системных значение только для
+  чтения). Вьюхи `themes/metronic/admin/consts/{index, boxes/form}`.
+- В `consts` вынесено 25 настроек из кода (`patch_v28_consts.sql`, всего констант 30, у всех
+  примечания): веса скоринга, веса лет и глубина истории, горизонты лицензий и «хвост» истёкших,
+  пороги скидок, «скоро» в платёжном календаре, допуски сверки спецификаций и CRM, даты «сделки с»,
+  шаблон ссылки на сделку и коды UF-полей Битрикс24, пакет detail и пороги переноса OSMOVIEW CP,
+  лимит поиска сделок. PHP-константы остались значениями по умолчанию, чтение — через методы
+  классов (`PartnerScoringService::weights()`, `LicenseRegistryService::horizons()` и т.п.).
+  UF-поля в SQL подставляются с проверкой (латиница/цифры/`_`), дата и шаблон ссылки — с откатом
+  к значению из кода при неверном вводе.
+- Проверка: слепок 22 расчётов до/после — совпал полностью; смена `scoring_weight_deals` на 11
+  меняет баллы и места, возврат — снова совпадение.
+- Не перенесено: старый дашборд Битрикса и старые вьюхи (строки зашиты в разметку, их правит
+  владелец), продление лицензий в старой теме (горизонты 30/60/90 в разметке), дата разовой команды
+  `deal-project:seed`, пороги подписей `LicenseRenewalService::urgency()`, `NDS_DEFAULT`.
+- `artisan view:cache` падает на старых вьюхах прошлого проекта (`order_task.cell.id` в
+  `pub/contract/detail`, `components/dashboard/lab_supervisor/...`) — не связано с v28.
+
+## Итерация 8 · patch-v29 · Журнал изменений сущностей (запрос владельца 14.09.2026)
+
+Запрос: глобальный механизм логирования сущностей через trait `HasLogger` (рядом с
+`ModuleModel`). У подключённых модулей на детальной странице справа в крошках — кнопка с
+иконкой timeline → общая страница ленты: кто, когда, какое поле поменял, старое и новое
+значение, фильтр по полю модели (пример: в КП поменяли кол-во лицензий у одного из
+вариантов — это должно быть видно). Плюс просмотр состояния модели на выбранный момент:
+клик по дате открывает детальную страницу этой модели, сверху крупный баннер во всю ширину
+«Просмотр состояния на 1 сентября» и крестик, возвращающий к текущему состоянию.
+Логируется для всех; смотреть могут админ и те, кому в админке поставили галочку.
+Модели: КП, Партнёр, Компания, Договор, Спецификация, Оплата и т.д.
+
+**Факты (разведка 14.09.2026):**
+- Почти все записи идут через Eloquent (`create/update/save/delete`) — события моделей есть.
+  Исключения (query builder, событий нет): `ProposalStatusService::set` и
+  `ProposalDealService::syncMain` / `setMain` (`Proposal::where('group')->update`),
+  `SpecProposalService::win` / `detach`, `ProposalDealService::detach`,
+  `PaymentRepository::create` (`$spec->payments()->delete()`), `ProposalRepository::update`
+  (`software()->delete()`, `works()->delete()`), `ContractSpecificationRepository::update`
+  (`contract_specification_scenarios()->delete()`).
+- **Дочерние строки пересоздаются целиком** при каждом сохранении: у КП — сценарии/платформы/
+  работы/ПО вариантов и `proposal_works`/`proposal_software` (варианты `proposal_variants`
+  сохраняются на месте, `variant_id` приходит из формы); у спецификации — сценарии; у
+  спецификации — все оплаты (`PaymentRepository::create`: удалить всё, создать заново; форма
+  `pub/payments/boxes/control.blade.php` шлёт строки `payment[i][...]` без id). Поэтому
+  событийный лог «по строкам» дал бы на каждое сохранение кучу «удалено/создано», а не
+  «кол-во лицензий: 5 → 7». Отсюда решение — **слепки агрегата и дифф слепков**.
+- «Кол-во лицензий» из примера владельца — `proposal_variant_scenarios.count`
+  (колонка «ЛИЦЕНЗИИ» карточки КП); у платформ/ПО/работ тоже `count`.
+- Детальные страницы есть у трёх моделей: `proposal.detail` (`/proposals/detail/{group}/{iteration}`),
+  `partner.detail`, `company.detail`. Договор, спецификация, оплата, ключи — попапы на
+  карточке партнёра, своих страниц нет. Крошки: `HasBreadcrumb` + `'breadcrumbs'` во view,
+  тулбар справа — `@yield('breadcrumb_right')` в `themes/metronic/layouts/breadcrumbs.blade.php`.
+- КП: строка `proposals` = редакция (`group` + `iteration`), статус и сделка пишутся во все
+  редакции группы. Новая редакция = новые строки всего дерева (`ProposalRepository::create`
+  с `parent`), поэтому id вариантов между редакциями не совпадают.
+- Старый модуль `Pub/Log` — это «заметки» (журналирование вручную, таблица `logs`,
+  `x-proposal.log_table`); с новым журналом не пересекается, имена не должны совпадать.
+- Объёмы (локальная база): proposals 432, variants 592, scenarios 1873, partners 58,
+  companies 165, contracts 26, specs 68, payments 127, keys 100, hardware 333, extra_pays 48 —
+  слепки целиком в JSON допустимы.
+- Font Awesome Pro лежит в `public/assets/libs/fontawesome/css/all.min.css`, `fa-timeline`
+  и `fa-clock-rotate-left` есть. Metronic-таймлайн (`timeline`, `timeline-item`,
+  `timeline-line`, `timeline-icon`, `timeline-content`) есть в `style.bundle.css`.
+
+**Решения (архитектура):**
+- Модуль `app/Modules/Pub/EntityLog` (в `config/modular.php` → Pub), trait
+  `app/Models/Traits/HasLogger.php` (namespace `App\Models\Traits`), подключается в моделях
+  явно (`use HasLogger;`), `ModuleModel` не трогаем (только docblock-ссылка на trait).
+- **Агрегаты.** Корень — модель с детальной страницей; части — модели, у которых
+  `logParent()` возвращает родителя (цепочка до корня, кэш на запрос по `class:id`):
+  - `Proposal` (ключ ленты — `group`, т.е. лента общая для всех редакций; слепок — одна
+    строка-редакция): `variants` → (`proposal_scenarios`, `proposal_platforms`,
+    `proposal_works`, `proposal_software`, `extra_pays`, `hardware`); `software`, `works`
+    (уровня КП); `ProposalCrmDeal` (привязки сделок, связь по `proposal_group` — родитель =
+    последняя редакция группы).
+  - `Partner`: `contracts` → `contract_specifications` → (`payments`,
+    `contract_specification_scenarios`, `proposal_links`, `license_keys`); `crm_companies`.
+  - `Company`: только свои поля (договоры/спецификации живут в ленте партнёра —
+    их правят с карточки партнёра).
+- **Слепок** — JSON: `{class, key, title, attrs: getAttributes() без игнорируемых,
+  children: {relation: [слепки]}}`; храним сырые значения (даты и json строками из БД),
+  чтобы гидрация была точной. Таблица `entity_logs`: `id, type (слаг корня: proposal /
+  partner / company), group_key (varchar 64: group у КП, id у остальных), model_id, event
+  (baseline | created | updated | deleted), user_id nullable, title, data (longtext json,
+  null у deleted), changes_count, created_at`; индексы `(type, group_key, created_at)`,
+  `(type, model_id)`. Таблица `entity_log_changes`: `id, entity_log_id, kind (changed |
+  added | removed), model_class, model_key, path (varchar 500 — «Вариант 2 (1 год) →
+  Нейросервис «X»»), field nullable, label, old_value, new_value (сырые, text), old_label,
+  new_label (человеческие, сформированы в момент записи: связи → название, enum →
+  label, bool → да/нет, даты d.m.Y, деньги через `cost_normalize`)`; индексы
+  `(entity_log_id)`, `(model_class, field)`.
+- **Когда пишем.** События trait: `creating/updating/deleting` (до записи) — если у корня
+  ещё нет ни одного слепка, снять baseline прямо сейчас (иначе первый дифф не с чем
+  сравнить); `created/updated/deleted` (после записи) — пометить корень «грязным» на
+  этот запрос (при смене родителя у части — грязными становятся и старый, и новый корень:
+  старый ищется по `getOriginal()`). В конце запроса — `EntityLogService::flush()`: по
+  каждому грязному корню новый слепок, дифф с последним слепком той же `model_id`,
+  запись `entity_logs` + `entity_log_changes`; пустой дифф — ничего не пишем. Flush
+  вызывается из middleware `FlushEntityLog` (первым в группах `web` и `api` в
+  `app/Http/Kernel.php`, чтобы сработать после контроллера) и страховочно из
+  `app()->terminating()` (консоль, ошибки). Любая ошибка журнала гасится `report()` —
+  сайт от журнала падать не должен.
+- Массовые `update` без событий оборачиваются явно: `EntityLogService::around($root, fn)`
+  (baseline при отсутствии + пометка грязным) — в `ProposalStatusService::set`,
+  `ProposalDealService::syncMain/setMain/detach`, `SpecProposalService::win/detach`.
+  Query-builder-удаления детей в логируемых репозиториях меняются на Eloquent
+  (`->get()->each->delete()` / `->each->delete()`), чтобы `deleting` давал baseline.
+- **Сопоставление детей в диффе** — `logKey(int $index)`: по умолчанию id; у
+  пересоздаваемых коллекций — позиция `#n` в порядке связи (`orderBy('sort')` и т.п.):
+  варианты КП — позиция (так сходятся и разные редакции), сценарии варианта —
+  `scenario_id`, платформы/работы/ПО варианта, `proposal_works`/`proposal_software`,
+  оплаты, сценарии спецификации — позиция; договоры, спецификации, ключи, hardware,
+  extra_pays — id; `ProposalCrmDeal` — `crm_deal_id`; `PartnerCrmCompany` — `crm_company_id`;
+  `ContractSpecificationProposal` — `proposal_group`. Совпали ключи — сравниваем поля
+  (`changed`), нет в старом — `added` (одна строка с названием объекта), нет в новом —
+  `removed`.
+- **Новая редакция КП** — событие `created`, но дифф считается относительно последнего
+  слепка предыдущей редакции той же группы (`iteration - 1`): видно, что изменилось в
+  новой редакции. Новый корень без предшественника — `created` со строками `added` по
+  непустым полям корня и по одной строке на каждого ребёнка первого уровня.
+- **Настройка в модели** (все методы с дефолтами в trait): `logParent(): ?Model`,
+  `static logChildren(): array` (`['variants' => ProposalVariant::class, …]` — имена
+  hasMany-связей), `static logFields(): array` (`'name' => ['label' => 'Название']`,
+  `'partner_id' => ['label' => 'Партнёр', 'relation' => 'partner']`, `'status' =>
+  ['label' => 'Статус', 'enum' => ProposalStatus::class]`, `'sended_at' => ['label' =>
+  'Дата', 'type' => 'date']`, `'cost_total' => ['label' => 'Итого', 'type' => 'money']`,
+  `'is_signed' => [..., 'type' => 'bool']`, `'task' => [..., 'type' => 'html']`; тип
+  неописанного поля берётся из casts), `static logIgnore(): array` (`created_at`,
+  `updated_at`, FK на родителя, `id` — всегда; плюс технические: `report_data`,
+  `neuro_costs`, `number_int`, `status_changed_*`, `crm_deal_linked_*`, `job_id` и т.п.),
+  `logKey(int $index): string`, `logTitle(): string` (подпись объекта: «КП № 12 (ред. 2)»,
+  «Вариант 2 (1 год)», «Нейросервис «Распознавание»», «Договор № 5», «Спецификация «X»»,
+  «Оплата 01.09.2026 · 100 000»), `static logLabel(): string` (название типа),
+  `logUrl(): ?string` (детальная страница, только у корня), `logGroupKey(): string`,
+  `static logType(): string` (слаг).
+- **Права.** Колонка `users.log_view` (bool, default 0), Gate `entity_log_view` =
+  `is_admin || log_view` (`User::canViewEntityLog()`), в `AuthServiceProvider` рядом с
+  `admin_panel`. В админ-панели: переключатель «Видит журнал изменений» в попапе
+  пользователя и на карточке (как флаг темы). Логирование само по себе от прав не зависит.
+- **Лента.** Маршрут `entity_log.index` = `GET /timeline/{type}/{key}` (`can:entity_log_view`),
+  вьюха `themes/metronic/pub/entity_log/index.blade.php`: крошки «<тип> / <объект> /
+  Журнал изменений», события по убыванию времени сгруппированы по дням (заголовок дня —
+  ссылка на состояние на конец дня), у события — пользователь, действие, у КП — редакция,
+  таблица изменений (объект → поле → было → стало) и ссылка «Открыть состояние на этот
+  момент» (`?at=<id слепка>`). Фильтры в крошках по шаблону сайта: поле (select с
+  optgroup по типу объекта, значение `model_type.field`), пользователь; кнопка «Фильтр» со
+  счётчиком и «Убрать». Кнопка на детальных страницах — в `layouts/breadcrumbs.blade.php`
+  генерически: `@if(!empty($log_root)) @can('entity_log_view')` → `btn btn-icon btn-light-primary`
+  с `fa-light fa-timeline`; контроллеры трёх детальных страниц передают `'log_root' => $model`.
+- **Состояние на момент.** `?at=` у `proposal.detail` / `partner.detail` / `company.detail`
+  (число — id слепка, дата `Y-m-d` — последний слепок на конец дня; раньше первого слепка —
+  показываем первый с пометкой). `EntityLogService::stateAt($root, $at)` гидрирует модель
+  из JSON (`newInstance`, `setRawAttributes`, `exists = true`, дети — `setRelation`
+  по `logChildren()` рекурсивно); belongsTo-связи (партнёр, компания, валюта, сценарий)
+  подгружаются живыми по FK — это допустимо. Контроллеры подменяют модель и передают во
+  view `'log_state' => [...]`; `layouts/layout.blade.php` перед крошками рисует баннер во
+  всю ширину (дата/время, кто внёс, крестик = ссылка на страницу без `?at`); в режиме
+  состояния действия редактирования на странице скрыты (КП: меню «⋮», статус без
+  `editable`; партнёр/компания: кнопка «Редактировать»).
+- Команда `php artisan entity-log:baseline` — baseline-слепки всех корней без слепков
+  (на проде запускается один раз после миграций; идемпотентна).
+- Старая тема: логирование работает (оно серверное), кнопка и баннер — только в Metronic.
+
+**Этапы:** A — ядро: миграции, trait, модуль (модели, сервисы слепка/диффа/гидрации,
+flush, команда baseline), подключение к моделям, правки репозиториев (агент);
+B — интерфейс: лента, кнопка в крошках, `?at=` и баннер, галочка в админке, README (агент,
+после A). Проверка: правка КП (кол-во лицензий), смена статуса, оплаты спецификации,
+партнёр; просмотр состояния; вход под обычным пользователем — кнопки нет.
+
+**Этап A — сделан (агент, 14.09.2026), отклонения от плана выше:**
+- Миграции `2026_09_14_100001..100003` (`entity_logs`, `entity_log_changes`, `users.log_view`),
+  `config/entity_log.php` (реестр корней), trait `app/Models/Traits/HasLogger.php` — каталог
+  `app/Models/traits` переименован в `Traits` (`HasDetailPage` переехал, импорты в `Calendar`
+  и `Organization` поправлены): на Linux-проде регистр важен, **после `git pull` нужен
+  `composer dump-autoload`**.
+- Слепок хранит все сырые атрибуты, `logIgnore()` применяется только в диффе (иначе гидрация
+  теряет `id`/`group`/`iteration`). Родитель части задаётся `logParentRelation()` (имя
+  belongsTo-связи), `logParent()` переопределён только у `ProposalCrmDeal` (по group).
+  Корень — класс из `config/entity_log.php` (`isLogRoot()` без загрузки связей).
+- Общие поля группы КП (`status`, `status_reason`, `status_comment`, `crm_deal_id`) при диффе
+  берут старое значение из последнего слепка группы (`logSharedFields()`), чтобы правка старой
+  редакции не показывала чужую смену статуса.
+- `deleted` пишется только если у корня уже была запись; корень без слепка при flush получает
+  `baseline`, `created` — для созданных в запросе и новых редакций КП (дифф с предыдущей).
+- `ProposalDealService::detach` оставлен на query builder (обёрнут `around`); остальные
+  удаления детей переведены на Eloquent. Деньги в подписях — с копейками.
+- Фильтр по полю: `слаг_типа.поле` (`proposal_variant_scenario.count`); `EntityLogChange::field_key`.
+- Проверено скриптами в транзакциях с откатом: лицензии 3→4 → «Вариант 2 (бессрочно) →
+  Нейросервис «…» → Лицензии: 3 → 4»; статус → 3 строки; партнёр name/grade; оплата
+  `amount_fact` с путём «Договор → Спецификация → Оплата»; `stateAt` по старому/новому слепку;
+  новая редакция → `created` с диффом относительно ред. 1; переезд hardware между КП →
+  `removed`/`added`; baseline 432/58/165, повторно 0.
+- Flush идёт после сборки ответа: страница, отрендеренная в том же запросе, что и правка,
+  новое событие ещё не видит (AJAX с reload — норма).
+
+**Этап B — сделан (агенты B1 и B2, 14.09.2026; первый агент на весь этап трижды зависал,
+не написав ни файла — задание пришлось дробить, см. память `agent-stalls-split-tasks`):**
+- B1: `app/Modules/Pub/EntityLog/{Routes/web.php, Controllers/EntityLogController.php}`,
+  вьюха `themes/metronic/pub/entity_log/index.blade.php` (события по дням, таймлайн Metronic,
+  таблица «Объект / Поле / Было / Стало», added/removed бейджами, «показаны N из M», ссылки
+  «Состояние на конец дня» `?at=Y-m-d` и «Открыть состояние на этот момент» `?at=<id>`,
+  фильтр под кнопкой в крошках: поле с optgroup, пользователь, событие), кнопка `fa-timeline`
+  в `layouts/breadcrumbs.blade.php` по `$log_root` + право, `'log_root'` в трёх `detail`.
+- B2: `EntityLogViewService::state()` / `dateWords()` (ядро не менялось), `'log_state'` в трёх
+  `detail`, баннер в `layouts/layout.blade.php` перед крошками (дата словами, событие, автор,
+  «Журнал изменений», крестик на текущее состояние, note при `exact = false`); в режиме
+  состояния скрыты меню «⋮» КП, смена статуса, «Прикрепить спецификацию», журнал заметок,
+  кнопки «Редактировать» партнёра и компании. Админка: `log_view` в попапе и на карточке
+  пользователя (переключатель + бейдж, у админа заблокирован), `POST /api/admin/users/log_view/{user}`.
+- Проверки: `?at=<id>` / `?at=Y-m-d` / `?at=2000-01-01` (первый слепок с note) / `?at=abc` (404) /
+  чужой слепок (404); обычный пользователь без флага — без кнопки и баннера, `/timeline` → 403,
+  с флагом — всё видно; лента партнёра и КП проверены в браузере.
+- Грабли проверки: без cookie `ui_theme=metronic` тема падает в materialpro, где вьюх журнала
+  нет (500) — curl без cookie не показателен; `proposal/detail.blade.php` объявляет `cost_out()`
+  в `@php`, второй рендер в одном процессе падает «Cannot redeclare».
+
+## Итерация 9 · patch-v30 · Рабочий стол (запрос владельца 14.09.2026)
+
+Запрос: домик в крошках и рабочий стол сейчас ведут на воронку продаж — нужна новая главная
+страница «Рабочий стол»: пункт меню, переход с домика и сразу после входа; крошка «Рабочий
+стол» только на самом столе. Стол — сетка виджетов и библиотека (аналогия — экран
+смартфона): 32 столбца, любое число строк, ячейка квадратная, виджеты кратны ячейке, у
+виджета несколько размерных рядов. По умолчанию просмотр (всё зафиксировано), режим
+редактирования — перетаскивать, добавлять из библиотеки, удалять, менять размер. Столов
+любое количество, стол сохраняется как пресет; админ создаёт системные пресеты для всех;
+разные разрешения должны отрабатывать корректно. Библиотека по категориям: «Общая» плюс
+по функциональным страницам; у виджета в библиотеке — превью. Примеры: блок с суммой
+(показатель, шрифт, заливка, валюта), выбор валюты (влияет на весь стол), таблица «страны и
+статусы помесячно на 6 месяцев», быстрая ссылка на модель с выбором поля-названия, сумма
+оплат за N дней, истекающие ключи через N дней, напоминания, блокнот, баннер во всю ширину.
+
+**Сделано 14.09.2026:** проект решения и каталог — артефакт
+https://claude.ai/code/artifact/8ad76927-7dc1-4663-a899-dccc237e891e (файл
+`scratchpad/osmo-desktop-widgets.html` сессии): что меняется в маршрутах/меню/крошках,
+сетка и размерные ряды (XS 2×2 … XL 32×12), сторона ячейки на реальных экранах, контракт
+виджета (`WidgetInterface`: sizes/settings/data/render/preview/access/ttl), хранение
+(`desktops`, `desktop_widgets`, `desktop_users`), фронт (GridStack.js 10, `column: 32`,
+`cellHeight: 'auto'`), режимы, библиотека, пресеты и версии системных пресетов, адаптив
+(32 → 16 колонок масштабом ½ → лента на телефоне), права; каталог 80 виджетов в 9
+категориях с размерами, настройками, источником и логикой; 5 стартовых пресетов; этапы
+v30-A…D; 8 открытых вопросов владельцу (место пункта меню, только Metronic, порог 16
+колонок, кто делает системные пресеты, GridStack, общие столы, состав первой партии из 14
+виджетов, удаление старого `Pub/Dashboard`).
+
+**Факты (разведка 14.09.2026):** `route('dashboard.index')` объявлен дважды — в
+`Pub/Dashboard` (`/dashboard/{mode?}`, остаток прошлого проекта: режим подчинённых, даты в
+сессии, `DashboardDataService` с `dd()`) и в `Bitrix/Dashboard` (`/bitrix/dashboard`);
+побеждает Bitrix, поэтому домик (`themes/metronic/components/breadcrumb.blade.php`), вход
+(`UserController::Auth`) и `RedirectIfAuthenticated` ведут на воронку. Крошку «Рабочий стол»
+добавляет конструктор `Pub\Dashboard\DashboardController`. Меню: «Работа» (`parent_id = 10`,
+в нём КП, Внешние КП, Реестр сделок, Воронка), «Отчёты» (15), «Справочники» (6),
+«Настройки» (1). Данные для виджетов уже есть в сервисах: `Bitrix\Dashboard\DashboardDataService`
+(sales/licenses/services/devcost/platform/servicesRaw, матрицы country_status_month/quarter,
+manager_status_quarter, industry_name), `ProposalStatusService`, `PaymentCalendarService`,
+`LicenseRenewalService`/`LicenseRegistryService`, `PartnerScoringService`/`PartnerStatsService`,
+`DiscountAnalysisService`, `CrmMismatchService`, `DealProjectService`, `ExternalProposalService`,
+`ReportService`, `CurrencyService`, модули Reminder/UserNote/Calendar/Notify, журнал v29.
+
+**Решения владельца (14.09.2026) по открытым вопросам артефакта:**
+1. Пункт «Рабочий стол» — первым в разделе «Работа».
+2. Только Metronic: в старой теме домик и вход ведут на воронку, как сейчас.
+3. Порог (на моё усмотрение): 32 колонки при ширине сетки > 960 px (окно ≈1280 px с сайдбаром,
+   ячейка ≈30 px; сначала было 1200, но тогда уже окно 1600 px давало 16 колонок), 16 колонок
+   масштабом ½ до 768 px, уже — лента в одну колонку; редактирование только на 32 колонках.
+4. Системные пресеты — только админ (`User::isPanelAdmin()`).
+5. Библиотека сетки (на моё усмотрение) с требованием владельца: **при перетаскивании
+   полупрозрачная копия блока стоит в конечной позиции** — видно, где он окажется, если
+   отпустить кнопку. Выбор — GridStack.js 11.1.2 (MIT) с jsDelivr, как ApexCharts в воронке:
+   его placeholder и есть «место приземления», в него при dragstart/resizestart клонируется
+   содержимое блока с прозрачностью; соседи раздвигаются в реальном времени.
+6. Общих столов нет.
+7. Первая партия (на моё усмотрение): 14 виджетов из раздела «Этапы» артефакта.
+8. Старый `Pub/Dashboard` (на моё усмотрение) удаляется: маршруты, контроллеры, сервисы,
+   `Models/Dashboard`, вьюхи `resources/views/pub/dashboard`, компоненты `dashboard/date-select`,
+   `dashboard/sub-users`, `notify/date-select` (ссылаются на его маршруты, нигде не подключены).
+   `Policies/DashboardPolicy.php` остаётся: на неё ссылается строка `accesses` id 7
+   (`desktop_ann`), Gate объявляется из этой таблицы.
+
+**Факты для реализации:**
+- `Breadcrumb::__construct()` всегда кладёт первым пунктом «Рабочий стол» со ссылкой `/`, поэтому
+  подпись видна на всех страницах. В Metronic-компоненте `themes/metronic/components/breadcrumb.blade.php`
+  первый пункт пропускается (`->slice(1)`), страница стола добавляет свой пункт; `forTitle()`
+  и старая тема не меняются.
+- Домик и логотипы в Metronic: `components/breadcrumb.blade.php`, `layouts/layout.blade.php:12`,
+  `layouts/sidebar.blade.php:13`, `layouts/header.blade.php:15`; после входа —
+  `UserController::Auth` (строка 76), `RedirectIfAuthenticated`, `routes/web.php` маршрут `/`.
+  Имя `dashboard.index` после удаления `Pub/Dashboard` остаётся только у воронки — старую тему
+  (`layouts/sidebar.blade.php`, `UserNote::$detail_route`) не трогаем.
+- API модулей Pub — `api.php` с `middleware => ['ajax.api']` (токен `_token` = `ajax_token`,
+  в JS `csrf_token()`); попапы — `box({href})`, шаблон `components.box.box-static-large`.
+- Воронка берёт валюту из глобального `Cache::get('dashboard_currency')` и фильтр страницы
+  (`CrmDealRepository::getFiltered()` + `DashboardFilterService`) — виджетам воронки нужна
+  явная валюта стола и выборка без фильтра страницы (опциональные параметры, поведение
+  страницы воронки не меняется).
+
+**Каркас — сделан мной (14.09.2026), контракт для агентов:**
+- Миграции `2026_09_14_110000_create_desktops_table`, `110100_create_desktop_widgets_table`
+  (прогнаны): `desktops` (user_id null = системный, name, is_system, is_default, sort,
+  context json, source_id, source_version, version, created_by, updated_by),
+  `desktop_widgets` (desktop_id, uid, widget, x, y, w, h, settings json; unique desktop_id+uid).
+- `app/Modules/Pub/Desktop/Models/{Desktop, DesktopWidget}` (`canView`, `canEdit`,
+  `contextObject`, `toGrid`), `config/desktop.php` (сетка, версия GridStack, 9 категорий).
+- `Services/DesktopContext` — валюта и период стола: `currencyFor($settings)`,
+  `periodFor($settings)` (from/to), `range()`, `previousRange()`, `symbol()`, `PERIODS`.
+- `Services/WidgetRegistry` — сам находит `Widgets/{Категория}/*Widget.php`: `all()`, `find()`,
+  `instance()`, `availableFor()`, `categories()`, `forUser()` (библиотека).
+- `Widgets/Widget` — контракт: `id/name/category/sizes/defaultSize/description/icon/order`,
+  `fields()` (схема: text, textarea, number, select, bool, currency, period, entity, list),
+  `usesCurrency/usesPeriod` (общие настройки валюты и периода), `showTitle`, `available($user)`,
+  `ttl`, `sourceUrl`, `previewSettings`, `data()`, `sample()`; `schema()`, `normalize()`,
+  `allows()`, `nearestSize()`, `meta()`; отрисовка `html()` (оболочка) и `body()` (ошибка
+  данных или вьюхи — плашка вместо тела), кэш данных без настроек оформления.
+- Оболочка `themes/metronic/pub/desktop/partials/widget.blade.php`, стили
+  `public/metronic/css/osmo-desktop.css` (`--desk-cell`, `--desk-font-scale`, заливки,
+  `.desk-value`, `.desk-label`, `.desk-delta`, `.desk-list`, `.desk-table`, `.desk-empty`),
+  образец `Widgets/Common/BannerWidget` + `widgets/banner.blade.php`.
+
+**Сделано по этапам (14.09.2026):**
+- A2: `Desktop/Services/DesktopService` (`home`, `forUser`, `systems`, `create`, `copy`, `rename`, `delete`,
+  `makeDefault`, `save` — синхронизация раскладки целиком с проверкой uid/виджета/размера/позиции,
+  `context`/`setContext` — выбор валюты и периода в сессии `desktop_context.{id}` поверх контекста
+  стола, `render`, `gridItems`, `summary` с `update_available`, `assertView`/`assertEdit`),
+  `Controllers/Api/ApiDesktopController`, `Routes/api.php` (8 POST `api.desktop.*`), `Desktop` первым
+  в `config/modular.php`. API не проходит `ResolveUiTheme` — `render` сам включает Metronic.
+- W1: heading, note, link (КП / партнёр / компания / сделка; карточка сделки — только при праве
+  `deal_card_view` и привязанном КП, иначе ссылка в Битрикс24), reminders (как `reminder.index`).
+- W2: currency, period, payments_fact (свой запрос `payments` + `contract_specifications` по датам
+  факта, курс на дату оплаты; сверено с `PaymentCalendarService::rows()`), keys_expiring
+  (`LicenseRenewalService::expiring()`; `renewalAmount()` — в валюте спецификации, пересчёт на сегодня).
+- W3: `Desktop/Metrics/MetricRegistry` — показатели КП, партнёров, компаний, внешних КП, расхождений;
+  kpi (заголовок по умолчанию скрыт), proposal_status, scoring_top («текущий» год = последний год
+  с данными, как на странице скоринга). Я добавил показатели оплат, ключей и воронки.
+- W4: funnel_table, country_month. Сервис воронки: `DashboardDataService::__construct(?string
+  $currency = null, bool $filtered = true)`, `country_status_month(int $months = 6)` (при 12 месяцах
+  сверяется и год), `CrmDealRepository::getFiltered(bool $apply_filter = true)`; регресс сумм и
+  матрицы на 6 месяцах совпал, все прежние вызовы без аргументов.
+- A3: `Desktop/Routes/web.php`, `Controllers/DesktopController` (старая тема → воронка),
+  `themes/metronic/pub/desktop/index.blade.php`, `public/metronic/js/osmo-desktop.js` (объект `Desk`:
+  `init/edit/save/cancel/compact/refresh/setContext/addWidget/removeWidget/openLibrary/openSettings/
+  applySettings/copyDesktop`, ленивая загрузка через IntersectionObserver, `--desk-cell` =
+  `cellWidth × column / 32`, копия блока в `grid.placeholder` на `dragstart`/`resizestart`, ресайз
+  к ближайшему разрешённому размеру), `public/metronic/css/osmo-desktop-grid.css`.
+- Моя проверка A3 в браузере (окно 1600 px) и правки:
+  - **сетка была пустой**: `gridstack.min.css` 11.x содержит ширину/позицию блоков только для
+    12 колонок — сгенерировал `public/metronic/css/osmo-desktop-columns.css` (32, 16 и 1 колонка);
+  - порог 16 колонок снижен с 1200 до 960 px ширины сетки (`config/desktop.php`);
+  - низкие блоки (высота 1–2 ячейки) плотнее (`osmo-desktop.css`), в «Выборе валюты» на ширине 4
+    только «$ USD» без названия;
+  - перетаскивание: заглушка с копией (прозрачность 0.45) стоит в целевой позиции, соседи
+    сдвигаются сразу (баннер уехал с y=5 на y=7), после отпускания блок встаёт на место копии,
+    `dirty` → «Сохранить» активна;
+  - локальный сервер отвечает по одному запросу — 9 виджетов грузятся ~10 с; пакетная отрисовка
+    `api.desktop.render_batch` — в A4c1.
+- A4 (14.09.2026):
+  - библиотека: `Controllers/DesktopLibraryController` (превью на `sample()`, ячейка превью 8–40 px),
+    `pub/desktop/library.blade.php`, `osmo-desktop-library.js` (панель справа под тулбаром, вкладки,
+    поиск, «Добавить», чипы размеров, `GridStack.setupDragIn` с `handle: '.desk-lib-film'`, копия
+    превью в заглушку на `drag`), `osmo-desktop-library.css`; первый агент завис без файлов — сделал сам;
+  - настройки: `Api/ApiDesktopSettingsController` (`form` — HTML попапа, отказ — плашка со статусом 200;
+    `search` — select2), `boxes/settings.blade.php`, `osmo-desktop-settings.js` (двойной клик по заметке
+    в просмотре — настройки и сразу `save()`);
+  - столы: `DesktopBoxController` + `boxes/desktop.blade.php` (create / rename / copy / system),
+    `osmo-desktop-desks.js`, `DesktopService::renderBatch/applySource`, `api.desktop.apply_source`,
+    пакетная отрисовка в `osmo-desktop.js` (очередь 50 мс, пачки по 12): 9 виджетов 0,3 с вместо 1,8 с;
+  - главная: крошки `slice(1)`, логотипы, `/`, вход, `RedirectIfAuthenticated` → `desktop.index`,
+    `patch_v30_menu.sql` (пункт id 37 локально), `Pub/Dashboard` удалён; найдено: `NotifyController`
+    зависел от `Pub\Dashboard\Services\DashboardService` — период истории уведомлений перенесён в
+    `NotifyController::set_dates` (`notify.set_dates`), компонент `notify/date-select` оставлен.
+- Правки по замечаниям владельца (проверка 14.09.2026):
+  2. «При ресайзе виджет меняется по всей сетке, кажется, что размер любой» — ресайз GridStack
+     выключен (`resizable: {handles: ''}` + `enableResize(false)`, в том числе после `setStatic`),
+     размер ведёт своя ручка `.desk-resize` в углу блока: от курсора считается желаемый размер в
+     ячейках, берётся ближайший разрешённый и ставится через `grid.update()` — блок прыгает по
+     разрешённым размерам, соседи раздвигаются сразу. Над блоком — подсказка `.desk-size-hint`
+     со всеми размерами виджета, текущий подсвечен. Почему не вмешиваться в ресайз GridStack:
+     `grid.update()` во время его операции затирает `node._orig` → «Cannot read properties of
+     undefined (reading 'w')» и ресайз не завершается; сужение `min/max` узла приводит к залипанию
+     размера. Проверено: 4×2 → 8×2 (подсветка «8×2», сохранение включается), после отпускания
+     размер зафиксирован и виджет перерисован под новый размер.
+  1. «На узких разрешениях высота виджетов очень маленькая» — высота строки получила нижний
+     предел `desktop.min_cell` = 46 px (`layoutCells` в `osmo-desktop.js`, ключ `min_cell`
+     в `DesktopController`): пока колонка шире предела, ячейка квадратная, уже — строка выше
+     колонки, ширина блоков не меняется. Проверено: окно 1500 px — 32 колонки, колонка 34 px,
+     строка 46 px, блок 4×2 = 137×92 (было 137×68), по высоте не обрезается ни один блок;
+     окно 1280 px — 16 колонок, строка 46 px вместо 26,8.
+  3. «Хочу нажимать на размер в тулбаре и отжимать замок, чтобы размер был любым» — подсказка
+     размеров стала панелью `.desk-size-panel`: открывается на ручке `.desk-resize` и висит, пока
+     не щёлкнут мимо неё или не нажмут Esc (клик по блоку её закрывает — начинается перетаскивание).
+     Размер ставится нажатием на него, текущий подсвечен. Замок: закрыт — только размеры виджета;
+     отжат — любой размер (до 32 колонок и 64 ячеек в высоту), при закрытии замка размер
+     возвращается к ближайшему разрешённому. Свободный размер хранится: колонка
+     `desktop_widgets.free_size` (миграция `2026_09_14_120000_add_free_size_to_desktop_widgets`),
+     `DesktopService::cleanItems` не приводит такой размер к списку и клампит его по сетке
+     (`MAX_ROWS` = 64), `render`/`renderBatch` получают флаг и отдают виджет в его настоящем
+     размере, `copy`/`applySource` переносят флаг. В JS: `Desk.state[uid].free_size`, границы узла
+     снимаются (`applyLimits`), иначе `grid.update()` обрезал бы размер по `min/max` виджета;
+     ручка ресайза теперь есть и у виджета с единственным размером — под ним отжимается замок.
+     Проверено в браузере: нажатие на «4×4» меняет размер и подсветку; замок отжат — границы узла
+     1..32 / 1..64, мышью получаются 5×2, 6×3, 7×3, 9×5; сервер отдаёт виджет как есть
+     (`data-size="12x5"`, без плашки ошибки); замок закрыт — 6×3 вернулось к 4×2; сохранение через
+     `DesktopService::save`: свободный 6×3 сохранён как есть, такой же блок с закрытым замком
+     приведён к 4×2; перетаскивание и ресайз мышью — без ошибок в консоли.
+     Там же по замечанию: в блоке высотой в одну ячейку кнопки «Настройки» и «Удалить» накрывали
+     уголок ресайза — низкие блоки помечаются классом `desk-item-short` (`markShortItems`,
+     по событиям сетки), инструменты в них уходят левее уголка и становятся 22 px.
+**Партия виджетов (14.09.2026).** Владелец: «разработай недостающие виджеты и переделай
+текущие с учётом того, что они могут быть любого размера». Порядок работы:
+- каталог из артефакта перенесён в патч — `patches/patch-v30/WIDGETS.md` (80 виджетов:
+  размеры, источник, логика, настройки), в начале файла — соглашение о вёрстке виджета;
+  отметки «сделано» проставляет `tools/mark_widgets.php` по реестру;
+- **любой размер**: `.desk-widget` стал CSS-контейнером (`container-type: size`), кегли —
+  в контейнерных единицах (`cqw`/`cqh`), вьюха получает ступени `$dw`/`$dh` (xs…xl) и
+  `$rows` (сколько строк влезет), второстепенное прячется классами `desk-only-w-md|lg|xl`,
+  `desk-only-h-md|lg`, `desk-hide-narrow|short` (на `th`/`td` — колонка целиком).
+  Сравнений `$w`/`$h` с числами в шаблонах больше нет; все 14 старых виджетов переписаны;
+- **графики**: ApexCharts 3.54.1 на странице стола, `Widget::chart()`/`sparkline()` +
+  `osmo-desktop-charts.js` (снимает старый график перед заменой HTML, пересчитывает по
+  ResizeObserver). `MetricRegistry::series()` даёт ряд показателя по дням/неделям/месяцам/
+  кварталам, `periodOptions()` — показатели, у которых ряд есть (сейчас 5 из 19);
+- **проверка**: `tools/render_widgets.php` рисует виджеты в консоли во всех объявленных и в
+  свободных размерах (2×2, 7×3, 16×5, 32×2), с живыми и образцовыми данными, и считает
+  ошибки. После каждой партии прогон должен давать «с ошибкой: 0»;
+- виджеты писались партиями агентами (по 3–4 виджета на агента, только свои файлы; общие —
+  Widget.php, MetricRegistry, CSS, JS — правил сам), сам сделал: `rates`, `clock`,
+  `countdown`, `chart`, `progress`, `compare`, `embed`, `button`.
+
+**Итог: весь каталог из 80 виджетов сделан** (80 классов, 80 вьюх; Общие 16, Личное 7,
+Воронка 14, КП 13, Партнёры 7, Оплаты 9, Ключи 5, Аналитика 5, Админ 4). Прогон
+`render_widgets.php` — 1172 отрисовки, ошибок 0. В браузере проверены четыре тестовых стола
+(12, 16, 18 и 26 блоков) в свободных размерах: переполнений нет, ошибок в консоли нет.
+Ни одна вьюха не сравнивает `$w`/`$h` с числами и не задаёт кегль инлайном.
+
+Правки общей вёрстки по ходу партии: график ApexCharts обрезается по блоку (рисовался выше
+контейнера и включал прокрутку); цвет `.desk-bar > i` и `.desk-muted` заданы без веса селектора,
+иначе `bg-gray-400` и `text-danger` не срабатывали; `.desk-center` и `.desk-stack` обрезают
+содержимое сами; шапка `.desk-table` в `.desk-scroll` липкая; добавлены `.desk-split`,
+`.desk-grid-7`, `.desk-bar-fill`, `.desk-total`. Самообновление виджета — атрибут
+`data-desk-reload="секунды"` (tickReload), часы идут через `data-desk-clock` (tickClocks).
+Константа `desktop_embed_domains` (белый список доменов для «Внешней страницы») —
+`patches/patch-v30/database/sql/patch_v30_consts.sql`, локально выполнена.
+
+**Дальше по рабочему столу (после правок 1–3, 14.09.2026):** владелец правит механику и состав
+виджетов по ходу проверки — каждый пункт: правка → проверка в браузере → строка в этом списке.
+Накопленные хвосты:
+- в узком блоке (4 колонки) длинные подписи обрезаются по ширине — возможно, поднять минимальную
+  ширину «Периода» и «Выбора валюты» до 6–8 колонок;
+- меню у тем общее: в старой теме пункт «Рабочий стол» ведёт на воронку (решить, скрывать ли);
+- системных пресетов нет — 5 стартовых из артефакта не собраны;
+- каталог: сделано 14 виджетов из 80 (артефакт), остальные партиями;
+- тема по умолчанию `materialpro`: без cookie стол уводит на воронку — решить (форсировать
+  Metronic на `/desktop`, сделать Metronic темой по умолчанию или оставить).
+
+- Открыто: меню у тем общее — в старой теме пункт «Рабочий стол» виден и уводит на воронку;
+  системных пресетов пока нет (5 стартовых из артефакта не созданы); остальные 66 виджетов каталога.
+- Маршруты и подключения этапа A4 объявил сам заранее, чтобы параллельные агенты не правили
+  одни файлы: `desktop.library`, `desktop.box_desktop` (web), `api.desktop.render_batch`,
+  `api.desktop.settings_form`, `api.desktop.search` (api), ключи в `Desk.urls`, файлы-заглушки
+  `osmo-desktop-library.js/.css`, `osmo-desktop-settings.js`, `osmo-desktop-desks.js`.
+- Замечено: данные — одно рублёвое КП в работе с основным вариантом 12,9 млрд ₽ (из-за него
+  «КП в работе, сумма» = 15,2 млрд); новые файлы кто-то сам добавляет в индекс git (`A` без
+  `git add` агентов — вероятно, IDE) — перед коммитом проверить `git status`.
+
+**Этапы реализации (агенты, задания ≤ 5 файлов):** A2 — `DesktopService`, API и маршруты;
+W1–W4 — виджеты партиями параллельно; A3 — страница стола (сетка, режимы, перетаскивание с
+полупрозрачной копией, ресайз по разрешённым размерам, сохранение); A4 — библиотека с превью,
+попап настроек, столы и пресеты, домик/вход/меню/крошки, удаление `Pub/Dashboard`, README.
+
+**Этап A — сделан (агент, 14.09.2026), отличия от проекта выше:**
+- Миграции `2026_09_14_100001..100003` (`entity_logs`, `entity_log_changes`, `users.log_view`)
+  прогнаны; baseline снят локально: proposal 432, partner 58, company 165 (повтор — 0 новых).
+  Реестр корней — `config/entity_log.php` (`types`), `isLogRoot()` = «класс в реестре».
+- Каталог `app/Models/traits` переименован в `Traits` (иначе `App\Models\Traits\HasLogger`
+  не загрузится на Linux-проде); `HasDetailPage` переведён в этот namespace, импорты в
+  `Calendar` и `Organization` поправлены. **На проде после pull — `composer dump-autoload`.**
+- Родитель части задаётся `logParentRelation()` (имя belongsTo), `logParent()` переопределён
+  только у `ProposalCrmDeal` (родитель — последняя редакция группы). В `Proposal` добавлена
+  связь `crm_deal_links()`.
+- Слепок хранит все сырые атрибуты, `logIgnore()` действует только в диффе (иначе гидрация
+  теряет `id`/`group`/`iteration`). Общие поля группы КП (`logSharedFields()`: статус,
+  причина, комментарий, `crm_deal_id`) при диффе берут старое значение из последнего слепка
+  группы — правка старой редакции не показывает чужую смену статуса.
+- События: существующий корень без слепка при flush получает `baseline`, а не `created`;
+  `deleted` пишется только если корень уже был в журнале; новая редакция КП — `created`
+  с диффом относительно предыдущей редакции. Кэш `rootOf()` обходится при грязном FK
+  родителя (переезд части в другой агрегат даёт `removed` у старого корня и `added` у нового).
+- `ProposalDealService::detach` оставлен на query builder (обёрнут `around`), остальные
+  удаления детей переведены на Eloquent. Формат фильтра по полю — `слаг.поле`
+  (`proposal_variant_scenario.count`), при фильтре в `changes` события остаются только
+  подходящие строки, `changes_count` — общее число.
+- Проверки (в транзакциях с откатом): лицензии 3→4 — одна строка «Вариант 2 (бессрочно) →
+  Нейросервис «…» · Лицензии · 3 → 4»; статус — три строки (статус, причина, комментарий);
+  партнёр — имя и уровень (`PartnerGrade`); оплата — путь «Договор → Спецификация → Оплата»
+  и «Сумма факт»; `stateAt` по старому/новому слепку отдаёт старое/новое значение; лента,
+  фильтр и `fieldOptions` работают. Flush идёт после сборки ответа: страница, отрендеренная
+  в том же запросе, что и правка, новое событие ещё не видит (AJAX с reload — норма).
 
 ## Партия правок владельца от 11.09.2026
 
@@ -64,6 +646,419 @@ v25 — на v24, v26 — на v23 и v24, поэтому идут после.
 8. **«Вариант» КП — это столбец** формы редактирования (кнопка «+», тип
    «Пилот / Годовая / Безлимит»), а не итерация. Перенос из OSMOVIEW CP создаёт
    одну итерацию с N столбцами (`proposal_variants`, `is_main` у основного).
+
+## Правки владельца от 12.09.2026
+
+1. **Отбор «Анализа скидок» уехал под кнопку «Фильтр»** в тулбар страницы, как
+   на `/bitrix/dashboard`: карточки с полями над таблицей больше нет. Год
+   остался на виду рядом с кнопкой — это главный отбор страницы, и он уезжает
+   вместе со скрытыми полями остального фильтра, поэтому смена года отбор не
+   сбрасывает. Сам фильтр по-прежнему обычная GET-форма (партнёр, статус КП,
+   поиск, «только выделенные»), так что ссылку с отбором можно передать;
+   «Убрать» снимает только поля модалки и оставляет год.
+   Файл: `resources/views/themes/metronic/pub/analytics/discounts.blade.php`.
+   На `/analytics/partners` сделано то же самое (грейд и поиск — в модалке,
+   год — в тулбаре). `/analytics/licenses` пока со старой карточкой.
+
+2. **У аналитики не было заголовка.** Конструктор `AnalyticsController`
+   ставил всем действиям крошку «Анализ скидок», поэтому скоринг и реестр
+   лицензий крошки не получали вовсе и страница шла без заголовка — с пустой
+   левой половиной тулбара это стало видно. Крошка переехала в каждое
+   действие по отдельности, `breadcrumbs` теперь отдаются всем трём.
+
+3. **Платежи на карточке сделки** (`/deal-card/…`) показываются той же
+   табличкой, что в ячейке «Оплаты» на карточке партнёра: строка на платёж,
+   слева значок состояния и даты «план → факт», справа суммы. Разметка
+   вынесена в общий компонент `components/payment/table.blade.php` — он
+   принимает и модели `Payment` (карточка партнёра), и строки из БД
+   (карточка сделки: там платежи собирает `DealChainService::payments()` и
+   состояние у них считается заново по логике `Payment::getStatusAttribute`).
+   Карточку партнёра не трогали, она по-прежнему со своей разметкой.
+
+4. **Привязка КП к сделке стала один к одному.** В попапе
+   `bitrix/deal/box/proposal.blade.php`: если к сделке уже привязано КП,
+   кнопки «Привязать» нет ни у одной строки; если у КП уже есть сделка,
+   вместо кнопки стоит «занято». Подсказка под поиском переписана —
+   раньше там было сказано, что у КП сделок может быть несколько.
+   **Осталось на сервере:** `ApiCrmDealController::proposalAttach` отказывает
+   только в обратную сторону (сделка уже занята КП); проверки «у КП уже есть
+   сделка» там нет, то есть запрет пока только в интерфейсе.
+
+5. **Шкала цветов получила :hover.** В `public/css/palette.css` добавлено 126
+   правил `.text-hover-<цвет>-<ступень>:hover` и `.bg-hover-…` (7 цветов ×
+   9 ступеней × 2). **Внимание:** `palette.css` не заведён в git —
+   `.gitignore` пускает из `public/css/` только `fix.css`, а шкалу подключает
+   `layouts/layout_short.blade.php`. На прод после `git pull` файл не приедет.
+
+## Правки владельца от 13.09.2026
+
+1. **«Сумма» спецификации на карточке сделки** берётся из `amount_all` —
+   сумма плана всех платежей, как в колонке «Сумма» на карточке партнёра.
+   В `DealChainService::specifications()` добавлен подзапрос по `payments`,
+   ячейка в `deal_card/index.blade.php` выводит его. У спецификаций с пустым
+   `amount` вместо «0» теперь реальные суммы (проверено: 320 000 и 2 030 086).
+   **Не тронуто:** блок «Деньги по сделке» и подсказка шага «Спецификации»
+   по-прежнему считают по `amount` — ждёт решения владельца.
+
+2. **Расхождение на карточке компании свёрнуто в метку.** В ячейке осталась
+   только красная (или жёлтая) плашка «Расхождение», причины и суммы
+   «платежи / КП» открываются поповером по клику и закрываются кликом мимо
+   (`data-bs-trigger="focus"`, текст причин экранируется). Файл:
+   `pub/company/detail.blade.php`. По ходу правку один раз затёр редактор
+   с открытым файлом — накатана заново поверх ручных правок владельца
+   (`col-3/col-9`, `min-w-200px`, `ms-7`), они сохранены.
+
+3. **Тулбары таблиц мелькали до инициализации.** Всё, что bootstrap-table
+   забирает в свою панель через `data-toolbar`, до загрузки скриптов стояло
+   в потоке страницы — на КП шесть пар «Фильтр / Создать КП» столбиком.
+   Общее правило в `public/metronic/css/osmo-fix.css`:
+   `.bt-toolbar:not(.fixed-table-toolbar *) { display: none !important; }`,
+   класс `bt-toolbar` проставлен во всех восьми местах: `proposal/index`
+   (все вкладки), `company/index`, `partner/index`, `software/index`,
+   `work/index`, `user/list`, `bitrix/deal/_filter`, `external_proposal/_filter`.
+   Новым таблицам с `data-toolbar` класс нужно ставить так же.
+
+4. **Реестр сделок до инициализации показывал всю простыню.** Строки
+   рендерятся на сервере (страница ~1 МБ), страницы режет bootstrap-table.
+   В `<style>` `bitrix/deal/_table.blade.php`: сырая `table.table_data` скрыта,
+   пока её не обернули в `.bootstrap-table`. Действует и во вкладке
+   «Сделки Битрикс» карточки партнёра.
+
+5. **Календарь был закрыт чёрным затемнением.** `pub/calendar/index.blade.php`
+   держал мёртвый `div.modal-backdrop.bckdrop.hide`: класс `hide` — из
+   Bootstrap 3, в Metronic его нет, и затемнение висело поверх страницы
+   всегда. Заменён на `d-none` (JS этот элемент не трогает).
+
+6. **Обход страниц без скриптов** (как они выглядят до инициализации):
+   КП, OSMOVIEW CP, реестр сделок, компании, партнёры, ПО, работы,
+   пользователи, воронка, все отчёты, платёжный календарь, вся аналитика,
+   расхождения с Битрикс24, синхронизация, нейросервисы, сценарии, меню,
+   доступы, напоминания, уведомления, карточка партнёра — после правок
+   артефактов нет.
+   **Найдено попутно, не исправлено:**
+   - `/report/china` падал 500 «Undefined variable $cur»: в
+     `report/china.blade.php` короткие теги `<? … ?>`, а локальный PHP с
+     `short_open_tag` выключен. **Исправлено:** `<?php` в теме Metronic
+     (стр. 47, 69) и в корневом шаблоне старой темы (стр. 48, 70).
+
+7. **Кнопка «Убрать» у фильтра** была свёрстана классами старой темы
+   (`btn-icon btn-pure btn-outline`, опечатка `delete-row-btnКу`, пустая
+   подсказка) и прилипала к «Фильтру». Во всех семи копиях — отчёты «Оплаты»,
+   «Лицензионные ключи», «Сценарии по спецификациям», списки компаний,
+   партнёров, ПО, работ — теперь `btn-light-danger` в размер соседней кнопки,
+   подсказка «Сбросить фильтр», контейнер `#filter` получил `d-flex gap-2`.
+   JS по-прежнему только переключает `d-none`.
+
+8. **Блок позиции в «Истории цен» стал цветным** — как тип договора на
+   карточке партнёра: `fw-bold text-<цвет>` с иконкой. Цвет и иконка лежат
+   в `ProposalPriceHistoryService::blocks()`: платформа `primary`/`fa-desktop`,
+   ПО `danger`/`fa-brain-circuit`, работы `warning`/`fa-person-digging`
+   (как у `ContractType`), нейросервисы `info`/`fa-microchip` — своих в
+   `ContractType` у них нет. Ячейка — `proposal_tools/price_history.blade.php`.
+
+9. **Попап «Подробнее» OSMOVIEW CP: пары «ключ — значение» стали таблицами.**
+   Три сетки `.kv` на вкладке «Ключевые поля» (две колонки полей и
+   «Оборудование») переделаны на `table.table-bordered align-middle`:
+   ключ — `text-muted` шириной 180 px, значение без изменений. Правила `.kv`
+   из `<style>` попапа удалены. Файл: `external_proposal/boxes/detail.blade.php`.
+   Также в этом разделе `#table_data tr.transferred:has(+ tr.transferred)` —
+   красная граница у перенесённой строки, за которой идёт ещё одна
+   (`external_proposal/index.blade.php`).
+
+10. **«Выгрузить в Excel» в реестре сделок уехала под «Действия»** — как на
+    `/external-proposals`: кнопка `btn-primary` с меню, пункт открывает
+    попап выгрузки. Ссылка по-прежнему несёт текущий отбор и режим вкладки;
+    в `onclick` она подставляется через `@js()`, чтобы «&» не экранировался
+    дважды. Файл: `bitrix/deal/index.blade.php`, компонент `x-ui.a.box`
+    там больше не используется.
+
+11. **Глобальный hover у `.btn-light`**: чёрная заливка (`--bs-dark`) и белый
+    текст, иконки и стрелка дропдауна тоже белые. Правило в
+    `public/metronic/css/osmo-fix.css`, селектор как у Metronic
+    (`.btn.btn-light:hover:not(.btn-active)`), цвета с `!important`.
+
+12. **Пагинация таблиц в одну строку.** bootstrap-table 1.12 ставит блокам
+    `pull-left`/`pull-right` из Bootstrap 3 — в Bootstrap 5 их нет, и «Записи
+    с … из …» и номера страниц вставали друг под друга, страницы по центру.
+    В `public/metronic/css/osmo-fix.css`: `.fixed-table-pagination` — flex со
+    `space-between`, clearfix `::after` выключен, `div.pagination` прижат вправо.
+    Действует на всех таблицах сайта.
+
+13. **OSMOVIEW CP: «Фильтр» — к «Действиям», поиск — в шапку карточки.**
+    Кнопки «Фильтр (n)» и «Убрать» вместе с подсчётом правил переехали из
+    `_filter.blade.php` в `breadcrumb_right` страницы (секция выполняется
+    раньше `content`, поэтому подсчёт живёт там же); в `_filter` осталась
+    только модалка. Панель bootstrap-table (`.fixed-table-toolbar`) на странице
+    скрыта, `data-toolbar` у таблицы убран. Поле `#external_search` стоит в
+    `card-toolbar` рядом со счётчиком и через паузу 300 мс передаёт текст во
+    встроенный поиск таблицы (`bootstrapTable('resetSearch', …)` — сам поиск
+    по-прежнему клиентский).
+
+14. **Кнопки фильтра на всём сайте — по образцу владельца с `/external-proposals`.**
+    «Фильтр» — `btn btn-light-info` (в «Оплатах» с прежним размером `btn-sm h-35`,
+    у ПО и работ сохранён их `d-none`). «Убрать» — не кнопка, а ссылка
+    `me-2 text-dark-500 text-hover-dark` с иконкой `fa-light fa-xmark fs-5 me-2`,
+    без подсказки. Где «Убрать» была `<button id="filter_clear">` и её
+    переключает JS, тег сменён на `<a href="javascript:void(0);">` — id и
+    `d-none` те же, обработчики работают. Файлы: списки компаний, партнёров,
+    ПО, работ, КП (6 тулбаров), отчёты «Лицензионные ключи», «Оплаты»,
+    «Сценарии по спецификациям», `bitrix/deal/_filter`, аналитика скидок и
+    скоринга, дашборд Битрикса (там «Убрать» — компонент `x-ui.a.ajax`, который
+    всегда даёт `.btn`, поэтому `btn_type="link"` + `p-0`).
+    Ссылка «Убрать» — блочный элемент и в тулбаре без `align-items-center`
+    растягивалась на высоту кнопки с текстом у верхнего края: контейнерам
+    тулбаров (списки, КП, три отчёта, `bitrix/deal/_filter`) добавлен
+    `align-items-center`.
+    **Замечено, не исправлено:** на КП у шести ссылок «Убрать» один id
+    `filter_clear`, jQuery вешает обработчик только на первую — так было и до
+    правки.
+
+15. **Карточки со списками — `card-body p-2`**, как владелец сделал на
+    `/external-proposals`: КП, компании, партнёры, ПО, работы, реестр сделок
+    (было `pt-2`, отступы по бокам и снизу от темы). `/user/list` — рудимент,
+    по слову владельца не трогаем.
+    **Найдено, не исправлено:** вызовы шаблонов с префиксом модуля (`pub::…`)
+    идут мимо темы — `ResolveUiTheme` делает `prependLocation` только для имён
+    без `::`, поэтому готовые копии в `themes/metronic` не используются у
+    `access.create`, `access.edit`, `access_group.create`, `access_group.edit`,
+    `menu.index`. Переключать на имена без `::` — после сверки копий.
+
+16. **Фильтр — в тулбар страницы, поиск — в шапку списка, по всему сайту**
+    (по образцу `/external-proposals`, пункт 13).
+    - КП (`pub/proposal/index`): один набор «Фильтр / Убрать / Создать КП» в
+      `breadcrumb_right` в обёртке `#filter` (без `bt-toolbar` — его глобальное
+      правило прячет всё вне панели таблицы); копии тулбаров для вкладок
+      менеджеров удалены. Одно поле `#proposal_search` справа в строке вкладок
+      вызывает `resetSearch` у таблицы активной вкладки, на `shown.bs.tab`
+      текст применяется к новой вкладке. Шапка `flex-nowrap`: при нехватке
+      места переносятся вкладки, поле остаётся справа.
+    - Компании, партнёры, ПО, работы: тулбар («Фильтр», «Убрать», «Добавить»)
+      в `breadcrumb_right` с обёрткой `#filter`; у карточки появился
+      `card-header` «Список компаний / партнёров / ПО / работ» с `#table_search`.
+    - Реестр сделок: новый `bitrix/deal/_filter_buttons.blade.php` (кнопки и
+      подсчёт правил) — в `breadcrumb_right` перед «Действиями»; `_filter`
+      получил параметр `$toolbar` (по умолчанию `true`), `_table` выводит
+      `data-toolbar` только при нём. Поле `#deal_search` в строке вкладок,
+      поиск по-прежнему серверный: Enter → адрес с `q`, адрес строит новый
+      `CrmDealRegistryService::searchBase()` (логика вынесена из `_table`).
+      Вкладка «Сделки Битрикс» на карточке партнёра не менялась.
+    - Отчёты «Лицензионные ключи», «Оплаты», «Сценарии по спецификациям»:
+      «Фильтр» и «Убрать» в `breadcrumb_right` (поиска там нет).
+    **В патч:** новый файл `_filter_buttons.blade.php` и сервис
+    `CrmDealRegistryService.php`.
+
+17. **Платёжный календарь: клик по сумме месяца не показывал платежи.**
+    Разбивка по месяцам считается с отбором по умолчанию «спецификации в работе
+    + уже оплаченные», а ссылки `$link` копировали в адрес `spec_status[]=processing`.
+    Статус в адресе контроллер считает ручным выбором (`spec_status_strict`) и
+    поблажку для оплаченных снимает — платёж по закрытой спецификации (январь
+    2026, 332 000, спец. 97) в сумме был, а в списке «Найдено: 0». Теперь, пока
+    выбор не ручной, `spec_status` не пишется ни в ссылки-детализации (`$link`,
+    кроме ссылок, которые задают статус сами, — «Отменённые»), ни в ссылки
+    снятия условий (`$unlink`), ни в скрытые поля формы выбора года.
+    Файл: `payment_calendar/index.blade.php`.
+
+18. **Платёжный календарь: итог списка не совпадал с планом месяца.** Разбивка
+    по месяцам считает «План» по курсу на сегодня, а «ИТОГО по выборке» у
+    оплаченных платежей берёт факт по курсу на дату оплаты. Пример: апрель 2026,
+    «В процессе», два платежа 304 + 3 744 USD — в разбивке 339 008 ₽ (× 83,75),
+    в итоге 288 301 ₽ (× 71,23). Потерь строк нет. Под итогом добавлена строка
+    «план … · факт …» теми же величинами, что в разбивке: без отменённых; план —
+    платежи с датой плана в выбранном периоде (год, месяц; «за все годы» — без
+    ограничения) по курсу на сегодня, факт — с датой оплаты в периоде по курсу
+    оплаты. Выборка месяца шире (дата плана ИЛИ оплаты в месяце), поэтому итог
+    и «план» могут законно отличаться.
+    **Решение владельца (13.09.2026):** «Факт» в разбивке остаётся по дате оплаты
+    (движение денег по месяцам) — апрельский план, оплаченный в июне, даёт факт
+    в июне, а у апреля «—». Колонка подписана «Факт (по дате оплаты)» с подсказкой.
+    Там же: итог списка стоял под «Сводной» (подпись `colspan="8"` при 9 колонках) —
+    теперь `colspan="7"`, сумма под «Итого, ₽». Строку «план · факт» под итогом
+    владелец убрал вручную; расчёт `$rows_plan`/`$rows_fact` в шаблоне остался
+    без вывода — ждёт решения. В колонке дат «отсрочка N дн» → «просрочка N дн»
+    (`delay` — дни между планом и оплатой), колонка выровнена вправо, опечатка
+    заголовка «ОПТАЛА» исправлена.
+
+19. **Платёжный календарь: «Найти» на нетронутом фильтре сужало выборку.** Поле
+    «Статус спец.» было заранее заполнено отбором по умолчанию («В процессе»),
+    форма отправляла `spec_status[]=processing`, контроллер считал это ручным
+    выбором — плашка «только спец.: В процессе» и минус оплаченные по закрытым
+    спецификациям (2026: было 12, стало 9). Теперь при отборе по умолчанию поле
+    пустое с подсказкой «В процессе + оплаченные», а плашка статуса в `chips()`
+    рисуется только для ручного выбора. Заголовок блока — «Платежи за Август 2026» /
+    «за 2026 год» / «за все годы».
+
+20. **Платёжный календарь: фильтр платежей — в модалку.** Строка полей в шапке
+    блока «Платежи» убрана: справа от заголовка «Фильтр (n)» (`btn-light-info`,
+    n — число бейджей отбора) и «Убрать» ссылкой (адрес прежней «Сбросить всё»).
+    Поля (поиск, компании, партнёры, состояние, статус спецификации) — в модалке
+    `#calendar_filter_modal`, обычная GET-форма со скрытыми year/month/all_years/age.
+    На месте формы — бейджи выбранного отбора (прежние плашки «Убрать это условие»).
+    JS: модалка уводится в body, select2 получил `dropdownParent` модалки.
+
+21. **Число условий на «Фильтре» — кружок вместо «(n)», по всему сайту.** Общий
+    класс `.filter-count` в `osmo-fix.css` (18 px, при двух цифрах — пилюля, фон
+    `--bs-info`). Разметка: КП, компании, партнёры, ПО, работы, три отчёта,
+    `bitrix/deal/_filter_buttons`, OSMOVIEW CP, аналитика скидок и скоринга,
+    дашборд Битрикса, календарь. JS ajax-фильтров (КП и списки) пишет в `.count`
+    число без скобок. Календарь: в попап фильтра добавлены «Период» (месяц
+    года + «за все годы») и «Срок просрочки» — всё, что даёт бейдж и входит в
+    счётчик, теперь видно и меняется в попапе (кроме «одна спецификация» — она
+    приходит только ссылкой). «За все годы» отменяет месяц: в попапе поле месяца
+    прячется и отключается, а контроллер при `all_years` обнуляет `month` — бейдж
+    и счётчик дают один фильтр «за все годы».
+
+22. **Платёжный календарь: выбор года — в тулбар страницы** (`breadcrumb_right`),
+    из шапки карточки «План и факт по месяцам». Форма перенесена как была: скрытые
+    поля отбора едут вместе с годом, статус по умолчанию не передаётся.
+
+23. **«Анализ скидок»: таблица КП компактнее.** Блоки скидок — мини-таблицей (иконка и два процента ровными колонками, мелко; столбец «Скидки» стоит перед «Совокупно», расшифровка «З / П» — в подсказке заголовка; ширины ячеек заданы, колонки совпадают во всех строках), у каждого
+    цветная иконка из декоратора (`DiscountAnalysisService::BLOCKS` получил `color`/`icon`,
+    те же, что в «Истории цен»; название блока и суммы — в подсказке). Колонки «Партнёр»
+    больше нет: в первой ячейке под КП — «партнёр → компания» бейджами, как в списке КП
+    (партнёр `info`, компания `primary`; без партнёра или компании — что есть, без стрелки),
+    подпись грейда убрана. Название КП выводится полностью (снято `text-truncate` и
+    `max-width: 240px`).
+    Колонка «Пометки» заменена красным треугольником: по клику балун со списком пометок
+    (`data-bs-trigger="focus"`, текст экранирован). Статус и причина («Отменено» +
+    «Дорого») — столбиком: у `components/proposal/status` новый параметр `stacked`,
+    остальные места компонента не меняются.
+
+24. **«Скоринг партнёров»: легенда балла — в модалке.** Кнопка «Как считается балл и что
+    значат буквы» над таблицей и раскрывающийся блок убраны. В тулбаре страницы
+    (`breadcrumb_right`, перед годом) — крупная иконка «?», по клику модалка
+    `#scoring_legend_modal` с теми же весами и буквами (содержимое перенесено как было).
+    Таблица партнёров уходила за карточку (почти все колонки `text-nowrap`, минимум ~1240 px):
+    обёртка `overflow: visible` заменена на `table-responsive`, подсказка балла у трёх
+    последних строк открывается вверх, чтобы её не обрезал контейнер.
+    Попап статистики партнёра: в заголовке только период («Статистика за 2026 год» / «за все
+    годы»), подпись о периоде справа от имени убрана (вкладка «По годам» — вся история).
+    Имя партнёра с грейдом — в шапке попапа справа от заголовка: у обёртки
+    `themes/metronic/components/box/box-static-extralarge` новая необязательная секция
+    `header_right` (другие попапы не затронуты). Во вкладке «По годам» подпись «на сегодня»
+    у текущего года убрана (строка по-прежнему подсвечена), у колонки года отступ слева.
+    Вкладка «КП»: номер крупнее, строка «редакция N» убрана — редакция надстрочно рядом
+    с номером, только если она больше 1. Ссылки на компании во вкладках попапа
+    подсвечиваются при наведении (`text-hover-primary`). Вкладка «Платежи»: строка
+    просроченного платежа подсвечена (`bg-light-danger`). Вкладка «Сделки»: у названия
+    убрана иконка-рукопожатие, в конце — значок открытия в новой вкладке (как в реестре), ссылка подсвечивается при наведении.
+
+25. **«Реестр лицензий»: отбор — под кнопку «Фильтр» в тулбаре**, как на «Скоринге
+    партнёров». Карточка с формой над показателями убрана. В `breadcrumb_right` —
+    селектор горизонта (главный отбор, всегда на виду; остальные поля уходят с ним
+    скрытыми), «Фильтр» с кружком и «Убрать». Модалка `#licenses_filter_modal`:
+    партнёр (select2), поиск, свитч «только активные ключи». Свитч по умолчанию включён,
+    поэтому в счётчик идёт его выключение; «Убрать» оставляет горизонт и возвращает
+    «только активные». Контроллер не менялся.
+    Таблица: колонки «Компания» и «Партнёр» сведены в одну «Партнёр → компания» —
+    бейджами, как в списке КП и на «Анализе скидок» (без партнёра — только компания).
+    Между подряд идущими подсвеченными строками (`bg-light-danger`) — разделитель
+    цвета danger (`#licenses_table tr.bg-light-danger:has(+ tr.bg-light-danger) td`,
+    по образцу `tr.transferred` на `/external-proposals`).
+    В модалке новый свитч «скрыть истёкшие» (`hide_expired`, по умолчанию выключен,
+    идёт в счётчик): горизонт включающий, и истёкшие попадают в любой — теперь их можно
+    убрать. Отбор в `LicenseRegistryService::rows()` после горизонта, показатели
+    считаются по отобранному. Подпись под таблицей («Горизонт включающий…») убрана.
+    У типа договора в колонке «Договор и спецификация» — иконка из `ContractType::data()`
+    (как в попапе статистики партнёра). Колонка «Период» разбита на две — «Начало» и
+    «Окончание» (дата окончания жирная, без даты — «без срока»). Ключ — обычным текстом
+    мельче (`fs-7`, с переносом), а не моноширинной плашкой `<code>`. «Сумма спецификации»: крупно и жирно всегда рубли
+    со знаком ₽ (у валютных — по текущему курсу); у валютных под ней серым сумма в валюте
+    с кодом, у рублёвых второй строки нет.
+
+26. **«Расхождения с Битрикс24»: отбор — под кнопку «Фильтр» в тулбаре.** У страницы не было
+    крошек и заголовка (контроллер не передавал `breadcrumbs`) — добавлены (трейт
+    `HasBreadcrumb`, как у `AnalyticsController`), иначе тулбару некуда встать. В `breadcrumb_right` — «Фильтр» с кружком и «Убрать». Модалка
+    `#crm_monitor_filter_modal`: статус КП, менеджер (select2), свитч «все КП». Поиск остался
+    в шапке списка отдельной формой (по образцу п. 16), вид расхождения — карточками сверху;
+    ни то, ни другое в счётчик не идёт и «Убрать» их не сбрасывает. Кнопки «Применить» и
+    «Сбросить» из шапки списка убраны.
+    Ширины колонок: фиксированные `width` (140/150/150/140/260) сняты — статус, суммы и
+    «Что не так» сжимаются по содержимому (`width="1%"`, `text-nowrap`), у КП `min-w-250px`,
+    у сделок `min-w-200px`; освободившееся место уходит названию КП.
+
+27. **Меню (данные в БД, `patches/patch-v27/database/sql/patch_v27_menu.sql`).**
+    «Расхождения с Битрикс24» перенесены из раздела «Bitrix» в «Настройки» (`parent_id = 1`,
+    после «Доступов»). Звёзды в «Отчётах»: у «Китая» заливка убрана (`fa-light fa-star`),
+    у «Скоринга партнёров» — залитая `fa-solid fa-star text-warning`. Запросы идемпотентные,
+    ищут пункты по url. На проде после SQL — `php artisan cache:clear` (меню кэшируется).
+    «КП OSMOVIEW CP» (`/external-proposals`) переименован во «Внешние КП» — в меню (тот же SQL)
+    и в заголовке страницы (`ExternalProposalController`).
+    В таблице «Внешних КП» убрана кнопка «Подробнее» (глаз) во всех строках
+    (`components/external_proposal/table/actions`) — попап подробностей по-прежнему открывается
+    кликом по названию КП. Крошки страницы: «КП → Внешние КП» (было «КП → OSMOVIEW CP»);
+    заголовок попапа отдельного КП («OSMOVIEW CP N») не менялся — там речь об источнике.
+    «Отчёты» разбиты на подгруппы горизонтальными разделителями: прочие отчёты →
+    «Договоры и оплаты» + «Платёжный календарь» → «Ключи» + «Реестр лицензий» (тот же SQL:
+    новые `sort` и два пункта-разделителя). Разделитель — пункт меню с именем `---` без url,
+    `components/sidebar/menu-item` рисует его линией (`.separator`); в меню он виден через ту же
+    связку `access_menu` (access_id = 1), что и остальные пункты.
+    Раздел «Bitrix» расформирован (тот же SQL, раздел выключен `active = 0`, не удалён):
+    «Воронка продаж» → «Работа», «Синхронизация» → «Настройки» как «Синхронизация Битрикс24»,
+    «Расхождения с Битрикс24» → «Отчёты» (после «Скоринга партнёров»; перенос в «Настройки»
+    выше этим перекрыт), «Реестр сделок Bitrix» → «Реестр сделок Битрикс24».
+
+34. **«Воронка продаж»: пропадал график «Воронка в разрезе сферы деятельности».** ApexCharts
+    подключался с CDN без версии (`cdn.jsdelivr.net/npm/apexcharts`) и приезжал 5.x — он
+    конфликтует с SVG.js из бандла Metronic: при первой перерисовке (resize после загрузки)
+    падало `e.put is not a function`, и диаграмма исчезала. Версия закреплена —
+    `apexcharts@3.54.1` (`themes/metronic/bitrix/dashboard/index.blade.php`). Старые вьюхи вне
+    темы (`graph`, `templates/*`, `bitrix/dashboard` в корне) не трогались — не используются.
+
+35. **«Bitrix» / «Битрикс» → «Битрикс24» в интерфейсе.** Только видимый текст (заголовки,
+    подписи, подсказки, тексты расхождений и ошибок), в любом падеже — несклоняемо
+    «Битрикс24»: 20 замен в 15 файлах — `CrmDealController` (заголовок «Реестр сделок
+    Битрикс24»), `PartnerScoringService` и `analytics/partners` («Кол-во сделок Битрикс24»),
+    `CrmMismatchService` (4), `DealChainService`, `ProposalDealService` (2), `analytics/boxes/partner`,
+    `deal_card/index` (3), `crm_monitor/index` (4, в т.ч. колонка «В Битрикс24»),
+    `partner/detail` (2, вкладка «Сделки Битрикс24»), `bitrix/deal/_tab`, `pub/proposal/boxes/deal`,
+    `pub/proposal_tools/boxes/clone`, `components/proposal/summary`,
+    `components/proposal/table/main/summary`. Пункты меню — в `patch_v27_menu.sql` (п. 27).
+    Не трогались: комментарии, пространства имён и маршруты `Bitrix`, миграции/SQL, описание и
+    вывод консольной команды `DealProjectSeedCommand` (в интерфейс не попадают).
+
+31. **Попап проекта: таблицы «Сделки» и «Спецификации» — `.table-bordered`**
+    (`deal_project/boxes/info`), как таблицы в попапе внешнего КП.
+
+32. **Реестр сделок Битрикса: не работала кнопка «Привязать КП к сделке»** (значок
+    разорванной ссылки у сделки без КП). В `bitrix/deal/_table.blade.php` у атрибута `href`
+    не было открывающей кавычки (`href=javascript:box(...)"`) — браузер обрезал адрес, и попап
+    не открывался. Кавычка добавлена.
+
+33. **«Анализ скидок»: в ячейке КП главное — название.** Раньше крупной ссылкой шёл номер, а
+    название — серым под ним. Теперь ссылка — название КП (как в списке КП), под ним серым
+    «№ номер · редакция N» (редакция — только если больше 1), ниже бейджи «партнёр → компания».
+
+28. **Статусы КП — только «В работе», «Выиграно», «Проиграно».** «Заморожено» и «Отменено»
+    убраны из `ProposalStatus` и стали причинами проигрыша: `ProposalLostReason::FROZEN` /
+    `CANCELED` (коды те же, в списке причин — первыми). Данные:
+    `patches/patch-v27/database/sql/patch_v27_proposal_status.sql` — `status = 'lost'`,
+    `status_reason` = прежний статус, прежняя причина дописана в начало комментария
+    («Прежняя причина: Дорого»). Локально было: отменено 11, заморожено 1.
+    Код: `SpecProposalService::WIN_KEEP / WIN_FROM` без удалённых статусов (прикрепление к
+    спецификации по-прежнему не трогает проигранные КП), `PartnerScoringService::proposals()` —
+    завершённые `won` + `lost`. Попап смены статуса, фильтры списков КП, «Анализа скидок» и
+    «Расхождений» берут статусы из enum — изменились сами.
+    Следствие для аналитики: бывшие «Отменено» теперь проигрыши и входят в конверсию
+    (раньше отменённые в конверсии не участвовали, замороженное считалось незавершённым).
+
+29. **Карточка сделки: название сделки Битрикса — ссылка.** В таблице «Сделки Битрикс24»
+    название ведёт в Битрикс24 (`CrmDealRegistryService::url()`, новая вкладка), в конце
+    значок открытия в новой вкладке, при наведении подсвечивается (`text-hover-primary`).
+    В колонке «Лицензии» таблицы спецификаций бейджи сроков («до 23.09.2033») — столбиком
+    с отступом `gap-1` (стояли вплотную и сливались в одну плашку).
+    Название спецификации больше не открывает попап редактирования: ссылка ведёт на карточку
+    партнёра `…/partners/detail/{partner}#spec_{id}` (в `DealChainService::contracts()`
+    добавлен `c.partner_id`; у договора без партнёра — просто текст). На карточке партнёра у
+    строки спецификации `id="spec_{id}"`, по якорю строка обведена жирной фиолетовой рамкой
+    (`tr:target`, 3px `--bs-info`) и прокручивается в видимую область с отступом под шапку.
+    Суммы в табличке оплат спецификации больше не переносятся («142 500 ₽» ломалось на две
+    строки): `text-nowrap` у `span.td` на карточке партнёра и в общем компоненте
+    `components/payment/table` (карточка сделки).
+
+30. **«История цен»: платформа — всегда первой.** Сравнение позиций сортировалось по коду блока
+    по алфавиту (neuro, platform, soft, work) — «Нейросервисы» стояли выше «Платформы». Теперь
+    `ProposalPriceHistoryService::diff()` сортирует по порядку `blocks()` (платформа,
+    нейросервисы, ПО, работы), внутри блока — по названию позиции.
 
 ## Локальная база: следы проверок
 
@@ -618,3 +1613,68 @@ Execution (PRE-PAYMENT), Acceptance tests, Closing documents, Completed без
 число сделок совпадает с вкладкой «Сделки Битрикс» за год; проекты
 совпадают с вкладкой «Проекты»; попап по цифрам открывает новые вкладки;
 сглаживание по годам не сломалось.
+
+## Итерация 10 · patch-v31 — правки журнала изменений (14.09.2026)
+
+Владелец нашёл на КП три бага журнала (patch v29), README — `patches/patch-v31/README.md`:
+1. «Поправил только Кол-во, а в ленте суммы на равных» — поля, которые портал пересчитывает сам,
+   помечены `'derived' => true` в `logFields()`, строка изменения получает `derived`; в ленте
+   основные жирным, косвенные под ними курсивом со сдвигом. «Цена» оставлена основной.
+2. «Переключил основной вариант — 50+ записей» — `Proposal::variants()` сортирует `is_main desc`,
+   варианты сопоставлялись по позиции. Теперь `EntityLogDiff::pair()`: сначала по id строки,
+   потом по позиции (позиция нужна между редакциями КП). Ссылки на пересоздаваемые строки ПО и
+   работ КП (`logLinks()`) сравниваются по подписи из слепков. 58 строк → 2.
+3. «`?at=` падает после удаления варианта» — связи `proposal_work`/`proposal_software` при
+   гидрации берутся из слепка (`logLinks()`, `EntityLogSnapshot::link()`); плюс баг гидрации:
+   `array_map(fn)` захватывал индекс копией.
+Старые события пересчитаны `php artisan entity-log:rediff` (11 событий, 5 пересчитано, 116 строк →
+37, повторный прогон — 0). Проверено в браузере на трёх КП из замечаний и на новой записи в
+транзакции с откатом. На проде: `migrate`, `entity-log:rediff --dry-run`, `entity-log:rediff`.
+
+## Итерация 11 · patch-v32 — журнал у проектов по сделкам (14.09.2026)
+
+Владелец: «добавить логирование проектам в сделках битрикс24». README — `patches/patch-v32/README.md`.
+- Корень `deal_project` (`DealProject`), части — `DealProjectDeal` (ключ — id сделки) и
+  `DealProjectSpecification` (ключ — id спецификации). Поля проекта: партнёр, компания, даты,
+  пилот, срок, комментарий, архив; технические `created_by`, `attached_*` — в игнор.
+- Своей страницы у проекта нет: `logUrl()` — реестр сделок (`mode=projects|archive`, `q` = сделка),
+  кнопка ленты — в попапе карточки проекта. Новый метод контракта `logStateView()`: у проекта
+  `false`, лента не выводит ссылки «состояние на момент».
+- Массовые `delete`/`update` в `DealProjectService` (открепление сделки, пересборка
+  спецификаций) обёрнуты в `EntityLogService::around()` — без событий модели журнал их не видел.
+- Проверено в транзакции с откатом на проекте #1: правка — 3 строки, архив — 2, открепление — 1.
+  Локально выполнен `entity-log:baseline` для проектов.
+
+## Итерация 12 · patch-v30 — правка виджетов по сетке размеров (14.09.2026)
+
+Владелец: «Перенеси панель с библиотекой вниз и сделай по высоте минимум 30%. Отдели виджеты друг
+от друга более явно. Каждый виджет прогони по сетке в 2 шага… 16x32, оцени в каком размере какую
+информацию можно уместить и скорректируй поведение элементов виджета — поручи это задание
+агентам. …запиши правило, что в будущем при изменениях нужно прогонять виджет по всей сетке».
+- Библиотека — панель снизу во всю ширину области контента, высота от 30 % окна, тянется за
+  верхний край (запоминается в браузере), карточки сеткой; у стола снизу отступ на её высоту.
+- Блоки: отступ GridStack 6 → 8 px (зазор 16), рамка `gray-300`, заметная тень.
+- Общий подгон `osmo-desktop-fit.js` (`.desk-fit`, `$rows_max`, `Widget::rowsMax()`): строки с
+  запасом, лишние прячутся по реальной высоте блока.
+- Стенд `patches/patch-v30/tools/widget_grid.php` + `widget_grid.js`: 128 размеров, безголовый Edge
+  (старый `--headless --dump-dom`), матрица кодов X/C/H/F/G/T/e/s/f. Правило записано в
+  `WIDGETS.md` («Прогон по сетке») и `CLAUDE.md`.
+- 11 агентов по группам (common-1/2, personal, funnel-1/2, proposal-1/2, partner, finance,
+  keys-admin, analytics): стили виджетов — `public/metronic/css/osmo-desktop-widgets/{группа}.css`,
+  итоги — `patches/patch-v30/grid/{группа}.md`. После агентов: свести стили в один файл, обновить
+  README v30.
+- **Пауза по просьбе владельца (лимит).** Готовы 66 виджетов в 9 группах; из Common (16) готовы 5,
+  частично 5, не начаты 6. Что осталось и общие предложения агентов — `patches/patch-v30/grid/TODO.md`.
+  README v30 уже описывает нижнюю панель, подгон и стенд.
+
+## Выкатка v21–v32 на прод — подготовка (15.09.2026)
+
+Владелец: «Готовимся к переносу всех патчей и изменений на продакшн. Важно, на продакшене
+работали, там есть новые данные». План — `patches/deploy-v21-v32/README.md`.
+- Прод на `b0fb1af`, код на сервере не правили; 16 миграций и 9 SQL-файлов не выполнены.
+- База прода проверена только чтением: дублей `consts` нет, разделы меню и права на месте,
+  новых пользователей нет, 12 КП frozen/canceled → lost, `avgbitrix` доступна (37 партнёров
+  сопоставятся), новых данных после 09.09 — 5 КП и 1 компания; миграции и SQL их не трогают.
+- Инструменты: `deploy-v21-v32/backup_db.php` (копия базы до pull, скрипт в stdin по SSH),
+  `run_sql.php` (`--dry-run` = выполнить и откатить; прогнан локально по всем 9 файлам без ошибок).
+- Не сделано до команды владельца: коммит и пуш v27–v32, ключи OSMOVIEW CP в `.env` прода, сама выкатка.

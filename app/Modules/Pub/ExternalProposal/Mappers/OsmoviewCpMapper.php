@@ -43,13 +43,19 @@ class OsmoviewCpMapper
 {
     public const SOURCE = ExternalProposal::SOURCE_OSMOVIEW_CP;
 
-    /** Служебный сценарий для кастомных позиций (scenarioId "0") */
+    /**
+     * Служебный сценарий для кастомных позиций (scenarioId "0").
+     * По умолчанию; рабочее значение — consts.osmoview_scenario_custom_id (читать через scenarioCustomId())
+     */
     public const SCENARIO_CUSTOM_ID = 97;
 
-    /** НДС по умолчанию, если константы нет */
+    /** НДС по умолчанию, если константы нет (рабочее значение — consts.nds_rate) */
     public const NDS_DEFAULT = 22;
 
-    /** Выше этой цены ручная цена в валютном КП считается рублёвой */
+    /**
+     * Выше этой цены ручная цена в валютном КП считается рублёвой.
+     * По умолчанию; рабочее значение — consts.osmoview_manual_rub_threshold (читать через manualRubThreshold())
+     */
     public const MANUAL_RUB_THRESHOLD = 3000;
 
     /** Подписи полей hardwareRequirements в блоке «Оборудование» */
@@ -297,7 +303,7 @@ class OsmoviewCpMapper
 
                 if ($manual !== null) {
                     $cost = $manual; $cost_source = 'manual';
-                } elseif ($scenario && (int) $scenario->id !== static::SCENARIO_CUSTOM_ID) {
+                } elseif ($scenario && (int) $scenario->id !== static::scenarioCustomId()) {
                     $cost = static::convert(static::priceByRules($scenario->cost_rules, $cell['count'], $variants[$v]['period']), $rate);
                     $cost_source = 'price';
                 } else {
@@ -770,7 +776,7 @@ class OsmoviewCpMapper
         }
 
         if ($external_id === '0') {
-            $scenario = $catalog->get(static::SCENARIO_CUSTOM_ID) ?? Scenario::find(static::SCENARIO_CUSTOM_ID);
+            $scenario = $catalog->get(static::scenarioCustomId()) ?? Scenario::find(static::scenarioCustomId());
             return [$scenario, $scenario ? 'custom' : null];
         }
 
@@ -786,7 +792,7 @@ class OsmoviewCpMapper
         $best = null; $best_score = 0;
         $needle_words = static::words($name);
         foreach ($catalog as $scenario) {
-            if ((int) $scenario->id === static::SCENARIO_CUSTOM_ID) continue;
+            if ((int) $scenario->id === static::scenarioCustomId()) continue;
 
             $hay = static::normalizeName($scenario->name);
             $score = 0;
@@ -903,6 +909,28 @@ class OsmoviewCpMapper
     }
 
     /**
+     * Служебный сценарий для кастомных позиций
+     * (consts.osmoview_scenario_custom_id, по умолчанию SCENARIO_CUSTOM_ID)
+     *
+     * @return int
+     */
+    public static function scenarioCustomId(): int
+    {
+        return Constant::int('osmoview_scenario_custom_id', static::SCENARIO_CUSTOM_ID);
+    }
+
+    /**
+     * Порог «рублёвой» ручной цены в валютном КП
+     * (consts.osmoview_manual_rub_threshold, по умолчанию MANUAL_RUB_THRESHOLD)
+     *
+     * @return float
+     */
+    public static function manualRubThreshold(): float
+    {
+        return Constant::float('osmoview_manual_rub_threshold', (float) static::MANUAL_RUB_THRESHOLD);
+    }
+
+    /**
      * Правила платформы из константы
      */
     public static function platformRules(): array
@@ -921,7 +949,7 @@ class OsmoviewCpMapper
     private static function manual(?float $value, string $currency, float $exchange, array &$warnings, string $label): ?float
     {
         if ($value === null || $currency === Currency::CURRENCY_DEFAULT || $exchange <= 1) return $value;
-        if ($value <= static::MANUAL_RUB_THRESHOLD) return $value;
+        if ($value <= static::manualRubThreshold()) return $value;
 
         $converted = static::convert($value, $exchange);
         $warnings[] = "{$label}: цена {$value} похожа на рублёвую (КП в {$currency}) — пересчитана в {$converted} по курсу {$exchange}, проверьте.";
@@ -1256,7 +1284,7 @@ class OsmoviewCpMapper
      */
     public static function catalog()
     {
-        return Scenario::where('active', 1)->orWhere('id', static::SCENARIO_CUSTOM_ID)->get()->keyBy('id');
+        return Scenario::where('active', 1)->orWhere('id', static::scenarioCustomId())->get()->keyBy('id');
     }
 
     private static function number($value): ?float

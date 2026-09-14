@@ -2,6 +2,14 @@
 
 namespace App\Models;
 
+/**
+ * Базовая модель модулей.
+ *
+ * Журнал изменений (patch v29) подключается в модели явно:
+ * `use \App\Models\Traits\HasLogger;` — см. docblock trait.
+ *
+ * @see \App\Models\Traits\HasLogger
+ */
 class ModuleModel extends \Illuminate\Database\Eloquent\Model
 {
     protected $fillable = [

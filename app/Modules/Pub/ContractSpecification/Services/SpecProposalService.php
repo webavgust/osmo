@@ -5,6 +5,7 @@ namespace App\Modules\Pub\ContractSpecification\Services;
 use App\Modules\Pub\Contract\Models\ContractType;
 use App\Modules\Pub\ContractSpecification\Models\ContractSpecification;
 use App\Modules\Pub\ContractSpecification\Models\ContractSpecificationProposal;
+use App\Modules\Pub\EntityLog\Services\EntityLogService;
 use App\Modules\Pub\Proposal\Models\Proposal;
 use App\Modules\Pub\Proposal\Models\ProposalStatus;
 use Illuminate\Support\Carbon;
@@ -41,10 +42,10 @@ class SpecProposalService
     ];
 
     /** Статусы, из которых прикрепление НЕ переводит КП в «Выиграно» */
-    public const WIN_KEEP = [ProposalStatus::WON, ProposalStatus::LOST, ProposalStatus::CANCELED];
+    public const WIN_KEEP = [ProposalStatus::WON, ProposalStatus::LOST];
 
     /** Статусы, из которых прикрепление переводит КП в «Выиграно» */
-    public const WIN_FROM = [ProposalStatus::IN_WORK, ProposalStatus::FROZEN];
+    public const WIN_FROM = [ProposalStatus::IN_WORK];
 
     /**
      * Тип рамочного договора для блока КП
@@ -195,9 +196,12 @@ class SpecProposalService
      */
     public static function detach(ContractSpecification $spec, Proposal $proposal): void
     {
-        ContractSpecificationProposal::where('contract_specification_id', $spec->id)
+        // patch v29: удаление через Eloquent (события журнала), корень — партнёр спецификации
+        EntityLogService::around(EntityLogService::rootOf($spec), fn() => ContractSpecificationProposal::where('contract_specification_id', $spec->id)
             ->where('proposal_group', $proposal->group)
-            ->delete();
+            ->get()
+            ->each
+            ->delete());
     }
 
     /**
@@ -218,14 +222,15 @@ class SpecProposalService
     {
         $keep = array_map(fn($case) => $case->value, static::WIN_KEEP);
 
-        $changed = Proposal::where('group', $proposal->group)
+        // patch v29: массовый update без событий модели — журнал изменений оборачивается явно
+        $changed = EntityLogService::around($proposal, fn() => Proposal::where('group', $proposal->group)
             ->whereNotIn('status', $keep)
             ->update([
                 'status' => ProposalStatus::WON->value,
                 'status_reason' => null,
                 'status_changed_at' => now(),
                 'status_changed_by' => auth()->id(),
-            ]);
+            ]));
 
         return $changed > 0;
     }

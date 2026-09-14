@@ -2,6 +2,7 @@
 
 namespace App\Modules\Pub\LicenseKey\Services;
 
+use App\Modules\Pub\Constant\Models\Constant;
 use App\Modules\Pub\LicenseKey\Models\LicenseKey;
 use Illuminate\Support\Carbon;
 
@@ -13,11 +14,47 @@ use Illuminate\Support\Carbon;
  */
 class LicenseRenewalService
 {
-    /** Горизонты в днях, по которым группируем */
+    /**
+     * Горизонты в днях, по которым группируем.
+     * По умолчанию; рабочее значение — consts.license_horizons (читать через horizons())
+     */
     public const HORIZONS = [30, 60, 90];
 
-    /** Сколько дней «просрочки» ещё показываем (истекло, но можно вернуть) */
+    /**
+     * Сколько дней «просрочки» ещё показываем (истекло, но можно вернуть).
+     * По умолчанию; рабочее значение — consts.license_expired_tail_days (читать через expiredTailDays())
+     */
     public const EXPIRED_TAIL_DAYS = 30;
+
+    /**
+     * Горизонты в днях по возрастанию (consts.license_horizons, по умолчанию HORIZONS).
+     * Та же константа задаёт горизонты реестра лицензий (LicenseRegistryService).
+     *
+     * @return int[]
+     */
+    public static function horizons(): array
+    {
+        $horizons = collect(Constant::json('license_horizons', static::HORIZONS))
+            ->filter(fn($days) => is_numeric($days) && (int) $days > 0)
+            ->map(fn($days) => (int) $days)
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+
+        return $horizons ?: static::HORIZONS;
+    }
+
+    /**
+     * Сколько дней после истечения лицензия ещё показывается
+     * (consts.license_expired_tail_days, по умолчанию EXPIRED_TAIL_DAYS)
+     *
+     * @return int
+     */
+    public static function expiredTailDays(): int
+    {
+        return max(0, Constant::int('license_expired_tail_days', static::EXPIRED_TAIL_DAYS));
+    }
 
     /**
      * Лицензии, требующие внимания
@@ -27,7 +64,7 @@ class LicenseRenewalService
      */
     public static function expiring(int $days = 90)
     {
-        $from = now()->subDays(static::EXPIRED_TAIL_DAYS)->startOfDay();
+        $from = now()->subDays(static::expiredTailDays())->startOfDay();
         $to = now()->addDays($days)->endOfDay();
 
         return LicenseKey::query()
@@ -56,7 +93,8 @@ class LicenseRenewalService
      */
     public static function summary(): array
     {
-        $rows = static::expiring(max(static::HORIZONS));
+        $horizons = static::horizons();
+        $rows = static::expiring(max($horizons));
 
         $ret = [
             'total' => $rows->count(),
@@ -65,7 +103,7 @@ class LicenseRenewalService
             'horizons' => [],
         ];
 
-        foreach (static::HORIZONS as $days) {
+        foreach ($horizons as $days) {
             $slice = $rows->filter(
                 fn($key) => $key->days_left >= 0 && $key->days_left <= $days
             );

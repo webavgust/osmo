@@ -1,10 +1,8 @@
 @extends('components.box.box-static-extralarge')
 
 @section('body')
-    <style>
-    </style>
     <div class="card">
-        <table class="table table-bordered">
+        <table class="table table-bordered m-0">
             <thead>
                 <tr class="bg-light-secondary fs-5 text-dark">
                     <th class="p-1 text-center">ID</th>
@@ -34,7 +32,7 @@
             @endforeach
             <tr>
                 <td colspan="4"></td>
-                <td class="p-1 text-end fw-bold monospace text-nowrap">
+                <td class="p-1 text-end fw-bold monospace text-nowrap fs-5 py-2 ps-4">
                     {{ tools()->cost_normalize($data['deals']->sum($data['field'] . '_RUB')) }} {{ $currencies[$currency_slug]->symbol }}
                 </td>
             </tr>
@@ -42,3 +40,4 @@
     </div>
 @endsection
 
+@section('footer') &nbsp; @endsection

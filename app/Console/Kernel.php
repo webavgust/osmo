@@ -10,6 +10,16 @@ use Illuminate\Support\Facades\Log;
 
 class Kernel extends ConsoleKernel
 {
+    /**
+     * Команды модулей (patch v29): каталог app/Console/Commands загружается
+     * автоматически, команды модулей регистрируются здесь
+     *
+     * @var array
+     */
+    protected $commands = [
+        \App\Modules\Pub\EntityLog\Console\BaselineCommand::class,
+        \App\Modules\Pub\EntityLog\Console\RediffCommand::class,
+    ];
 
     /**
      * Register the commands for the application.

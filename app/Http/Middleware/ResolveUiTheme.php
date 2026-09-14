@@ -25,6 +25,17 @@ class ResolveUiTheme
             $theme = UiTheme::fallback();
         }
 
+        // patch v28: без права переключения (users.ui_theme_switch = 0) пользователь
+        // всегда в Metronic — старую тему не вернуть ни cookie, ни ссылкой
+        if (! UiTheme::switchVisible() && auth()->check()) {
+            $theme = UiTheme::locked();
+        }
+
+        // админ-панель свёрстана только в Metronic — в старой теме её вьюх нет
+        if ($request->is('admin', 'admin/*')) {
+            $theme = UiTheme::locked();
+        }
+
         UiTheme::use($theme);
 
         $finder = View::getFinder();

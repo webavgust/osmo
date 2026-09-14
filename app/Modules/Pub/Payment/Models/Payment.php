@@ -3,6 +3,7 @@
 namespace App\Modules\Pub\Payment\Models;
 
 use App\Models\ModuleModel;
+use App\Models\Traits\HasLogger;
 use App\Modules\Pub\Company\Models\Company;
 use App\Modules\Pub\Contract\Models\Contract;
 use App\Modules\Pub\ContractSpecification\Models\ContractSpecification;
@@ -15,6 +16,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Payment extends ModuleModel
 {
+    use HasLogger;
+
     public $timestamps = false;
     protected $fillable = ['date_plan', 'date_fact', 'delay', 'amount_plan', 'amount_fact', 'is_unknown'];
     protected $casts = ['date_plan' => 'datetime', 'date_fact' => 'datetime', 'is_unknown' => 'bool'];
@@ -26,7 +29,8 @@ class Payment extends ModuleModel
 
     public function user()
     {
-        return $this->belongsTo(User::class);
+        // withTrashed: имя не пропадает у мягко удалённого пользователя
+        return $this->belongsTo(User::class)->withTrashed();
     }
     public function getStatusAttribute()
     {
@@ -47,4 +51,46 @@ class Payment extends ModuleModel
         return $status->data();
     }
 
+    /*** ЖУРНАЛ ИЗМЕНЕНИЙ (patch v29) ***/
+
+    public static function logParentRelation(): ?string
+    {
+        return 'contract_specification';
+    }
+
+    public static function logLabel(): string
+    {
+        return 'Оплата';
+    }
+
+    /** Оплаты пересоздаются целиком при каждом сохранении — сопоставление по позиции */
+    public function logKey(int $index): string
+    {
+        return $this->logPositionKey($index);
+    }
+
+    public function logTitle(?int $index = null): string
+    {
+        $date = $this->date_plan?->format('d.m.Y') ?? $this->date_fact?->format('d.m.Y') ?? 'без даты';
+        $amount = $this->amount_plan ?? $this->amount_fact;
+
+        return 'Оплата ' . $date . ($amount !== null ? ' · ' . tools()->cost_normalize((float) $amount, '.', false, ' ', false, 2) : '');
+    }
+
+    public static function logIgnore(): array
+    {
+        return ['delay'];
+    }
+
+    public static function logFields(): array
+    {
+        return [
+            'date_plan' => ['label' => 'Дата план', 'type' => 'date'],
+            'amount_plan' => ['label' => 'Сумма план', 'type' => 'money'],
+            'date_fact' => ['label' => 'Дата факт', 'type' => 'date'],
+            'amount_fact' => ['label' => 'Сумма факт', 'type' => 'money'],
+            'user_id' => ['label' => 'Менеджер', 'relation' => 'user', 'title' => 'full_name'],
+            'is_unknown' => ['label' => 'Неизвестный платёж', 'type' => 'bool'],
+        ];
+    }
 }

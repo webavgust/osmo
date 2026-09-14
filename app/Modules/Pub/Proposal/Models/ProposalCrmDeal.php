@@ -2,6 +2,7 @@
 
 namespace App\Modules\Pub\Proposal\Models;
 
+use App\Models\Traits\HasLogger;
 use App\Modules\Bitrix\CrmDeal\Models\CrmDeal;
 use App\Modules\Pub\User\Models\User;
 use Illuminate\Database\Eloquent\Model;
@@ -14,6 +15,8 @@ use Illuminate\Database\Eloquent\Model;
  */
 class ProposalCrmDeal extends Model
 {
+    use HasLogger;
+
     protected $table = 'proposal_crm_deals';
     public $timestamps = false;
 
@@ -30,7 +33,8 @@ class ProposalCrmDeal extends Model
 
     public function author()
     {
-        return $this->belongsTo(User::class, 'linked_by');
+        // withTrashed: имя не пропадает у мягко удалённого пользователя
+        return $this->belongsTo(User::class, 'linked_by')->withTrashed();
     }
 
     /**
@@ -44,5 +48,47 @@ class ProposalCrmDeal extends Model
         return static::where('proposal_group', $group)
             ->orderByDesc('is_main')
             ->orderBy('id');
+    }
+
+    /*** ЖУРНАЛ ИЗМЕНЕНИЙ (patch v29) ***/
+
+    public static function logLabel(): string
+    {
+        return 'Сделка Битрикс24';
+    }
+
+    /** Родитель — последняя редакция КП группы (связь по group, а не belongsTo по id) */
+    public function logParent(): ?Model
+    {
+        $group = (string) $this->proposal_group;
+        if ($group === '') return null;
+
+        return Proposal::where('group', $group)->orderByDesc('iteration')->orderByDesc('id')->first();
+    }
+
+    public function logKey(int $index): string
+    {
+        return (string) $this->crm_deal_id;
+    }
+
+    public function logTitle(?int $index = null): string
+    {
+        return 'Сделка Битрикс24 #' . $this->crm_deal_id;
+    }
+
+    public static function logIgnore(): array
+    {
+        return ['proposal_group'];
+    }
+
+    public static function logFields(): array
+    {
+        return [
+            'crm_deal_id' => ['label' => 'Сделка'],
+            'is_main' => ['label' => 'Главная', 'type' => 'bool'],
+            'comment' => ['label' => 'Комментарий'],
+            'linked_at' => ['label' => 'Привязана', 'type' => 'datetime'],
+            'linked_by' => ['label' => 'Кто привязал', 'relation' => 'author', 'title' => 'full_name'],
+        ];
     }
 }

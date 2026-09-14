@@ -3,6 +3,7 @@
 namespace App\Modules\Pub\ProposalWork\Models;
 
 use App\Models\ModuleModel;
+use App\Models\Traits\HasLogger;
 use App\Modules\Pub\Deal\Models\Deal;
 use App\Modules\Pub\Neuroservice\Models\Neuroservice;
 use App\Modules\Pub\Proposal\Models\Proposal;
@@ -15,6 +16,8 @@ use Illuminate\Support\Facades\Log;
 
 class ProposalWork extends ModuleModel
 {
+    use HasLogger;
+
     protected $fillable = ['cb_process', 'description', 'notice', 'sort', 'group'];
     public $timestamps = false;
 
@@ -42,4 +45,43 @@ class ProposalWork extends ModuleModel
         return $this->hasMany(ProposalVariant::class)->withPivot(['cost', 'count', 'discount', 'cost_total']);
     }
 
+    /*** ЖУРНАЛ ИЗМЕНЕНИЙ (patch v29) ***/
+
+    public static function logParentRelation(): ?string
+    {
+        return 'proposal';
+    }
+
+    public static function logLabel(): string
+    {
+        return 'Работа (позиция КП)';
+    }
+
+    /** Строки пересоздаются при каждом сохранении — сопоставление по позиции */
+    public function logKey(int $index): string
+    {
+        return $this->logPositionKey($index);
+    }
+
+    public function logTitle(?int $index = null): string
+    {
+        $text = static::logText($this->description, 60);
+
+        return 'Работа ' . ($text !== '' ? '«' . $text . '»' : ($index ? '#' . $index : '#' . $this->id));
+    }
+
+    public static function logIgnore(): array
+    {
+        return ['sort'];
+    }
+
+    public static function logFields(): array
+    {
+        return [
+            'cb_process' => ['label' => 'В расчёте', 'type' => 'bool'],
+            'description' => ['label' => 'Описание', 'type' => 'html'],
+            'notice' => ['label' => 'Примечание', 'type' => 'html'],
+            'group' => ['label' => 'Группа'],
+        ];
+    }
 }

@@ -3,6 +3,7 @@
 namespace App\Modules\Pub\CrmMonitor\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Pub\Breadcrumbs\Traits\HasBreadcrumb;
 use App\Modules\Pub\CrmMonitor\Services\CrmMismatchService;
 use App\Modules\Pub\Proposal\Models\ProposalStatus;
 use App\Modules\Pub\User\Models\User;
@@ -11,6 +12,8 @@ use Illuminate\Support\Facades\View;
 
 class CrmMonitorController extends Controller
 {
+    use HasBreadcrumb;
+
     /**
      * Монитор расхождений с Битрикс24
      *
@@ -19,6 +22,9 @@ class CrmMonitorController extends Controller
      */
     public function index(Request $request)
     {
+        // без крошек у страницы нет заголовка и тулбара, куда встаёт «Фильтр»
+        $this->breadcrumb_add(null, 'Расхождения с Битрикс24');
+
         $params = [
             'issue' => $request->input('issue'),
             'status' => $request->input('status'),
@@ -42,6 +48,7 @@ class CrmMonitorController extends Controller
             'money' => CrmMismatchService::money($all),
             'statuses' => ProposalStatus::getDecorated(),
             'managers' => User::orderBy('name')->get(['id', 'name']),
+            'breadcrumbs' => $this->breadcrumb,
         ]);
     }
 }
