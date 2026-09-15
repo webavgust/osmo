@@ -1,0 +1,52 @@
+[
+  {
+    "name": "contracts-01",
+    "url": "/partners/detail/{PARTNER}",
+    "viewport": [
+      1440,
+      900
+    ],
+    "fullPage": true,
+    "highlight": [
+      "a[title=\"Добавить договор\"]",
+      "#partner_tabs"
+    ],
+    "hide": [],
+    "actions": [
+      {
+        "scroll": "#partner_tabs"
+      }
+    ],
+    "sidebar": "open"
+  },
+  {
+    "name": "contracts-06",
+    "url": "/report/payments",
+    "viewport": [
+      1440,
+      900
+    ],
+    "fullPage": false,
+    "highlight": [
+      ".reports"
+    ],
+    "hide": [],
+    "actions": [],
+    "sidebar": "open"
+  },
+  {
+    "name": "contracts-08",
+    "url": "/payment-calendar",
+    "viewport": [
+      1440,
+      900
+    ],
+    "fullPage": true,
+    "highlight": [
+      ".row.g-4"
+    ],
+    "hide": [],
+    "actions": [],
+    "sidebar": "open"
+  }
+]

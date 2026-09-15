@@ -6,6 +6,12 @@
       "runtimeExecutable": "W:\\Soft\\php\\8.2.5\\php.exe",
       "runtimeArgs": ["artisan", "serve", "--host=127.0.0.1", "--port=8123"],
       "port": 8123
+    },
+    {
+      "name": "osmo-wiki",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8124", "--bind", "127.0.0.1", "--directory", "docs/wiki"],
+      "port": 8124
     }
   ]
 }

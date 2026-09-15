@@ -1,0 +1,63 @@
+[
+  {
+    "name": "proposals-03",
+    "url": "/proposals/detail/{PROPOSAL}",
+    "viewport": [
+      1440,
+      900
+    ],
+    "fullPage": false,
+    "highlight": [
+      ".dropdown-action"
+    ],
+    "hide": [],
+    "actions": [
+      {
+        "click": "#more-action-1"
+      },
+      {
+        "wait": 500
+      }
+    ],
+    "sidebar": "open"
+  },
+  {
+    "name": "proposals-07",
+    "url": "/proposals/detail/{PROPOSAL}",
+    "viewport": [
+      1440,
+      900
+    ],
+    "fullPage": false,
+    "highlight": [
+      "#deal_results"
+    ],
+    "hide": [],
+    "actions": [
+      {
+        "click": "a[href*=\"proposals/box/deal\"]"
+      },
+      {
+        "wait": 1200
+      }
+    ],
+    "sidebar": "closed"
+  },
+  {
+    "name": "proposals-11",
+    "url": "/deal-card/{PROPOSAL}",
+    "viewport": [
+      1440,
+      900
+    ],
+    "fullPage": false,
+    "highlight": [],
+    "hide": [],
+    "actions": [
+      {
+        "wait": 800
+      }
+    ],
+    "sidebar": "open"
+  }
+]

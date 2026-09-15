@@ -1,0 +1,41 @@
+[
+  {
+    "name": "reports-07",
+    "url": "/analytics/partners",
+    "viewport": [
+      1440,
+      900
+    ],
+    "fullPage": false,
+    "highlight": [
+      "#kt_app_content .row.g-4",
+      "#kt_app_content .card table tbody td.score-cell"
+    ],
+    "hide": [],
+    "actions": [
+      {
+        "wait": 800
+      }
+    ],
+    "sidebar": "open"
+  },
+  {
+    "name": "reports-09",
+    "url": "/crm-monitor",
+    "viewport": [
+      1440,
+      900
+    ],
+    "fullPage": false,
+    "highlight": [
+      "#kt_app_content .row.g-4"
+    ],
+    "hide": [],
+    "actions": [
+      {
+        "wait": 800
+      }
+    ],
+    "sidebar": "open"
+  }
+]

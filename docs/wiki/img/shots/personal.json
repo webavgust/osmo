@@ -1,0 +1,39 @@
+[
+  {
+    "name": "personal-07",
+    "url": "/reminders",
+    "viewport": [
+      1440,
+      900
+    ],
+    "fullPage": false,
+    "highlight": [
+      "#offcanvas #times"
+    ],
+    "hide": [],
+    "actions": [
+      {
+        "click": "#remind_add"
+      },
+      {
+        "wait": 1000
+      }
+    ],
+    "sidebar": "open"
+  },
+  {
+    "name": "personal-08",
+    "url": "/notify/list",
+    "viewport": [
+      1440,
+      900
+    ],
+    "fullPage": false,
+    "highlight": [
+      "#dates"
+    ],
+    "hide": [],
+    "actions": [],
+    "sidebar": "open"
+  }
+]

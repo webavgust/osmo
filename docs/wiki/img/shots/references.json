@@ -1,0 +1,44 @@
+[
+  {
+    "name": "references-02",
+    "url": "/neuroservice",
+    "viewport": [
+      1440,
+      900
+    ],
+    "fullPage": false,
+    "highlight": [
+      "#table_scenarios"
+    ],
+    "hide": [],
+    "actions": [
+      {
+        "click": "#table_neuroservices tr:not(.d-none) a[onclick*=\"box/scenarios\"]"
+      },
+      {
+        "wait": 1000
+      }
+    ],
+    "sidebar": "open"
+  },
+  {
+    "name": "references-04",
+    "url": "/scenario/edit/{SCENARIO}",
+    "viewport": [
+      1440,
+      900
+    ],
+    "fullPage": true,
+    "highlight": [
+      "#cost_table",
+      "#neuro_table"
+    ],
+    "hide": [],
+    "actions": [
+      {
+        "wait": 1000
+      }
+    ],
+    "sidebar": "open"
+  }
+]

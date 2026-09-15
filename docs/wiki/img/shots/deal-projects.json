@@ -1,0 +1,72 @@
+[
+  {
+    "name": "deal-projects-01",
+    "url": "/bitrix/deal?mode=projects",
+    "viewport": [
+      1440,
+      900
+    ],
+    "fullPage": false,
+    "highlight": [
+      ".card-header .nav-tabs",
+      "a[title='Открыть карточку проекта']"
+    ],
+    "hide": [],
+    "actions": [
+      {
+        "wait": 800
+      }
+    ],
+    "sidebar": "open"
+  },
+  {
+    "name": "deal-projects-02",
+    "url": "/bitrix/deal",
+    "viewport": [
+      1440,
+      900
+    ],
+    "fullPage": false,
+    "highlight": [
+      "#staticBackdrop #deal_project_form"
+    ],
+    "hide": [],
+    "actions": [
+      {
+        "click": "a[title='Создать проект или прикрепить сделку к существующему']"
+      },
+      {
+        "wait": 1500
+      }
+    ],
+    "sidebar": "open"
+  },
+  {
+    "name": "deal-projects-03",
+    "url": "/partners/detail/{PARTNER}",
+    "viewport": [
+      1440,
+      900
+    ],
+    "fullPage": false,
+    "highlight": [
+      "#staticBackdrop .modal-footer"
+    ],
+    "hide": [],
+    "actions": [
+      {
+        "click": "#partner_tabs a[href='#partner_tab_projects']"
+      },
+      {
+        "wait": 1500
+      },
+      {
+        "click": "#partner_tab_projects a[title='Открыть карточку проекта']"
+      },
+      {
+        "wait": 1500
+      }
+    ],
+    "sidebar": "open"
+  }
+]

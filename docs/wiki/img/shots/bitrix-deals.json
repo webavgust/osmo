@@ -1,0 +1,50 @@
+[
+  {
+    "name": "bitrix-deals-03",
+    "url": "/bitrix/deal",
+    "viewport": [
+      1440,
+      900
+    ],
+    "fullPage": false,
+    "clip": ".card:has(#table_data)",
+    "highlight": [
+      "#table_data th[data-field='project']",
+      "#table_data th[data-field='proposal']"
+    ],
+    "hide": [],
+    "actions": [
+      {
+        "waitFor": ".bootstrap-table #table_data"
+      },
+      {
+        "wait": 800
+      }
+    ],
+    "sidebar": "closed"
+  },
+  {
+    "name": "bitrix-deals-08",
+    "url": "/bitrix/dashboard",
+    "viewport": [
+      1440,
+      900
+    ],
+    "fullPage": false,
+    "clip": ".card:has(#quarter_country_status)",
+    "highlight": [
+      "#quarter_country_status .reports"
+    ],
+    "hide": [],
+    "actions": [
+      {
+        "scroll": "#quarter_country_status"
+      },
+      {
+        "wait": 800
+      }
+    ],
+    "sidebar": "closed",
+    "settle": 3000
+  }
+]

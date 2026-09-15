@@ -1,0 +1,24 @@
+[
+  {
+    "name": "external-03",
+    "url": "/external-proposals",
+    "viewport": [
+      1440,
+      900
+    ],
+    "fullPage": false,
+    "highlight": [
+      "#transfer_form select.scenario_select"
+    ],
+    "hide": [],
+    "actions": [
+      {
+        "click": "#table_data tbody tr:not(.no-payload) button[onclick*='box/transfer']"
+      },
+      {
+        "wait": 1200
+      }
+    ],
+    "sidebar": "closed"
+  }
+]

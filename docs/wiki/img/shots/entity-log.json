@@ -1,0 +1,21 @@
+[
+  {
+    "name": "entity-log-03",
+    "url": "/proposals/detail/{PROPOSAL_ID}?at={DATE}",
+    "viewport": [
+      1440,
+      900
+    ],
+    "fullPage": false,
+    "highlight": [
+      ".bg-warning.bg-opacity-25.border-warning"
+    ],
+    "hide": [],
+    "actions": [
+      {
+        "wait": 800
+      }
+    ],
+    "sidebar": "open"
+  }
+]

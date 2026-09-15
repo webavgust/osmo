@@ -1,0 +1,45 @@
+[
+  {
+    "name": "interface-02",
+    "url": "/proposals",
+    "viewport": [
+      1440,
+      900
+    ],
+    "fullPage": false,
+    "clip": "#kt_app_sidebar",
+    "highlight": [
+      "#kt_app_sidebar_user .menu-sub"
+    ],
+    "hide": [],
+    "actions": [
+      {
+        "click": "#kt_app_sidebar_user > div[data-kt-menu-trigger]"
+      },
+      {
+        "wait": 500
+      }
+    ],
+    "sidebar": "open"
+  },
+  {
+    "name": "interface-06",
+    "url": "/proposals",
+    "viewport": [
+      1440,
+      900
+    ],
+    "fullPage": false,
+    "highlight": [
+      "#proposal_search",
+      "#kt_app_content .card .nav-tabs"
+    ],
+    "hide": [],
+    "actions": [
+      {
+        "wait": 1000
+      }
+    ],
+    "sidebar": "open"
+  }
+]

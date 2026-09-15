@@ -1,0 +1,22 @@
+[
+  {
+    "name": "licenses-05",
+    "url": "/analytics/licenses",
+    "viewport": [
+      1440,
+      900
+    ],
+    "fullPage": false,
+    "highlight": [
+      "#kt_app_toolbar select[name=\"horizon\"]",
+      "#kt_app_content .row.g-4"
+    ],
+    "hide": [],
+    "actions": [
+      {
+        "wait": 800
+      }
+    ],
+    "sidebar": "open"
+  }
+]

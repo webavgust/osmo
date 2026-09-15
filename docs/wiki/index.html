@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<!-- Локальный просмотр WIKI в браузере (docsify): страницы — те же .md, ничего не собирается.
+     Запуск: python -m http.server 8124 в каталоге docs/wiki, открыть http://localhost:8124 -->
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>OSMO — руководство пользователя</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify@4.13.1/lib/themes/vue.css">
+    <style>
+        .markdown-section { max-width: 1100px; }
+        .markdown-section img { border: 1px solid #e3e6ef; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+        .markdown-section table { display: table; width: 100%; }
+        .markdown-section td[rowspan] { vertical-align: middle; }
+        .markdown-section td[rowspan]:first-child { font-weight: 600; background: #fafbfc; }
+    </style>
+</head>
+<body>
+<div id="app">Загрузка…</div>
+<script>
+    window.$docsify = {
+        name: 'OSMO — руководство',
+        homepage: 'README.md',
+        loadSidebar: true,
+        subMaxLevel: 2,
+        relativePath: true,
+        auto2top: true,
+        // страницы правятся на диске — без кэша браузер всегда берёт свежий .md
+        requestHeaders: { 'cache-control': 'no-cache' },
+        search: { placeholder: 'Поиск', noData: 'Ничего не найдено', depth: 3 },
+        plugins: [
+            // ссылки на .md внутри HTML-таблиц docsify не переписывает — переводим в его маршруты
+            function (hook) {
+                hook.doneEach(function () {
+                    document.querySelectorAll('.markdown-section a[href$=".md"], .markdown-section a[href*=".md#"]').forEach(function (a) {
+                        var href = a.getAttribute('href');
+                        if (/^[\w.-]+\.md(#.*)?$/.test(href)) a.setAttribute('href', '#/' + href.replace(/\.md(#.*)?$/, ''));
+                    });
+                });
+            },
+        ],
+    };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/docsify@4.13.1/lib/docsify.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docsify@4.13.1/lib/plugins/search.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: false });</script>
+<script src="https://cdn.jsdelivr.net/npm/docsify-mermaid@2.0.1/dist/docsify-mermaid.js"></script>
+</body>
+</html>

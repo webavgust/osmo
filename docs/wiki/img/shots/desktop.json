@@ -1,0 +1,66 @@
+[
+  {
+    "name": "desktop-05",
+    "url": "/desktop/{DESK}",
+    "viewport": [
+      1920,
+      1000
+    ],
+    "fullPage": false,
+    "highlight": [
+      "#desk_lib .desk-lib-search-wrap",
+      "#desk_lib .desk-lib-tabs"
+    ],
+    "hide": [],
+    "actions": [
+      {
+        "wait": 1000
+      },
+      {
+        "click": "#desk_toolbar button[onclick*=\"Desk.edit(true)\"]"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "click": "#desk_toolbar button[onclick*=\"openLibrary\"]"
+      },
+      {
+        "wait": 1500
+      }
+    ],
+    "sidebar": "open"
+  },
+  {
+    "name": "desktop-08",
+    "url": "/desktop/{DESK}",
+    "viewport": [
+      1920,
+      1000
+    ],
+    "fullPage": false,
+    "highlight": [
+      ".desk-size-panel",
+      ".desk-size-panel .desk-size-lock"
+    ],
+    "hide": [],
+    "actions": [
+      {
+        "wait": 1000
+      },
+      {
+        "click": "#desk_toolbar button[onclick*=\"Desk.edit(true)\"]"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "click": "#desk_grid .grid-stack-item .desk-resize"
+      },
+      {
+        "wait": 400
+      }
+    ],
+    "sidebar": "open"
+  }
+]

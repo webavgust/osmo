@@ -1,0 +1,40 @@
+[
+  {
+    "name": "partners-03",
+    "url": "/partners/create",
+    "viewport": [
+      1440,
+      900
+    ],
+    "fullPage": false,
+    "clip": "#form_create",
+    "highlight": [
+      "#form_create .row:has(#crm_companies)"
+    ],
+    "hide": [],
+    "actions": [],
+    "sidebar": "open"
+  },
+  {
+    "name": "partners-08",
+    "url": "/analytics/partners",
+    "viewport": [
+      1440,
+      900
+    ],
+    "fullPage": false,
+    "highlight": [
+      "#staticBackdrop .nav-tabs"
+    ],
+    "hide": [],
+    "actions": [
+      {
+        "click": "table tbody tr:first-child td:last-child a"
+      },
+      {
+        "wait": 1500
+      }
+    ],
+    "sidebar": "open"
+  }
+]
