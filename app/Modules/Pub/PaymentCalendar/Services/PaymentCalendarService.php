@@ -6,6 +6,7 @@ use App\Modules\Pub\Constant\Models\Constant;
 use App\Modules\Pub\ContractSpecification\Models\ContractSpecificationStatus;
 use App\Modules\Pub\Currency\Models\Currency;
 use App\Modules\Pub\Currency\Services\CurrencyService;
+use App\Modules\Pub\Proposal\Models\Proposal;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -117,7 +118,7 @@ class PaymentCalendarService
             ->leftJoin('contracts as c', 'c.id', '=', 's.contract_id')
             ->leftJoin('companies as co', 'co.id', '=', DB::raw('COALESCE(s.company_id, c.company_id)'))
             ->leftJoin('partners as pa', 'pa.id', '=', 'c.partner_id')
-            ->leftJoin('proposals as pr', 'pr.id', '=', 'c.proposal_id')
+            ->leftJoin('proposals as cpr', 'cpr.id', '=', 'c.proposal_id')
             ->select([
                 'p.id',
                 'p.date_plan',
@@ -135,15 +136,11 @@ class PaymentCalendarService
                 'c.id as contract_id',
                 'c.number as contract_number',
                 'c.date as contract_date',
-                'c.proposal_id',
+                'cpr.group as contract_proposal_group',
                 'co.id as company_id',
                 'co.name as company_name',
                 'pa.id as partner_id',
                 'pa.name as partner_name',
-                'pr.group as proposal_group',
-                'pr.number as proposal_number',
-                'pr.name as proposal_name',
-                'pr.iteration as proposal_iteration',
             ]);
 
         // платежи без дат (состояние «Без даты») ни в один год не попадают,
@@ -179,17 +176,31 @@ class PaymentCalendarService
 
         if (!empty($params['q'])) {
             $like = '%' . trim($params['q']) . '%';
-            $builder->where(function ($builder) use ($like) {
+            $proposalLike = fn($query) => $query->where('pr.number', 'like', $like)->orWhere('pr.name', 'like', $like);
+            $specLinks = fn($query) => $query->from('contract_specification_proposals as l')
+                ->whereColumn('l.contract_specification_id', 's.id');
+
+            $builder->where(function ($builder) use ($like, $proposalLike, $specLinks) {
                 $builder->where('co.name', 'like', $like)
                     ->orWhere('pa.name', 'like', $like)
                     ->orWhere('s.name', 'like', $like)
                     ->orWhere('c.number', 'like', $like)
-                    ->orWhere('pr.number', 'like', $like)
-                    ->orWhere('pr.name', 'like', $like);
+                    // КП спецификации
+                    ->orWhereExists(fn($query) => $specLinks($query)
+                        ->join('proposals as pr', 'pr.group', '=', 'l.proposal_group')
+                        ->where($proposalLike))
+                    // КП договора — только там, где у спецификации своего нет (как в таблице)
+                    ->orWhere(fn($builder) => $builder
+                        ->whereNotExists($specLinks)
+                        ->whereExists(fn($query) => $query->from('proposals as pr')
+                            ->whereColumn('pr.group', 'cpr.group')
+                            ->where($proposalLike)));
             });
         }
 
         $rows = collect($builder->orderByRaw('COALESCE(p.date_plan, p.date_fact) IS NULL, COALESCE(p.date_plan, p.date_fact)')->get());
+
+        static::attachProposals($rows);
 
         $rows = $rows->map(fn($row) => static::decorate($row));
 
@@ -219,6 +230,52 @@ class PaymentCalendarService
         }
 
         return $rows->values();
+    }
+
+    /**
+     * КП строк — из привязки спецификации (contract_specification_proposals),
+     * как на карточках партнёра и компании. Договор общий на несколько
+     * спецификаций, и у каждой может быть своё КП.
+     *
+     * Если КП у спецификации несколько, в строке первое по дате отправки,
+     * остальные — в proposal_more. Если своего КП нет, подсказкой идёт КП
+     * договора (contracts.proposal_id, последняя редакция) с отметкой
+     * proposal_from_contract.
+     *
+     * @param Collection $rows
+     * @return void
+     */
+    public static function attachProposals(Collection $rows): void
+    {
+        $links = DB::table('contract_specification_proposals')
+            ->whereIn('contract_specification_id', $rows->pluck('spec_id')->unique()->values())
+            ->get(['contract_specification_id', 'proposal_group'])
+            ->groupBy('contract_specification_id');
+
+        $groups = $links->flatten(1)->pluck('proposal_group')
+            ->merge($rows->pluck('contract_proposal_group'))
+            ->filter()->unique()->values();
+
+        $proposals = $groups->isEmpty() ? collect() : Proposal::query()
+            ->latestIteration()
+            ->whereIn('group', $groups)
+            ->orderByDesc('sended_at')
+            ->get(['group', 'number', 'name', 'iteration', 'sended_at']);
+
+        foreach ($rows as $row) {
+            $attached = $proposals->whereIn('group', ($links[$row->spec_id] ?? collect())->pluck('proposal_group'))->values();
+            $row->proposal_from_contract = $attached->isEmpty() && $row->contract_proposal_group;
+
+            $first = $row->proposal_from_contract
+                ? $proposals->firstWhere('group', $row->contract_proposal_group)
+                : $attached->first();
+
+            $row->proposal_group = $first?->group;
+            $row->proposal_number = $first?->number;
+            $row->proposal_name = $first?->name;
+            $row->proposal_iteration = $first?->iteration;
+            $row->proposal_more = $attached->slice(1)->values();
+        }
     }
 
     /**

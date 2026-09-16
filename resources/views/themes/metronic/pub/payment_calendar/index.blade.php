@@ -616,14 +616,23 @@
                                     <td>
                                         @if($row->proposal_group)
                                             <a href="{{ route('proposal.detail', [$row->proposal_group, $row->proposal_iteration]) }}"
-                                               class="fw-semibold text-gray-900 text-hover-primary d-block text-truncate"
+                                               @class(['fw-semibold text-hover-primary d-block text-truncate', 'text-gray-900' => !$row->proposal_from_contract, 'text-gray-500' => $row->proposal_from_contract])
                                                style="max-width: 170px;"
                                                title="{{ $row->proposal_name }}">
                                                 {{ $row->proposal_number ?: $row->proposal_name }}
                                             </a>
+                                            @if($row->proposal_from_contract)
+                                                <div class="fs-8 text-muted fst-italic" title="У спецификации своего КП нет — показано КП договора">из договора</div>
+                                            @endif
                                             @if($row->proposal_number && $row->proposal_name)
                                                 <div class="fs-8 text-muted text-truncate" style="max-width: 170px;" title="{{ $row->proposal_name }}">
                                                     {{ $row->proposal_name }}
+                                                </div>
+                                            @endif
+                                            @if($row->proposal_more->isNotEmpty())
+                                                <div class="fs-8 text-muted"
+                                                     title="{{ $row->proposal_more->map(fn($item) => $item->number ?: $item->name)->implode(', ') }}">
+                                                    ещё КП: {{ $row->proposal_more->count() }}
                                                 </div>
                                             @endif
                                         @else
