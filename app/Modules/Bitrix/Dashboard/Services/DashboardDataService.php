@@ -151,6 +151,23 @@ class DashboardDataService
         ];
     }
 
+    /**
+     * Колонки поквартальных таблиц: текущий квартал и следующие, в формате поля Битрикса («2026q3»).
+     * Прошедшие кварталы не показываем.
+     *
+     * @param int $count сколько кварталов, включая текущий
+     * @return array ['2026q3', '2026q4', '2027q1', '2027q2']
+     */
+    public static function quarterColumns(int $count = 4): array
+    {
+        $start = Carbon::now()->startOfQuarter();
+
+        return array_map(
+            fn($i) => ($date = $start->copy()->addQuarters($i))->year . 'q' . $date->quarter,
+            range(0, max(1, $count) - 1)
+        );
+    }
+
     public function country_status_quarter()
     {
         // получим все deals
@@ -159,7 +176,7 @@ class DashboardDataService
         $deals = $this->deals_convert_currency($deals);
 
         $matrix = [];
-        $columns =  ['2026q1', '2026q2', '2026q3', '2026q4'];
+        $columns = static::quarterColumns();
         foreach ($deals as $deal) {
             if(!$deal->opportunity_RUB) continue;
 
@@ -253,7 +270,7 @@ class DashboardDataService
         $deals = $this->deals_convert_currency($deals);
 
         $matrix = [];
-        $columns =  ['2026q1', '2026q2', '2026q3', '2026q4'];
+        $columns = static::quarterColumns();
         foreach ($deals as $deal) {
             if(!$deal->opportunity_RUB) continue;
 

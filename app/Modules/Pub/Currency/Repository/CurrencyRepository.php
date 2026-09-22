@@ -35,8 +35,10 @@ class CurrencyRepository
             $builder->where('date', '<=', $arParams['date']);
         }
         $rates = $builder->get();
+        // строки идут от новых к старым: берём первую по каждой валюте.
+        // keyBy() оставлял последнюю — то есть самый старый курс в базе
         if(!empty($arParams['returnFull']))
-            return $rates->keyBy('slug');
+            return $rates->unique('slug')->keyBy('slug');
 
         $rates = $rates
             ->groupBy('slug')

@@ -36,8 +36,13 @@ class Kernel extends ConsoleKernel
 
     protected function schedule(Schedule $schedule)
     {
-        $schedule->command('currency:update')->everyMinute();
-//        $schedule->command('currency:update')->daily()->at('09:00');
+        // Курсы ЦБ РФ раз в день. Окно в неделю добирает дни, когда ЦБ или сеть не ответили.
+        // currency:update (exchangerate-api) из расписания убран: запуск каждую минуту выбирал
+        // месячный лимит бесплатного ключа за сутки, и курсы переставали обновляться
+        $schedule->command('currency:fetch-rates', [
+            '--from' => now()->subDays(7)->toDateString(),
+            '--to' => now()->toDateString(),
+        ])->dailyAt('09:00')->withoutOverlapping();
     }
 
 }

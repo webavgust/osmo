@@ -18,6 +18,12 @@ class FetchCurrencyRates extends Command
 
     protected array $currencies = ['INR', 'SGD', 'SRD', 'UZS', 'CNY', 'EUR', 'USD'];
 
+    /**
+     * Код ЦБ → код портала. Саудовский риял у ЦБ — SAR, а в портале он заведён под кодом SRD
+     * (на самом деле это суринамский доллар, который ЦБ не публикует)
+     */
+    protected array $aliases = ['SAR' => 'SRD'];
+
     public function handle()
     {
         $from = Carbon::parse($this->option('from'));
@@ -97,6 +103,7 @@ class FetchCurrencyRates extends Command
 
         foreach ($xml->Valute as $valute) {
             $charCode = (string) $valute->CharCode;
+            $charCode = $this->aliases[$charCode] ?? $charCode;
             if (!in_array($charCode, $this->currencies)) {
                 continue;
             }

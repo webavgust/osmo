@@ -36,7 +36,10 @@ class AnalyticsController extends Controller
                 ? ((int) $request->input('year') ?: null)
                 : ($years[0] ?? null),
             'partner' => (int) $request->input('partner') ?: null,
-            'status' => $request->input('status'),
+            // несколько статусов сразу; старые ссылки с одним ?status=won тоже понимаем
+            'status' => collect((array) $request->input('status'))
+                ->map(fn($code) => ProposalStatus::tryFrom((string) $code)?->value)
+                ->filter()->unique()->values()->all(),
             'only_alert' => $request->boolean('only_alert'),
             'q' => trim((string) $request->input('q')),
         ];

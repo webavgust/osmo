@@ -108,7 +108,7 @@ class DiscountAnalysisService
      * @param array $params [
      *     'year' => int|null — год отправки КП,
      *     'partner' => int|null,
-     *     'status' => string|null,
+     *     'status' => array|string|null — один статус или список,
      *     'only_alert' => bool — только выделенные,
      *     'q' => string|null,
      * ]
@@ -129,7 +129,7 @@ class DiscountAnalysisService
         }
 
         if (!empty($params['status'])) {
-            $builder->where('status', $params['status']);
+            $builder->whereIn('status', (array) $params['status']);
         }
 
         if (!empty($params['q'])) {

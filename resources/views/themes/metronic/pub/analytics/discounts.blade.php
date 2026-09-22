@@ -18,7 +18,9 @@
     {{-- Год всегда на виду; остальной отбор уезжает вместе с ним скрытыми полями --}}
     <form method="get" action="{{ route('analytics.discounts') }}" class="d-flex align-items-center">
         <input type="hidden" name="partner" value="{{ $params['partner'] }}"/>
-        <input type="hidden" name="status" value="{{ $params['status'] }}"/>
+        @foreach($params['status'] as $code)
+            <input type="hidden" name="status[]" value="{{ $code }}"/>
+        @endforeach
         <input type="hidden" name="q" value="{{ $params['q'] }}"/>
         @if($params['only_alert'])
             <input type="hidden" name="only_alert" value="1"/>
@@ -86,10 +88,9 @@
                             <div class="row mb-5">
                                 <label class="col-sm-3 col-form-label fw-semibold text-sm-end">Статус КП</label>
                                 <div class="col-sm-9">
-                                    <select name="status" class="form-select discounts_select" data-placeholder="любой">
-                                        <option value="">любой</option>
+                                    <select name="status[]" class="form-select discounts_select" multiple data-placeholder="любой">
                                         @foreach($statuses as $code => $status)
-                                            <option value="{{ $code }}" @selected($params['status'] === $code)>{{ $status['label'] }}</option>
+                                            <option value="{{ $code }}" @selected(in_array($code, $params['status'], true))>{{ $status['label'] }}</option>
                                         @endforeach
                                     </select>
                                 </div>

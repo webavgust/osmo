@@ -63,7 +63,9 @@ class LicenseRegistryService
             ->leftJoin('companies as cm', 'cm.id', '=', 'k.company_id')
             ->leftJoin('contract_specifications as s', 's.id', '=', 'k.contract_specification_id')
             ->leftJoin('contracts as c', 'c.id', '=', 's.contract_id')
-            ->leftJoin('partners as p', 'p.id', '=', 'c.partner_id')
+            // партнёр — из договора спецификации; у ключа без спецификации — партнёр его компании
+            // (таких больше половины, и без этого они пропадали из отбора по партнёру)
+            ->leftJoin('partners as p', 'p.id', '=', DB::raw('COALESCE(c.partner_id, cm.partner_id)'))
             ->select([
                 'k.id', 'k.key', 'k.active', 'k.active_from', 'k.active_to',
                 'cm.id as company_id', 'cm.name as company_name',
@@ -78,7 +80,7 @@ class LicenseRegistryService
         }
 
         if (!empty($params['partner'])) {
-            $builder->where('c.partner_id', (int) $params['partner']);
+            $builder->where('p.id', (int) $params['partner']);
         }
 
         if (!empty($params['q'])) {
