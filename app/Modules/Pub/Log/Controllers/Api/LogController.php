@@ -108,6 +108,10 @@ class LogController extends Controller
 
         $proposal = ProposalRepository::getByGroup($request->input('group'));
 
+        // заметка живёт в карточке компании: у КП без заказчика её некуда положить
+        if (empty($proposal->company)) {
+            return ['result' => 'error', 'message' => 'У КП не указан заказчик — заметку не к чему привязать'];
+        }
 
         $this->repo->create([
             'company' => $proposal->company->id,

@@ -73,8 +73,8 @@
                 </div>
 
                 <div class="col-lg-4">
-                    <label class="form-label fw-semibold">Компания <span class="text-danger">*</span></label>
-                    <select name="company" id="transfer_company" class="form-select" data-placeholder="Выберите компанию">
+                    <label class="form-label fw-semibold">Компания</label>
+                    <select name="company" id="transfer_company" class="form-select" data-placeholder="Заказчик не указан">
                         <option value=""></option>
                     </select>
                     <div class="match-hint mt-1">
@@ -421,7 +421,6 @@
             function transfer_save() {
                 var missing = [];
                 if (!$('#transfer_partner').val()) missing.push('партнёр');
-                if (!$('#transfer_company').val()) missing.push('компания');
                 if (!$('#transfer_number').val().trim()) missing.push('номер КП');
                 $('#transfer_form select.scenario_select').each(function () {
                     if (!$(this).val()) missing.push('сценарий ' + $(this).data('i'));
@@ -469,7 +468,9 @@
 
             $(document).ready(function () {
                 $('#transfer_partner, #transfer_manager').select2({ width: '100%' });
-                $('#transfer_company').select2({ width: '100%', allowClear: true });
+                $('#transfer_company').select2({ width: '100%', allowClear: true })
+                    // очистили — «заказчик не указан»: при смене партнёра найденную компанию не возвращаем
+                    .on('select2:clear', function () { transfer_company_selected = 0; });
                 $('#transfer_form select.scenario_select').select2({ width: '100%' });
 
                 transfer_company_render();

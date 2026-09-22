@@ -464,10 +464,11 @@ class ProposalRepository
             'nds' => $data['nds'],
         ]);
 
-        $proposal->company()->associate(Company::findOrFail($data['company']));
+        $proposal->company()->associate(!empty($data['company']) ? Company::findOrFail($data['company']) : null);
         $proposal->partner()->associate(Partner::findOrFail($data['partner']));
         $proposal->manager()->associate(User::findOrFail($data['manager']));
         $proposal->save();
+        static::syncCustomer($proposal);
 
         // patch v29: удаление через Eloquent — события deleting дают baseline журналу изменений
         $proposal->software()->get()->each->delete();
@@ -540,11 +541,12 @@ class ProposalRepository
             'lang' => $data['lang'] ?? 'ru',
         ]);
 
-        $proposal->company()->associate(Company::findOrFail($data['company']));
+        $proposal->company()->associate(!empty($data['company']) ? Company::findOrFail($data['company']) : null);
         $proposal->partner()->associate(Partner::findOrFail($data['partner']));
         $proposal->manager()->associate(User::findOrFail($data['manager']));
         $proposal->currency()->associate(CurrencyRepository::get($parent->currency_slug ?? Currency::CURRENCY_DEFAULT));
         $proposal->save();
+        static::syncCustomer($proposal);
 
         static::create_variants_new($request, $proposal, ['mode' => 'create']);
             \Log::info('Before commit', ['proposal_id' => $proposal->id]);
@@ -563,6 +565,37 @@ class ProposalRepository
     public static function delete(Proposal $company)
     {
         $company->delete();
+    }
+
+    /**
+     * Заказчик и партнёр — свойство всего КП, а не редакции: переносим их
+     * на остальные редакции группы.
+     *
+     * Иначе при смене заказчика в новой редакции старые оставались на прежней
+     * компании — так на карточках-заглушках с именем партнёра копились чужие КП.
+     * Дату изменения старых редакций не трогаем: их содержимое не менялось.
+     *
+     * @param Proposal $proposal сохранённая редакция
+     * @return int сколько редакций поправлено
+     */
+    public static function syncCustomer(Proposal $proposal): int
+    {
+        $others = Proposal::where('group', $proposal->group)
+            ->where('id', '!=', $proposal->id)
+            ->where(function ($builder) use ($proposal) {
+                $builder->where('partner_id', '!=', $proposal->partner_id)
+                    ->orWhereRaw('NOT (company_id <=> ?)', [$proposal->company_id]);
+            })
+            ->get();
+
+        foreach ($others as $other) {
+            $other->timestamps = false;
+            $other->company_id = $proposal->company_id;
+            $other->partner_id = $proposal->partner_id;
+            $other->save();
+        }
+
+        return $others->count();
     }
 
     public static function convert(\Illuminate\Http\Request $request, Proposal $proposal)
@@ -753,13 +786,17 @@ class ProposalRepository
 
         if (!empty($params['sort']) && !empty($params['order'])) {
             switch($params['sort']) {
+                // select('proposals.*'): без него id и name партнёра/компании перекрывают поля КП
                 case "grade":
-                    $builder->join('partners', 'proposals.partner_id', '=', 'partners.id')
+                    $builder->select('proposals.*')
+                        ->join('partners', 'proposals.partner_id', '=', 'partners.id')
                         ->orderBy('partners.name', $params['order']);
                     break;
                 case "company":
-                    $builder->join('companies', 'proposals.company_id', '=', 'companies.id')
-                    ->orderBy('companies.name', $params['order']);
+                    // leftJoin: КП без заказчика не должны пропадать из списка при сортировке
+                    $builder->select('proposals.*')
+                        ->leftJoin('companies', 'proposals.company_id', '=', 'companies.id')
+                        ->orderBy('companies.name', $params['order']);
                     break;
                 case "date":
                     $builder->orderBy('created_at', $params['order']);

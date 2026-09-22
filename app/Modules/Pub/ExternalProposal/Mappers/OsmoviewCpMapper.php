@@ -366,7 +366,8 @@ class OsmoviewCpMapper
             $company = Company::find((int) $choices['company']);
             $company_match = $company ? 'choice' : null;
         }
-        if (empty($company) && $company_source !== '') {
+        // компанию выбрали пустой при переносе — значит, заказчик не указан, догадкой не подменяем
+        if (empty($company) && !array_key_exists('company', $choices) && $company_source !== '') {
             [$company, $company_match] = static::matchCompany($company_source, $partner?->id);
         }
         // партнёра по адресату не нашли — берём владельца найденной компании
@@ -428,7 +429,7 @@ class OsmoviewCpMapper
             'totals' => $variants[$main]['totals'],
             'warnings' => $warnings,
             'unresolved' => $unresolved,
-            'ready' => !empty($partner) && !empty($company) && empty($unresolved),
+            'ready' => !empty($partner) && empty($unresolved),
         ];
     }
 
@@ -450,7 +451,6 @@ class OsmoviewCpMapper
         $payload = $external->payload ?? [];
 
         if (empty($preview['partner'])) throw new \RuntimeException('Не выбран партнёр');
-        if (empty($preview['company'])) throw new \RuntimeException('Не выбрана компания');
         if (!empty($preview['unresolved'])) throw new \RuntimeException('Не сопоставлены сценарии: позиции ' . implode(', ', $preview['unresolved']));
 
         $vat = $preview['vat'] ? 1 : 0;
@@ -464,7 +464,7 @@ class OsmoviewCpMapper
             'date' => $preview['date'],
             'number' => (string) ($choices['number'] ?? $preview['number_default']),
             'manager' => (int) $preview['manager'],
-            'company' => (int) $preview['company']->id,
+            'company' => $preview['company']?->id,
             'partner' => (int) $preview['partner']->id,
             'nds' => $preview['nds'],
             'lang' => $lang,

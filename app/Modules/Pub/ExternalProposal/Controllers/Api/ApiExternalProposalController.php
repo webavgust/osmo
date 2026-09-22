@@ -148,7 +148,7 @@ class ApiExternalProposalController
     {
         $request->validate([
             'partner' => 'required|exists:partners,id',
-            'company' => 'required|exists:companies,id',
+            'company' => 'nullable|exists:companies,id',
             'manager' => 'required|exists:users,id',
             'number' => 'required|string|max:32',
             'scenario' => 'nullable|array',
@@ -158,7 +158,8 @@ class ApiExternalProposalController
 
         $choices = [
             'partner' => (int) $request->input('partner'),
-            'company' => (int) $request->input('company'),
+            // пусто — «заказчик не указан»: догадку по названию заказчика не подставляем
+            'company' => $request->filled('company') ? (int) $request->input('company') : null,
             'manager' => (int) $request->input('manager'),
             'number' => trim((string) $request->input('number')),
             'scenario' => collect((array) $request->input('scenario', []))

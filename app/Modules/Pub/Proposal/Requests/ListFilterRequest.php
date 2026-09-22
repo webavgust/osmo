@@ -25,7 +25,13 @@ class ListFilterRequest extends FormRequest
     {
         return [
             'partner' => 'nullable|exists:partners,id',
-            'company' => 'nullable|exists:companies,id',
+            // id компании или «none» — КП без компании
+            'company' => ['nullable', function ($attribute, $value, $fail) {
+                if ($value !== \App\Modules\Pub\Proposal\Services\ProposalListFilterService::NO_COMPANY
+                    && !\App\Modules\Pub\Company\Models\Company::whereKey($value)->exists()) {
+                    $fail('Компания не найдена');
+                }
+            }],
             'scenario' => 'nullable|exists:scenarios,id',
             'neuroservice' => 'nullable|exists:neuroservices,id',
             'sended_at' => 'nullable|string',

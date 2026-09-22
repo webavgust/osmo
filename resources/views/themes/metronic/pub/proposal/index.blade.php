@@ -149,7 +149,10 @@
                         <div class="row mb-5">
                             <label class="col-sm-3 col-form-label fw-semibold text-sm-end">Компания</label>
                             <div class="col-sm-9">
-                                <x-ui.select.single name="company" select2 required :items="$companies" id="id" value-name="label" :value="$filter['company'] ?? null"></x-ui.select.single>
+                                {{-- первым пунктом — КП без компании (заказчик не указан) --}}
+                                <x-ui.select.single name="company" select2 required
+                                                    :items="collect([['id' => \App\Modules\Pub\Proposal\Services\ProposalListFilterService::NO_COMPANY, 'label' => '— Без компании —']])->concat($companies->values())"
+                                                    id="id" value-name="label" :value="$filter['company'] ?? null"></x-ui.select.single>
                             </div>
                         </div>
                         <div class="row mb-5">

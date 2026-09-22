@@ -30,7 +30,8 @@ class ProposalRequest extends FormRequest
             'date' => 'required|date',
             'number' => 'required|string',
             'manager' => 'required|exists:users,id',
-            'company' => 'required|exists:companies,id',
+            // компания необязательна: заказчик ещё неизвестен или это собственный запрос партнёра
+            'company' => 'nullable|exists:companies,id',
             'partner' => 'required|exists:partners,id',
             'nds' => 'required|numeric|min:0|max:100',
 

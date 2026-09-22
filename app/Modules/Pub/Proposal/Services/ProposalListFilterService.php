@@ -13,6 +13,9 @@ use Illuminate\Support\Str;
 
 class ProposalListFilterService
 {
+    /** Значение фильтра «Компания» для КП без заказчика */
+    public const NO_COMPANY = 'none';
+
     private $filter;
     private $token;
 
@@ -115,6 +118,11 @@ class ProposalListFilterService
                 foreach ($this->filter as $field => $value) {
                     switch ($field) {
                         case "company":
+                            // «Без компании» — КП, у которых заказчик не указан
+                            if ($value === static::NO_COMPANY) {
+                                $builder->whereNull('company_id');
+                                break;
+                            }
                             $builder->whereHas("company", function($builder) use ($value) {
                                 $builder->where('id', $value);
                             });

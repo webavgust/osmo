@@ -300,10 +300,12 @@ class ProposalController extends Controller
 
         app()->setLocale($data['language'] ?? 'ru');
 
+        // заказчика может не быть — тогда в имени файла только партнёр
+        $customer = $proposal->company ? '_' . $proposal->company->name : '';
         if('ru' == ($data['language'] ?? 'ru')) {
-            $title = 'Osmoview_ТКП_' . $proposal->partner->name . '_' . $proposal->company->name . '_' . $proposal->number .'_' . $proposal->sended_at->format("Y-m-d");
+            $title = 'Osmoview_ТКП_' . $proposal->partner->name . $customer . '_' . $proposal->number .'_' . $proposal->sended_at->format("Y-m-d");
         } else {
-            $title = 'Osmoview_TCP_' . $proposal->partner->name . '_' . $proposal->company->name . '_' . $proposal->number .'_' . $proposal->sended_at->format("Y-m-d");
+            $title = 'Osmoview_TCP_' . $proposal->partner->name . $customer . '_' . $proposal->number .'_' . $proposal->sended_at->format("Y-m-d");
         }
 
         $template = match($request->input('template') ?? null) {

@@ -243,12 +243,12 @@
 
                             <div class="mb-5 row">
                                 <div class="col-3">
-                                    <label class="col-sm-4 control-label col-form-label">Компания <span class="text-danger">*</span></label>
-                                    <x-ui.select.single  name="company" required :items="$companies" id="key" value-name="label" :value="$company_default"></x-ui.select.single>
+                                    <label class="col-sm-4 control-label col-form-label">Компания</label>
+                                    <x-ui.select.single  name="company" :items="$companies" id="key" value-name="label" :value="$company_default" blank-name="Заказчик не указан"></x-ui.select.single>
                                 </div>
                                 <div class="col-3">
                                     <label class="col-sm-4 control-label col-form-label">Партнёр <span class="text-danger">*</span></label>
-                                    <x-ui.select.single name="partner" required :items="$partners" id="key" value-name="label"></x-ui.select.single>
+                                    <x-ui.select.single name="partner" required :items="$partners" id="key" value-name="label" blank-name="Без партнёра — выберите OSMOVIEW"></x-ui.select.single>
                                 </div>
                                 <div class="col-3 ">
                                     <label class="col-sm-4 control-label col-form-label">Язык</label>
@@ -2229,9 +2229,10 @@
             });
 
 
+            // партнёра подставляем по выбранной компании; «заказчик не указан» партнёра не сбрасывает
             $("select[name='company']").on("change", function() {
                 partner_id = company_partner[$(this).val()];
-                $("select[name='partner']").val(partner_id).trigger('change');
+                if (partner_id) $("select[name='partner']").val(partner_id).trigger('change');
             });
 
             $("#table_data input, #table_data select").on("keyup change", function() {
