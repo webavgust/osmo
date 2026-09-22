@@ -119,12 +119,18 @@ class Company extends ModuleModel
 
     public function getPaymentsAttribute()
     {
-        $ret = [
-            'future' => $this->contracts->flatMap->contract_specifications->flatMap->payments->whereNull('amount_fact'),
-            'past' => $this->contracts->flatMap->contract_specifications->flatMap->payments->whereNotNull('amount_fact')
-        ];
+        // спецификации заказчика — свои (company_id) и спецификации его договоров без своей компании,
+        // как в платёжном календаре (COALESCE(s.company_id, c.company_id)): договор-рамка с партнёром
+        // заказчика не хранит, а в старых договорах спецификации бывают разных заказчиков
+        $payments = $this->specifications
+            ->concat($this->contracts->flatMap->contract_specifications->whereNull('company_id'))
+            ->unique('id')
+            ->flatMap->payments;
 
-        return $ret;
+        return [
+            'future' => $payments->whereNull('amount_fact'),
+            'past' => $payments->whereNotNull('amount_fact'),
+        ];
     }
 
     public function getAmountAttribute()
