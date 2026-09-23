@@ -460,7 +460,7 @@ class MetricRegistry
     }
 
     /**
-     * Группы КП, первая редакция которых отправлена в периоде
+     * Группы КП, первая редакция которых отправлена в периоде; без второстепенных (patch v33)
      *
      * @param Carbon $from
      * @param Carbon $to
@@ -470,6 +470,8 @@ class MetricRegistry
     {
         return Proposal::query()
             ->whereIn('id', fn($query) => $query->selectRaw('MIN(id)')->from('proposals')->groupBy('group'))
+            // patch v33: второстепенные КП в расчётах не участвуют
+            ->counted()
             ->whereBetween('sended_at', [$from->copy()->startOfDay()->format('Y-m-d H:i:s'), $to->copy()->endOfDay()->format('Y-m-d H:i:s')])
             ->pluck('group')
             ->unique()

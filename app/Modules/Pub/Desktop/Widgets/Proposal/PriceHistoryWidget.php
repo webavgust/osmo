@@ -5,6 +5,7 @@ namespace App\Modules\Pub\Desktop\Widgets\Proposal;
 use App\Modules\Pub\Desktop\Services\DesktopContext;
 use App\Modules\Pub\Desktop\Widgets\Widget;
 use App\Modules\Pub\Proposal\Models\Proposal;
+use App\Modules\Pub\Proposal\Models\ProposalLink;
 use App\Modules\Pub\Proposal\Repositories\ProposalRepository;
 use App\Modules\Pub\ProposalTools\Services\ProposalPriceHistoryService;
 use Illuminate\Support\Collection;
@@ -87,6 +88,8 @@ class PriceHistoryWidget extends Widget
 
         return (string) (DB::table('proposals')
             ->selectRaw('`group`, MAX(updated_at) as changed')
+            // patch v33: по умолчанию второстепенное КП не выбираем (выбранное руками — показываем)
+            ->whereRaw(ProposalLink::notSecondarySql('proposals.group'))
             ->groupBy('group')
             ->havingRaw('COUNT(*) > 1')
             ->orderByDesc('changed')

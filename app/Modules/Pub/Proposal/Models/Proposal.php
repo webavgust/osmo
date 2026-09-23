@@ -167,6 +167,37 @@ class Proposal extends ModuleModel
         return $this->hasOne(\App\Modules\Pub\ExternalProposal\Models\ExternalProposal::class, 'proposal_group', 'group');
     }
 
+    /**
+     * Связка с главным КП (patch v33): есть — это КП второстепенное
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
+     */
+    public function main_link()
+    {
+        return $this->hasOne(ProposalLink::class, 'secondary_group', 'group');
+    }
+
+    /**
+     * Та же связка с главным, но коллекцией (0..1 строк) — только для журнала:
+     * гидрация слепка раздаёт детей коллекциями
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function main_links()
+    {
+        return $this->hasMany(ProposalLink::class, 'secondary_group', 'group');
+    }
+
+    /**
+     * Связки со второстепенными КП (patch v33): есть — это КП главное
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function secondary_links()
+    {
+        return $this->hasMany(ProposalLink::class, 'main_group', 'group')->orderBy('id');
+    }
+
 
     /**
      * Scope search для поиска
@@ -178,6 +209,10 @@ class Proposal extends ModuleModel
     public function scopeSearch(Builder $builder, $search)
     {
         $words = collect(explode(" ", $search));
+        // patch v33: сценарий, компания и партнёр — подзапросами IN, а не whereHas:
+        // коррелированный EXISTS по вариантам и сценариям шёл ~0,8 с на каждый запрос списка
+        // (у proposal_variant_scenarios нет индекса по варианту), IN MySQL считает один раз
+        $like = '%' . $search . '%';
         $builder->where(function ($builder) use ($words) {
             $builder->where(function ($builder) use ($words) {
                 foreach ($this->searchable as $i => $field) {
@@ -186,12 +221,16 @@ class Proposal extends ModuleModel
                     });
                 }
             });
-        })->orWhereHas('variants.proposal_scenarios.scenario', function($builder) use ($search) {
-            $builder->where('name', 'like', '%' . $search . '%');
-        })->orWhereHas('company', function($builder) use ($search) {
-            $builder->where('name', 'like', '%' . $search . '%');
-        })->orWhereHas('partner', function($builder) use ($search) {
-            $builder->where('name', 'like', '%' . $search . '%');
+        })->orWhereIn('proposals.id', function ($query) use ($like) {
+            $query->select('pv.proposal_id')
+                ->from('proposal_variants as pv')
+                ->join('proposal_variant_scenarios as pvs', 'pvs.proposal_variant_id', '=', 'pv.id')
+                ->join('scenarios as s', 's.id', '=', 'pvs.scenario_id')
+                ->where('s.name', 'like', $like);
+        })->orWhereIn('proposals.company_id', function ($query) use ($like) {
+            $query->select('id')->from('companies')->where('name', 'like', $like);
+        })->orWhereIn('proposals.partner_id', function ($query) use ($like) {
+            $query->select('id')->from('partners')->where('name', 'like', $like);
         });
 
         return $builder;
@@ -220,6 +259,48 @@ class Proposal extends ModuleModel
         return $builder->whereIn('id', function ($query) {
             $query->selectRaw('MAX(id)')->from('proposals')->groupBy('group');
         });
+    }
+
+    /**
+     * Scope: только КП, участвующие в расчётах, — без второстепенных (patch v33).
+     * Колонка группы квалифицирована таблицей: scope работает и в запросах с join
+     *
+     * @param Builder $builder
+     * @return Builder
+     */
+    public function scopeCounted(Builder $builder)
+    {
+        return $builder->whereNotExists(function ($query) {
+            $query->selectRaw('1')
+                ->from('proposal_links as pl_sec')
+                ->whereColumn('pl_sec.secondary_group', 'proposals.group');
+        });
+    }
+
+    /**
+     * КП второстепенное к другому (patch v33): только просмотр, в расчётах не участвует.
+     * Повторное обращение запроса не делает — связь остаётся загруженной
+     *
+     * @return bool
+     */
+    public function getIsSecondaryAttribute(): bool
+    {
+        // модель из слепка журнала: связка лежит коллекцией
+        if (!$this->relationLoaded('main_link') && $this->relationLoaded('main_links')) {
+            return $this->main_links->isNotEmpty();
+        }
+
+        return $this->main_link !== null;
+    }
+
+    /**
+     * У КП есть второстепенные (patch v33)
+     *
+     * @return bool
+     */
+    public function getIsMainAttribute(): bool
+    {
+        return $this->secondary_links->isNotEmpty();
     }
 
     public function getCostTotalAttribute()
@@ -349,6 +430,9 @@ class Proposal extends ModuleModel
             'software' => ProposalSoftware::class,
             'works' => ProposalWork::class,
             'crm_deal_links' => ProposalCrmDeal::class,
+            // patch v33: связка «главное / второстепенное» — видна в лентах обоих КП
+            'secondary_links' => ProposalLink::class,
+            'main_links' => ProposalLink::class,
         ];
     }
 

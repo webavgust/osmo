@@ -198,6 +198,13 @@
                                                     aria-expanded="false"
                                                     aria-controls="flush-collapse{{ $loop->iteration }}">
                                                 {{ $group['name'] }}
+                                                {{-- patch v33: второстепенное КП — в истории остаётся, в расчётах не участвует --}}
+                                                @if(!empty($group['link_main']))
+                                                    <x-ui.badge.light type="warning" class="fs-8 ms-2"
+                                                                      title="Только просмотр, в расчётах не участвует">
+                                                        второстепенное → {{ \App\Modules\Pub\Proposal\Models\ProposalLink::refOf($group['link_main']) }}
+                                                    </x-ui.badge.light>
+                                                @endif
                                             </button>
                                         </h2>
                                         <div id="flush-collapse{{ $loop->iteration }}"
@@ -205,6 +212,14 @@
                                              aria-labelledby="flush-heading{{ $loop->iteration }}"
                                              data-bs-parent="#accordionFlushExample">
                                             <div class="accordion-body p-0 px-2">
+                                                {{-- patch v33: ссылка на главное (в заголовке-кнопке ссылку не поставить) --}}
+                                                @if(!empty($group['link_main']))
+                                                    <div class="fs-8 text-muted p-1">
+                                                        Второстепенное КП к
+                                                        <a href="{{ route('proposal.detail', [$group['link_main'], $group['link_main']->iteration]) }}">{{ \App\Modules\Pub\Proposal\Models\ProposalLink::refOf($group['link_main']) }}</a>
+                                                        — только просмотр, в расчётах не участвует
+                                                    </div>
+                                                @endif
                                                 <table class="table m-0 w-100 table-bordered mb-2">
                                                     <tr>
                                                         <th>Номер</th>

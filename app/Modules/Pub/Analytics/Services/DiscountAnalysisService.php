@@ -118,6 +118,8 @@ class DiscountAnalysisService
     {
         $builder = Proposal::query()
             ->latestIteration()
+            // patch v33: второстепенные КП в анализе скидок не участвуют
+            ->counted()
             ->with([
                 'partner', 'company',
                 'variants.proposal_platforms', 'variants.proposal_software',

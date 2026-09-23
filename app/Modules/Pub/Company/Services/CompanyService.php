@@ -7,6 +7,8 @@ use App\Modules\Pub\CalculationLesson\Repositories\CalculationLessonRepository;
 use App\Modules\Pub\Company\Models\CompanyGrade;
 use App\Modules\Pub\Company\Models\CompanyType;
 use App\Modules\Pub\Partner\Models\PartnerGrade;
+use App\Modules\Pub\Proposal\Services\ProposalService;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use App\Modules\Pub\StudyLesson\Models\StudyLesson;
 use App\Modules\Pub\Company\Models\Company;
 use App\Modules\Pub\Company\Repositories\ContractorRepository;
@@ -26,14 +28,30 @@ class CompanyService
         $this->repo = new CompanyRepository();
     }
 
+    /**
+     * КП компании по группам (редакции одного КП вместе)
+     *
+     * patch v33: второстепенное КП остаётся в списке (история), у группы —
+     * 'link_main' (последняя редакция главного) для плашки «второстепенное → № …».
+     * Сумм и счётчиков по КП карточка компании не считает — исключать нечего.
+     *
+     * @param Company $company
+     * @return array
+     */
     public static function getProposalsGrouped(Company $company)
     {
         $ret = [];
+        // patch v33: связки одним запросом, номера главных — ещё одним
+        if ($company->proposals instanceof EloquentCollection)
+            $company->proposals->loadMissing('main_link');
+        $linked = ProposalService::linkedLast($company->proposals);
+
         $groups = $company->proposals->groupBy('group');
         foreach($groups as $group) {
             $ret[] = [
                 'name' => $group[0]['name'],
-                'rows' => $group
+                'rows' => $group,
+                'link_main' => $group[0]->main_link ? $linked->get($group[0]->main_link->main_group) : null,
             ];
         }
 

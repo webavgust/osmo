@@ -10,9 +10,11 @@
             Задачи
         </h3>
 
+        @unless($variant->proposal?->is_secondary){{-- patch v33: второстепенное КП — только просмотр --}}
         <x-ui.a.box href="{{ route('proposal-variant.box_edit', $variant) }}">
             <i class="fas fa-edit text-warning"></i>
         </x-ui.a.box>
+        @endunless
 
 
     </div>

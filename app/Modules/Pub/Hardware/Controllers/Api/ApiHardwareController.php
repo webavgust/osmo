@@ -6,6 +6,7 @@ use App\Modules\Pub\Hardware\Models\Hardware;
 use App\Modules\Pub\Hardware\Repository\HardwareRepository;
 use App\Modules\Pub\Proposal\Models\Proposal;
 use App\Modules\Pub\Proposal\Repositories\ProposalRepository;
+use App\Modules\Pub\Proposal\Services\ProposalLinkService;
 use App\Modules\Pub\ProposalVariant\Models\ProposalVariant;
 use App\Modules\Pub\Software\Models\Software;
 use App\Modules\Pub\Software\Repositories\SoftwareRepository;
@@ -38,6 +39,7 @@ class ApiHardwareController
         ]);
 
         $variant = ProposalVariant::find($request->input('id'));
+        ProposalLinkService::assertEditable($variant->proposal); // patch v33: второстепенное КП — только просмотр
 
         $data = $request->all();
 
@@ -71,6 +73,8 @@ class ApiHardwareController
             'params' => 'nullable|string',
         ]);
 
+        ProposalLinkService::assertEditable($hardware->proposal_variant->proposal); // patch v33: второстепенное КП — только просмотр
+
         HardwareRepository::update($hardware, $request->all());
 
         $hardware->refresh();
@@ -91,6 +95,7 @@ class ApiHardwareController
 
         $proposal = ProposalRepository::getOnce($proposal->group, $iteration);
         if(empty($proposal)) abort(404);
+        ProposalLinkService::assertEditable($proposal); // patch v33: второстепенное КП — только просмотр
 
         $variant = $proposal->variants()->find($request->input('variant'));
         if(!$variant)

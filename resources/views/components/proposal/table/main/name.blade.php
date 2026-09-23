@@ -13,6 +13,11 @@
             <a href="{{ route('proposal.detail', [$row, $row->iteration]) }}">
                 {{ $row->name }}
             </a>
+            {{-- patch v33: главное КП — значок связки, номера второстепенных в подсказке --}}
+            @if(!empty($link_secondaries) && $link_secondaries->isNotEmpty())
+                <i class="fas fa-link text-info ms-1"
+                   title="Главное КП, связано с {{ $link_secondaries->map(fn($item) => \App\Modules\Pub\Proposal\Models\ProposalLink::refOf($item))->join(', ') }}"></i>
+            @endif
         </span>
 
         @if($row->iteration > 1)
@@ -21,4 +26,13 @@
             </x-ui.badge.light_rounded>
         @endif
     </div>
+    {{-- patch v33: второстепенное КП — плашка со ссылкой на главное --}}
+    @if(!empty($link_main))
+        <a href="{{ route('proposal.detail', [$link_main, $link_main->iteration]) }}"
+           title="Только просмотр, в расчётах не участвует">
+            <x-ui.badge.light type="warning" class="fs-8">
+                второстепенное → {{ \App\Modules\Pub\Proposal\Models\ProposalLink::refOf($link_main) }}
+            </x-ui.badge.light>
+        </a>
+    @endif
 </div>

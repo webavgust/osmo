@@ -26,4 +26,10 @@ Route::group(['prefix' => 'proposal', 'middleware' => ['ajax.api']], function ()
 
     // ячейка «Сделка» списка КП — чтобы перерисовать её без перезагрузки (patch v25)
     Route::get('/deal/cell/{proposal}', [\App\Modules\Pub\Proposal\Controllers\Api\ApiProposalStatusController::class, 'dealCell'])->name('api.proposal.deal_cell');
+
+    // связка КП «главное / второстепенное» (patch v33)
+    Route::get('/link/search/{proposal}', [\App\Modules\Pub\Proposal\Controllers\Api\ApiProposalLinkController::class, 'search'])->name('api.proposal.link_search');
+    Route::post('/link/attach/{proposal}', [\App\Modules\Pub\Proposal\Controllers\Api\ApiProposalLinkController::class, 'attach'])->name('api.proposal.link_attach');
+    Route::delete('/link/detach/{proposal}', [\App\Modules\Pub\Proposal\Controllers\Api\ApiProposalLinkController::class, 'detach'])->name('api.proposal.link_detach');
+    Route::post('/link/main/{proposal}', [\App\Modules\Pub\Proposal\Controllers\Api\ApiProposalLinkController::class, 'makeMain'])->name('api.proposal.link_main');
 });

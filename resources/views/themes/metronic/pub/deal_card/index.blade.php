@@ -3,6 +3,15 @@
 @section('content')
     <div class="d-flex flex-column gap-6">
 
+        {{-- patch v33: второстепенное КП — сводная ведётся по главному --}}
+        @if(!empty($link_main))
+            <x-ui.notification.light type="warning" class="mb-0">
+                Это второстепенное КП к
+                <a href="{{ route('deal_card.index', $link_main->group) }}" class="fw-bold" title="Сводная информация главного КП">{{ \App\Modules\Pub\Proposal\Models\ProposalLink::refOf($link_main) }}</a>
+                — сводная информация ведётся по главному
+            </x-ui.notification.light>
+        @endif
+
         {{-- Шапка --}}
         <div class="card">
             <div class="card-header min-h-auto py-5 border-bottom">

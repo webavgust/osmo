@@ -210,6 +210,8 @@ class ProposalDealService
 
         $builder = Proposal::query()
             ->latestIteration()
+            // patch v33: второстепенное КП сделок не получает — в выборе его нет
+            ->counted()
             ->with(['partner', 'company', 'manager'])
             ->when(!empty($params['partner_id']), fn($builder) => $builder->where('partner_id', (int) $params['partner_id']));
 
@@ -292,6 +294,9 @@ class ProposalDealService
      */
     public static function attach(Proposal $proposal, int $dealId, bool $main = false): ProposalCrmDeal
     {
+        // patch v33: второстепенное КП — только просмотр (403 с текстом)
+        ProposalLinkService::assertEditable($proposal);
+
         $deal = CrmDeal::find($dealId);
         if (empty($deal)) {
             throw new \InvalidArgumentException('Сделка #' . $dealId . ' не найдена');
@@ -334,6 +339,9 @@ class ProposalDealService
      */
     public static function detach(Proposal $proposal, int $dealId = null): void
     {
+        // patch v33: второстепенное КП — только просмотр (403 с текстом)
+        ProposalLinkService::assertEditable($proposal);
+
         // patch v29: удаление без событий модели — журнал изменений оборачивается явно (корень — последняя редакция)
         EntityLogService::around(static::lastProposal($proposal), fn() => ProposalCrmDeal::where('proposal_group', $proposal->group)
             ->when($dealId, fn($builder) => $builder->where('crm_deal_id', $dealId))
@@ -351,6 +359,9 @@ class ProposalDealService
      */
     public static function setMain(Proposal $proposal, int $dealId): void
     {
+        // patch v33: второстепенное КП — только просмотр (403 с текстом)
+        ProposalLinkService::assertEditable($proposal);
+
         // patch v29: массовый update без событий модели — журнал изменений оборачивается явно (корень — последняя редакция)
         EntityLogService::around(static::lastProposal($proposal), function () use ($proposal, $dealId) {
             ProposalCrmDeal::where('proposal_group', $proposal->group)

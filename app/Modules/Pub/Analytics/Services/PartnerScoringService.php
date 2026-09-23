@@ -7,6 +7,7 @@ use App\Modules\Pub\ContractSpecification\Services\SpecProposalService;
 use App\Modules\Pub\Currency\Services\CurrencyService;
 use App\Modules\Pub\Partner\Models\Partner;
 use App\Modules\Pub\Partner\Models\PartnerGrade;
+use App\Modules\Pub\Proposal\Models\ProposalLink;
 use App\Modules\Pub\Proposal\Models\ProposalStatus;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -571,6 +572,8 @@ class PartnerScoringService
             ->leftJoin('companies as cm', 'cm.id', '=', 'p.company_id')
             ->whereNotNull('p.partner_id')
             ->whereIn('p.id', fn($query) => $query->selectRaw('MAX(id)')->from('proposals')->groupBy('group'))
+            // patch v33: второстепенные КП в скоринге не участвуют
+            ->whereRaw(ProposalLink::notSecondarySql('p.group'))
             ->select([
                 'p.id', 'p.group', 'p.iteration', 'p.number', 'p.name', 'p.status',
                 'p.sended_at', 'p.currency_slug', 'p.partner_id', 'p.company_id',

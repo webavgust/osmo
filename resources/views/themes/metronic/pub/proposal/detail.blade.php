@@ -88,6 +88,10 @@
             if(isset($frame_by_block[$frame_type])) $frame_by_block[$frame_type]->push($frame_spec);
         }
 
+        // patch v33: главное КП для второстепенного — для баннера; связка — текущее
+        // состояние, в том числе при просмотре состояния на дату
+        $link_main = \App\Modules\Pub\Proposal\Services\ProposalLinkService::mainOf($proposal);
+
     @endphp
     <div class="container-fluid" id="proposal" currency="RUB">
         <div class="row">
@@ -194,11 +198,13 @@
                                                         <x-ui.icon.solid icon="fa-ellipsis-vertical" class="fs-3 ms-1"/>
                                                     </button>
                                                     <div class="dropdown-menu dropdown-menu-right" style="">
+                                                        @unless($proposal->is_secondary){{-- patch v33: второстепенное КП — только просмотр --}}
                                                         <a class="btn dropdown-item" href="{{ route('proposal.edit', [$proposal, $proposal->iteration]) }}">
                                                             <i class="fas fa-edit text-warning me-2 w-15px"></i> Редактировать
                                                         </a>
 
                                                         <div class="dropdown-divider"></div>
+                                                        @endunless
 
                                                         <x-ui.a.box class="dropdown-item" href="{{ route('proposal.box_generate_pdf', [$proposal, $proposal->iteration]) }}">
                                                             <i class="fas fa-file-pdf text-danger me-2"></i> Создать PDF
@@ -216,13 +222,22 @@
 
                                                         <div class="dropdown-divider"></div>
 
+                                                        {{-- patch v33: связка КП «главное / второстепенное» --}}
+                                                        <x-ui.a.box class="dropdown-item" href="{{ route('proposal.box_link', [$proposal, $proposal->iteration]) }}">
+                                                            <i class="fas fa-link text-primary me-2"></i> {{ $proposal->is_secondary ? 'Связка КП…' : 'Связать с другим КП' }}
+                                                        </x-ui.a.box>
+
+                                                        <div class="dropdown-divider"></div>
+
                                                         <x-ui.a.box class="dropdown-item" href="{{ route('proposal_tools.box_clone', [$proposal, $proposal->iteration]) }}">
                                                             <i class="fas fa-clone text-success me-2"></i> Клонировать КП
                                                         </x-ui.a.box>
 
+                                                        @unless($proposal->is_secondary){{-- patch v33: второстепенное КП — только просмотр --}}
                                                         <x-ui.a.box class="dropdown-item" href="{{ route('proposal.box_convert', [$proposal, $proposal->iteration]) }}">
                                                             <i class="fas fa-arrow-right-arrow-left text-primary me-2"></i> Конвертировать в валюту
                                                         </x-ui.a.box>
+                                                        @endunless
                                                     </div>
                                                 </div>
                                             </div>
@@ -231,11 +246,30 @@
 
 
                                         <div class="d-flex align-items-center flex-wrap justify-content-end gap-2">
-                                            <x-proposal.status :proposal="$proposal" :editable="empty($log_state) ? 1 : 0" as="btn"/>
+                                            {{-- patch v33: связка КП; второстепенное — только просмотр, сделок у него нет по правилу --}}
+                                            <x-proposal.link :proposal="$proposal" as="btn" :editable="empty($log_state) ? 1 : 0"/>
+                                            <x-proposal.status :proposal="$proposal" :editable="empty($log_state) && !$proposal->is_secondary ? 1 : 0" as="btn"/>
+                                            @unless($proposal->is_secondary)
                                             <x-proposal.deal :proposal="$proposal" as="btn"/>
+                                            @endunless
                                             <x-proposal.summary :proposal="$proposal"/>
                                         </div>
                                     </div>
+
+                                    @if(!empty($proposal->main_link)){{-- patch v33: баннер второстепенного КП; связка — текущее состояние, и на дату тоже --}}
+                                        <x-ui.notification.light type="warning" class="bg-white mt-3">
+                                            Это второстепенное КП. Главное —
+                                            @if($link_main)
+                                                <a href="{{ route('proposal.detail', [$link_main, $link_main->iteration]) }}">{{ \App\Modules\Pub\Proposal\Models\ProposalLink::refOf($link_main) }}@if(trim((string) $link_main->number) !== '' && filled($link_main->name)) «{{ $link_main->name }}»@endif</a>.
+                                            @else
+                                                не найдено.
+                                            @endif
+                                            Второстепенное только для просмотра и истории: в расчётах, скоринге, аналитике и на рабочем столе не участвует.
+                                            @if(empty($log_state))
+                                                <x-ui.a.box_clear href="{{ route('proposal.box_link', [$proposal, $proposal->iteration]) }}">Связка КП</x-ui.a.box_clear>
+                                            @endif
+                                        </x-ui.notification.light>
+                                    @endif
 
                                 @foreach($proposal->variants as $variant)
                                     <div style="display: none;"
@@ -319,7 +353,7 @@
                                                                                 @foreach($frame_by_block['license'] as $frame_spec)
                                                                                     <code class="fw-bold" title="Спецификация: {{ $frame_spec->name }}">{{ $frame_spec->contract->number ?? 'б/н' }}</code>
                                                                                 @endforeach
-                                                                                @if(empty($log_state)){{-- patch v29: в режиме состояния на момент спецификацию не прикрепить --}}
+                                                                                @if(empty($log_state) && !$proposal->is_secondary){{-- patch v29: в режиме состояния на момент спецификацию не прикрепить; patch v33: и к второстепенному КП --}}
                                                                                 <a href="javascript:void(0)" class="ms-1" title="Прикрепить спецификацию по ПО"
                                                                                    onclick="javascript:box({href:'{{ route('contract_spec.box_spec', [$proposal, 'license']) }}'})">
                                                                                     <x-ui.icon.regular icon="{{ $frame_by_block['license']->isEmpty() ? 'fa-link' : 'fa-edit' }}"/>
@@ -432,7 +466,7 @@
                                                                                 @foreach($frame_by_block['platform'] as $frame_spec)
                                                                                     <code class="fw-bold" title="Спецификация: {{ $frame_spec->name }}">{{ $frame_spec->contract->number ?? 'б/н' }}</code>
                                                                                 @endforeach
-                                                                                @if(empty($log_state)){{-- patch v29: в режиме состояния на момент спецификацию не прикрепить --}}
+                                                                                @if(empty($log_state) && !$proposal->is_secondary){{-- patch v29: в режиме состояния на момент спецификацию не прикрепить; patch v33: и к второстепенному КП --}}
                                                                                 <a href="javascript:void(0)" class="ms-1" title="Прикрепить спецификацию по платформе"
                                                                                    onclick="javascript:box({href:'{{ route('contract_spec.box_spec', [$proposal, 'platform']) }}'})">
                                                                                     <x-ui.icon.regular icon="{{ $frame_by_block['platform']->isEmpty() ? 'fa-link' : 'fa-edit' }}"/>
@@ -672,7 +706,7 @@
                                                                                 @foreach($frame_by_block['services'] as $frame_spec)
                                                                                     <code class="fw-bold" title="Спецификация: {{ $frame_spec->name }}">{{ $frame_spec->contract->number ?? 'б/н' }}</code>
                                                                                 @endforeach
-                                                                                @if(empty($log_state)){{-- patch v29: в режиме состояния на момент спецификацию не прикрепить --}}
+                                                                                @if(empty($log_state) && !$proposal->is_secondary){{-- patch v29: в режиме состояния на момент спецификацию не прикрепить; patch v33: и к второстепенному КП --}}
                                                                                 <a href="javascript:void(0)" class="ms-1" title="Прикрепить спецификацию по услугам"
                                                                                    onclick="javascript:box({href:'{{ route('contract_spec.box_spec', [$proposal, 'services']) }}'})">
                                                                                     <x-ui.icon.regular icon="{{ $frame_by_block['services']->isEmpty() ? 'fa-link' : 'fa-edit' }}"/>

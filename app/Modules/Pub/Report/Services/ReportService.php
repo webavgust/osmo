@@ -247,6 +247,8 @@ class ReportService
         $proposals = Proposal::whereIn('id', function ($query) {
             $query->from('proposals')->groupBy('group')->selectRaw('MAX(id)');
         })
+        // patch v33: второстепенные КП в отчёте не участвуют
+        ->counted()
         ->whereHas('variants')
         ->get();
         foreach($proposals as $proposal) {

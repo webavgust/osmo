@@ -23,4 +23,7 @@ Route::group(['prefix' => 'proposals'], function () {
     // boxes: статус КП и привязка к сделке Битрикса
     Route::get('/box/status/{proposal}/{iteration?}', [\App\Modules\Pub\Proposal\Controllers\ProposalBoxController::class, 'status'])->name('proposal.box_status');
     Route::get('/box/deal/{proposal}/{iteration?}', [\App\Modules\Pub\Proposal\Controllers\ProposalBoxController::class, 'deal'])->name('proposal.box_deal');
+
+    // boxes: связка КП «главное / второстепенное» (patch v33)
+    Route::get('/box/link/{proposal}/{iteration?}', [\App\Modules\Pub\Proposal\Controllers\ProposalBoxController::class, 'link'])->name('proposal.box_link');
 });

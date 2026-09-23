@@ -8,6 +8,7 @@ use App\Modules\Pub\ContractSpecification\Models\ContractSpecificationProposal;
 use App\Modules\Pub\EntityLog\Services\EntityLogService;
 use App\Modules\Pub\Proposal\Models\Proposal;
 use App\Modules\Pub\Proposal\Models\ProposalStatus;
+use App\Modules\Pub\Proposal\Services\ProposalLinkService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -76,6 +77,8 @@ class SpecProposalService
 
         return Proposal::query()
             ->latestIteration()
+            // patch v33: второстепенное КП к спецификациям не прикрепляется — в выборе его нет
+            ->counted()
             ->where('company_id', $spec->company_id)
             ->whereNotIn('group', $busy)
             ->with(['partner', 'currency', 'variants'])
@@ -175,6 +178,9 @@ class SpecProposalService
      */
     public static function attach(ContractSpecification $spec, Proposal $proposal): bool
     {
+        // patch v33: второстепенное КП — только просмотр (403 с текстом)
+        ProposalLinkService::assertEditable($proposal);
+
         ContractSpecificationProposal::firstOrCreate([
             'contract_specification_id' => $spec->id,
             'proposal_group' => $proposal->group,
@@ -196,6 +202,9 @@ class SpecProposalService
      */
     public static function detach(ContractSpecification $spec, Proposal $proposal): void
     {
+        // patch v33: второстепенное КП — только просмотр (403 с текстом)
+        ProposalLinkService::assertEditable($proposal);
+
         // patch v29: удаление через Eloquent (события журнала), корень — партнёр спецификации
         EntityLogService::around(EntityLogService::rootOf($spec), fn() => ContractSpecificationProposal::where('contract_specification_id', $spec->id)
             ->where('proposal_group', $proposal->group)

@@ -112,6 +112,8 @@ class CrmMismatchService
     {
         $builder = Proposal::query()
             ->latestIteration()
+            // patch v33: второстепенное КП без сделок по правилу — с Битрикс24 не сверяется
+            ->counted()
             ->with(['variants', 'company', 'manager']);
 
         if (!empty($params['status'])) {

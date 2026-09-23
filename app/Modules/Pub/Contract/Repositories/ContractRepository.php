@@ -9,6 +9,7 @@ use App\Modules\Pub\ContractSpecification\Models\ContractSpecification;
 use App\Modules\Pub\Organization\Repositories\OrganizationRepository;
 use App\Modules\Pub\Partner\Models\Partner;
 use App\Modules\Pub\Proposal\Models\Proposal;
+use App\Modules\Pub\Proposal\Services\ProposalLinkService;
 use Illuminate\Support\Str;
 
 class ContractRepository
@@ -45,6 +46,10 @@ class ContractRepository
 
     public static function update(Contract $contract, array $data)
     {
+        // patch v33: договор к второстепенному КП не привязывается (403 с текстом, как abort() в контроллере)
+        $proposal = Proposal::find($data['proposal'] ?? 0);
+        if ($proposal) ProposalLinkService::assertEditable($proposal);
+
         $contract->fill([
             'type' => $data['type'],
             'uuid' => empty($data['proposal']) ? Str::uuid() : null,
@@ -52,7 +57,7 @@ class ContractRepository
             'date' => $data['date'],
             'cb_signed' => $data['cb_signed'] ?? false,
         ])
-        ->proposal()->associate(Proposal::find($data['proposal'] ?? 0))
+        ->proposal()->associate($proposal)
         ->organization()->associate(OrganizationRepository::getOnce($data['organization']))
         ->save();
 

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Pub\Breadcrumbs\Traits\HasBreadcrumb;
 use App\Modules\Pub\DealCard\Services\DealChainService;
 use App\Modules\Pub\Proposal\Models\Proposal;
+use App\Modules\Pub\Proposal\Services\ProposalLinkService;
 use Illuminate\Support\Facades\View;
 
 class DealCardController extends Controller
@@ -27,6 +28,8 @@ class DealCardController extends Controller
         return View::make('pub.deal_card.index', array_merge($data, [
             'title' => 'Сводная информация: ' . ($data['proposal']->name ?? ''),
             'bottleneck' => DealChainService::bottleneck($data['steps']),
+            // patch v33: второстепенное КП — баннер со ссылкой на сводную главного
+            'link_main' => !empty($data['proposal']) ? ProposalLinkService::mainOf($data['proposal']) : null,
             'breadcrumbs' => $this->breadcrumb
         ]));
     }

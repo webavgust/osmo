@@ -8,6 +8,8 @@ use App\Modules\Pub\Constant\Models\Constant;
 use App\Modules\Pub\Currency\Models\Currency;
 use App\Modules\Pub\Currency\Repository\CurrencyRepository;
 use App\Modules\Pub\Proposal\Services\ProposalListFilterService;
+use App\Modules\Pub\Proposal\Services\ProposalLinkService;
+use App\Modules\Pub\Proposal\Models\ProposalLink;
 use App\Modules\Pub\Partner\Models\Partner;
 use App\Modules\Pub\Proposal\Services\ProposalService;
 use App\Modules\Pub\ProposalSoftware\Models\ProposalSoftware;
@@ -441,6 +443,9 @@ class ProposalRepository
 
     public static function update(\Illuminate\Http\Request $request, Proposal $proposal)
     {
+        // patch v33: второстепенное КП — только просмотр (403 с текстом)
+        ProposalLinkService::assertEditable($proposal);
+
         // если стоит флажок, создать новый, то создадим через create
         $create_new = !empty($request->input('new_iteration')) ? (bool)$request->input('new_iteration') : false;
 
@@ -508,6 +513,8 @@ class ProposalRepository
     // если передан parent, то создаётся его новая итерация
     public static function create(\Illuminate\Http\Request $request, Proposal $parent = null)
     {
+        // patch v33: новая редакция второстепенного КП запрещена — только просмотр
+        if (!empty($parent)) ProposalLinkService::assertEditable($parent);
 
         DB::beginTransaction();
         try {
@@ -564,6 +571,17 @@ class ProposalRepository
 
     public static function delete(Proposal $company)
     {
+        // patch v33: второстепенное — только просмотр; последнюю редакцию главного
+        // со второстепенными не удаляем, пока его не разъединят, — иначе связки повиснут
+        ProposalLinkService::assertEditable($company);
+
+        if ($company->is_main && Proposal::where('group', $company->group)->count() <= 1) {
+            $refs = ProposalLinkService::secondariesOf($company)->map(fn($secondary) => ProposalLink::refOf($secondary))->filter();
+
+            abort(403, 'У КП ' . ProposalLink::refOf($company) . ' есть второстепенные КП (' . $refs->implode(', ')
+                . '). Сначала разъедините их — попап «Связка КП»');
+        }
+
         $company->delete();
     }
 
@@ -600,6 +618,9 @@ class ProposalRepository
 
     public static function convert(\Illuminate\Http\Request $request, Proposal $proposal)
     {
+        // patch v33: пересчёт в валюту создаёт редакцию — второстепенному нельзя
+        ProposalLinkService::assertEditable($proposal);
+
         DB::beginTransaction();
         $rate = (float)Str::replace(',', '.', $request->input('rate'));
 
@@ -780,7 +801,14 @@ class ProposalRepository
 
         # Search
         if (!empty($params['search'])) {
-            $builder->search($params['search']);
+            // patch v33: вместе с найденными — их связки «главное / второстепенное» целиком
+            // (по номеру главного видны и второстепенные, и наоборот); фильтры списка действуют
+            $linked = ProposalLinkService::clusterGroups((clone $builder)->search($params['search'])->pluck('proposals.group'));
+
+            $builder->where(function ($builder) use ($params, $linked) {
+                $builder->search($params['search']);
+                if (!empty($linked)) $builder->orWhereIn('proposals.group', $linked);
+            });
             $count_filtered = $builder->count();
         }
 

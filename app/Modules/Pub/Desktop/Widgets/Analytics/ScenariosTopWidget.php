@@ -4,6 +4,7 @@ namespace App\Modules\Pub\Desktop\Widgets\Analytics;
 
 use App\Modules\Pub\Desktop\Services\DesktopContext;
 use App\Modules\Pub\Desktop\Widgets\Widget;
+use App\Modules\Pub\Proposal\Models\ProposalLink;
 use App\Modules\Pub\User\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -184,6 +185,8 @@ class ScenariosTopWidget extends Widget
             ->join('scenarios as s', 's.id', '=', 'pvs.scenario_id')
             ->leftJoin('scenario_groups as g', 'g.id', '=', 's.scenario_group_id')
             ->where('pv.is_main', 1)
+            // patch v33: второстепенные КП в расчётах не участвуют
+            ->whereRaw(ProposalLink::notSecondarySql('p.group'))
             ->select('s.id', 's.name', DB::raw('g.name as group_name'), DB::raw('count(*) as uses'),
                 DB::raw($units ? 'sum(pvs.count) as units' : '0 as units'));
     }

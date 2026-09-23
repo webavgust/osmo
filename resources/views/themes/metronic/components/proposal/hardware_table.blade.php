@@ -1,3 +1,4 @@
+@php($readonly = (bool) $variant->proposal?->is_secondary){{-- patch v33: второстепенное КП — только просмотр --}}
 <div class="card card-body p-0" id="hardware_table" variant="{{ $variant->id }}">
     <div class="
                                                   invoice-header
@@ -10,9 +11,11 @@
             Вычислительные ресурсы и оборудование
         </h3>
 
+        @unless($readonly)
         <x-ui.a.box href="{{ route('hardware.box_add', $variant) }}">
             <i class="fas fa-add text-warning"></i>
         </x-ui.a.box>
+        @endunless
 
     </div>
 
@@ -32,6 +35,7 @@
                         <td class="align-top text-center">{!! $once->count !!}</td>
                         <td class="align-top text-wrap">{!! html_entity_decode($once->params) !!}</td>
                         <td>
+                            @unless($readonly)
                             <div class="d-flex justify-content-between align-items-center">
                                 <x-ui.a.box href="{{ route('hardware.box_edit', $once) }}">
                                     <x-ui.icon.regular icon="fa-edit"/>
@@ -41,6 +45,7 @@
                                     <x-ui.icon.regular icon="fa-xmark" class="text-danger" />
                                 </a>
                             </div>
+                            @endunless
                         </td>
                     </tr>
                 @endforeach

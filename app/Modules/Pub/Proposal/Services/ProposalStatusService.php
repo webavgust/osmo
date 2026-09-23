@@ -29,6 +29,9 @@ class ProposalStatusService
         ProposalLostReason $reason = null,
         string $comment = null
     ): Proposal {
+        // patch v33: второстепенное КП — только просмотр, статус меняется у главного
+        ProposalLinkService::assertEditable($proposal);
+
         if ($status->needReason() && empty($reason)) {
             throw new \InvalidArgumentException(
                 'Для статуса «' . $status->data()['label'] . '» нужно указать причину'
@@ -98,7 +101,8 @@ class ProposalStatusService
     }
 
     /**
-     * Последние итерации всех КП — по одной строке на группу
+     * Последние итерации всех КП — по одной строке на группу.
+     * Второстепенные КП в расчётах не участвуют и сюда не попадают (patch v33)
      *
      * @return \Illuminate\Support\Collection
      */
@@ -108,6 +112,7 @@ class ProposalStatusService
             ->whereIn('id', function ($query) {
                 $query->selectRaw('MAX(id)')->from('proposals')->groupBy('group');
             })
+            ->counted()
             ->get();
     }
 }

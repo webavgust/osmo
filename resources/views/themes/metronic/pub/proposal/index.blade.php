@@ -525,8 +525,11 @@
 
         function rowStyle(row, index) {
             classes = [];
+            // patch v33: второстепенное КП — приглушённая строка (только просмотр)
+            if(row.is_secondary)
+                classes.push('opacity-50');
             return Object.assign({}, {}, {
-                classes: classes
+                classes: classes.join(' ')
             });
         }
         function rowAttributes(row, index) {

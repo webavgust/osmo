@@ -7,6 +7,7 @@ use App\Modules\Pub\Proposal\Models\Proposal;
 use App\Modules\Pub\Proposal\Repositories\ProposalRepository;
 use App\Modules\Pub\Scenario\Repository\ScenarioRepository;
 use App\Modules\Pub\User\Models\User;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 class ProposalService
 {
@@ -148,14 +149,26 @@ class ProposalService
             $params['manager'] = $manager->id;
         $data = $this->repo->getTable($params);
 
+        // patch v33: связки «главное / второстепенное» — только для строк страницы,
+        // номера связанных КП одним запросом (без N+1)
+        $rows = $data['rows'] instanceof EloquentCollection ? $data['rows'] : new EloquentCollection($data['rows']);
+        $rows->load(['main_link', 'secondary_links']);
+        $linked = self::linkedLast($rows);
 
         $return = collect();
         foreach($data['rows'] as $row) {
             $return[] = [
+                // patch v33: второстепенное — строка приглушается в JS (rowStyle)
+                'is_secondary' => (bool) $row->is_secondary,
                 'number' => view('components.proposal.table.main.number', ['row' => $row])->render(),
                 'partner' => view('components.proposal.table.main.partner', ['row' => $row])->render(),
                 'company' => view('components.proposal.table.main.company', ['row' => $row])->render(),
-                'name' => view('components.proposal.table.main.name', ['row' => $row])->render(),
+                'name' => view('components.proposal.table.main.name', [
+                    'row' => $row,
+                    // patch v33: главное (для второстепенного) и второстепенные (для главного) — последние редакции
+                    'link_main' => $row->main_link ? $linked->get($row->main_link->main_group) : null,
+                    'link_secondaries' => $row->secondary_links->map(fn($link) => $linked->get($link->secondary_group))->filter()->values(),
+                ])->render(),
                 'cost' => view('components.proposal.table.main.cost', ['row' => $row])->render(),
                 'date' => view('components.proposal.table.main.date', ['row' => $row])->render(),
                 'status' => view('components.proposal.table.main.status', ['row' => $row])->render(),
@@ -169,6 +182,34 @@ class ProposalService
         $data['rows'] = $return;
 
         return $data;
+    }
+
+    /**
+     * Последние редакции КП, связанных со строками страницы (patch v33):
+     * главных — для второстепенных строк, второстепенных — для главных.
+     * Один запрос на страницу; связки main_link (и, если нужны, secondary_links) у строк
+     * должны быть уже загружены — незагруженные secondary_links пропускаются, не догружаются.
+     *
+     * @param \Illuminate\Support\Collection $rows строки (модели Proposal)
+     * @return \Illuminate\Support\Collection [group => Proposal]
+     */
+    public static function linkedLast(\Illuminate\Support\Collection $rows)
+    {
+        $groups = collect();
+        foreach ($rows as $row) {
+            if ($row->main_link) $groups->push($row->main_link->main_group);
+            if (!$row->relationLoaded('secondary_links')) continue;
+            foreach ($row->secondary_links as $link) $groups->push($link->secondary_group);
+        }
+        $groups = $groups->filter()->unique()->values();
+
+        if ($groups->isEmpty()) return collect();
+
+        // по возрастанию редакции: keyBy оставит последнюю редакцию группы
+        return Proposal::whereIn('group', $groups)
+            ->orderBy('iteration')->orderBy('id')
+            ->get(['id', 'group', 'iteration', 'number', 'name'])
+            ->keyBy('group');
     }
 
 

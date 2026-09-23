@@ -142,6 +142,9 @@ class ProposalController extends Controller
         $proposal = ProposalRepository::getOnce($proposal->group, $iteration);
         if(empty($proposal)) abort(404);
 
+        // patch v33: второстепенное КП — только просмотр, форму правки не открываем
+        if ($proposal->is_secondary) return redirect()->route('proposal.detail', [$proposal, $proposal->iteration]);
+
         $this->breadcrumb_add(route('proposal.detail', [$proposal, $proposal->iteration]), $proposal->number . " ({$proposal->iteration})");
         $this->breadcrumb_add('', 'Редактирование');
 

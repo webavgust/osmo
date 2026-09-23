@@ -10,6 +10,7 @@ use App\Modules\Pub\Proposal\Repositories\ProposalRepository;
 use App\Modules\Pub\Proposal\Requests\ListFilterRequest;
 use App\Modules\Pub\Proposal\Requests\ProposalRequest;
 use App\Modules\Pub\Proposal\Services\ProposalListFilterService;
+use App\Modules\Pub\Proposal\Services\ProposalLinkService;
 use App\Modules\Pub\Proposal\Services\ProposalService;
 use App\Modules\Pub\ProposalVariant\Models\ProposalVariant;
 use App\Modules\Pub\ProposalVariantExtraPay\Services\ProposalVariantExtraPayService;
@@ -25,6 +26,8 @@ class ApiProposalVariantExtraPayController
 
     public function store(Request $request, ProposalVariant $variant)
     {
+        ProposalLinkService::assertEditable($variant->proposal); // patch v33: второстепенное КП — только просмотр
+
         $request->validate([
             'data' => 'required|array',
             'cb_all' => 'nullable|boolean',
