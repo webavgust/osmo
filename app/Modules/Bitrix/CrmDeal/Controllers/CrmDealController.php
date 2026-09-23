@@ -42,6 +42,29 @@ class CrmDealController extends Controller
         $defaults = CrmDealRegistryService::modeDefaults($mode);
         $params = CrmDealRegistryService::params($request, $defaults);
 
+        // ускорение 23.09: поиск без перезагрузки страницы — отдаём только то, что зависит
+        // от отбора: таблицу, кнопки фильтра (счётчик, «Убрать») и адрес выгрузки
+        if ($request->boolean('partial')) {
+            $vars = [
+                'params' => $params,
+                'defaults' => $defaults,
+                'rows' => CrmDealRegistryService::rows($params, null, $mode),
+                'action' => route('crm-deal.index'),
+                'partner' => null,
+                'mode' => $mode,
+            ];
+
+            return response()->json([
+                'result' => 'success',
+                'table' => view('bitrix.deal._table', $vars)->render(),
+                'filter_buttons' => view('bitrix.deal._filter_buttons', $vars)->render(),
+                'export_url' => route('crm-deal.box.export', array_merge(
+                    CrmDealRegistryService::query($params),
+                    $mode === CrmDealRegistryService::MODE_ALL ? [] : ['mode' => $mode]
+                )),
+            ]);
+        }
+
         return view('bitrix.deal.index', array_merge(CrmDealRegistryService::options(), [
             'title' => 'Реестр сделок Битрикс24',
             'breadcrumbs' => $this->breadcrumb,

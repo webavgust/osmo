@@ -73,7 +73,8 @@
             </div>
         </div>
 
-        <div class="card-body p-2">
+        {{-- ускорение 23.09: поиск перерисовывает только эту часть (partial=1), без перезагрузки --}}
+        <div class="card-body p-2" id="deal_table_wrap">
             @include('bitrix.deal._table')
         </div>
     </div>
@@ -90,7 +91,10 @@
 
     {{-- «Фильтр» и «Убрать» — рядом с «Действиями», как на странице КП OSMOVIEW CP;
          модалка подключена в content (_filter без тулбара) --}}
-    @include('bitrix.deal._filter_buttons')
+    {{-- обёртка без своей коробки: поиск без перезагрузки меняет счётчик и «Убрать» (ускорение 23.09) --}}
+    <span id="deal_filter_buttons" style="display: contents">
+        @include('bitrix.deal._filter_buttons')
+    </span>
 
     {{-- «Действия»: как на странице КП OSMOVIEW CP --}}
     <div class="dropdown">
@@ -101,7 +105,7 @@
 
         <div class="dropdown-menu dropdown-menu-end">
             {{-- ссылка уходит в onclick через @js: «&» и кавычки экранируются один раз --}}
-            <a href="javascript:void(0);" class="dropdown-item" onclick="box({href: @js($export_url)})">
+            <a href="javascript:void(0);" class="dropdown-item" id="deal_export" onclick="box({href: @js($export_url)})">
                 <i class="fa-light fa-file-excel text-success me-2"></i> Выгрузить в Excel
             </a>
         </div>
@@ -120,19 +124,48 @@
     @endphp
 
     <script>
-        // Поиск из шапки карточки — серверный, как был в панели таблицы: страница
-        // открывается с q в адресе, отбор и вкладка сохраняются. Запускается сам
-        // через паузу после ввода (как в списке КП), по Enter — сразу, крестик сбрасывает
+        // Поиск из шапки карточки — серверный, отбор и вкладка сохраняются. Ускорение 23.09:
+        // страница не перезагружается — сервер отдаёт только таблицу, кнопки фильтра и адрес
+        // выгрузки (partial=1), адрес в строке браузера меняется через history.replaceState
+        // (F5 и ссылка сохраняют поиск). Запускается сам через паузу после ввода, по Enter —
+        // сразу, крестик сбрасывает
         $(document).ready(function () {
             var $search = $('#deal_search');
             var applied = $.trim($search.val());
-            var timer;
+            var timer, request;
 
             function deal_search_go() {
                 clearTimeout(timer);
                 var value = $.trim($search.val());
                 if (value === applied) return;
-                location.href = @json($deal_search_base) + encodeURIComponent(value);
+
+                var url = @json($deal_search_base) + encodeURIComponent(value);
+                if (request) request.abort();
+
+                var $wrap = $('#deal_table_wrap').css('opacity', .5);
+                request = $.ajax({
+                    url: url + '&partial=1',
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function (response) {
+                        if (response.result !== 'success') return;
+
+                        applied = value;
+                        $wrap.html(response.table);
+                        $('#deal_filter_buttons').html(response.filter_buttons);
+                        $('#deal_filter_form input[name="q"]').val(value);
+                        $('#deal_export').attr('onclick', 'box({href: ' + JSON.stringify(response.export_url) + '})');
+                        history.replaceState(null, '', url);
+                    },
+                    error: function (xhr, status) {
+                        if (status === 'abort') return;
+                        // не вышло — старый путь: открыть страницу с поиском
+                        location.href = url;
+                    },
+                    complete: function () {
+                        $wrap.css('opacity', '');
+                    }
+                });
             }
 
             $search.on('keydown', function (event) {
@@ -142,12 +175,12 @@
             });
             $search.on('input', function () {
                 clearTimeout(timer);
-                timer = setTimeout(deal_search_go, 700);
+                timer = setTimeout(deal_search_go, 300);
             });
             // крестик в поле type=search
             $search.on('search', deal_search_go);
 
-            // после перезагрузки с поиском — курсор снова в поле, в конце текста
+            // открыли страницу по ссылке с поиском — курсор в поле, в конце текста
             if (applied !== '') {
                 var field = $search.get(0);
                 field.focus();
