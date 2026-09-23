@@ -24,7 +24,7 @@ class CurrencyService
 
     public static function updateRates() {
 
-        $http = Http::get('https://v6.exchangerate-api.com/v6/a26ac05327899c0494755112/latest/RUB');
+        $http = Http::get('https://v6.exchangerate-api.com/v6/85c20b753abe2fdb13da6cbf/latest/RUB');
 
         $data = $http->json();
         if($data['result'] !== 'success')

@@ -461,7 +461,6 @@
                 field: "partner",
                 title: "Партнёр и компания",
                 align: "left",
-                width: 1,
             },
             {
                 field: "cost",
