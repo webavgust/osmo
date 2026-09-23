@@ -4,18 +4,15 @@
     - узко и низко — только остаток дней;
     - низко, но широко — рядом с числом «дн. до …» и состояние;
     - высота ≥ md — спецификация; высота ≥ lg — ключ, договор, срок с полоской прошедшей доли;
-    - высокий и не узкий блок — число крупнее (desk-value-lg).
+    - высокий и не узкий блок — число крупнее (desk-value-lg);
+    - высота от 300 px — спецификация, номер ключа и договор переносятся строками, а не режутся (.kc-wrap).
     Компания сверху, число посередине, подробности прижаты книзу — крупный блок не пустует.
 --}}
 @php
     $days = $data['days'];
     $expired = $days !== null && $days < 0;
-    $color = match (true) {
-        $days === null => '',
-        $days <= 30 => 'text-danger',
-        $days <= 60 => 'text-warning',
-        default => '',
-    };
+    // цвет числа — по состоянию реестра (горизонты из license_horizons): красный и жёлтый, остальное без цвета
+    $color = in_array($data['state_color'], ['danger', 'warning'], true) ? 'text-' . $data['state_color'] : '';
     $href = $preview || empty($data['company_url']) ? 'javascript:void(0)' : $data['company_url'];
     $narrow = $dw === 'xs';
     $big = in_array($dh, ['lg', 'xl'], true) && !$narrow;
@@ -39,8 +36,13 @@
     $details = trim($details . ($data['partner'] !== '' ? ($details !== '' ? ' · ' : '') . $data['partner'] : ''));
 @endphp
 @if(empty($data['found']))
-    <div class="desk-empty">
-        <i class="fa-light fa-key"></i> Ключ не выбран
+    {{-- не выбран — пусто в настройках; не найден — компания без ключей, неверный номер или ключ не активен --}}
+    @php
+        $why = trim((string) $settings['code']) !== '' ? 'Ключа с таким номером нет' : 'У компании нет ключей';
+        $why .= $settings['only_active'] ? ' среди активных' : '';
+    @endphp
+    <div class="desk-empty" @if(!empty($data['chosen'])) title="{{ $why }}" @endif>
+        <i class="fa-light fa-key"></i> {{ empty($data['chosen']) ? 'Ключ не выбран' : 'Ключ не найден' }}
     </div>
 @else
     <div class="desk-stack kc">
@@ -67,7 +69,7 @@
 
         <div class="kc-foot">
             @if($data['spec'] !== '')
-                <div class="desk-muted fs-8 desk-nowrap desk-only-h-md"
+                <div class="desk-muted fs-8 desk-nowrap desk-only-h-md kc-wrap"
                      title="{{ $data['spec'] }}{{ $data['contract'] ? ' · договор ' . $data['contract'] : '' }}">{{ $data['spec'] }}</div>
             @endif
 
@@ -78,13 +80,14 @@
             <div class="desk-only-h-lg">
                 <div class="d-flex gap-2 fs-8 desk-hide-narrow">
                     <span class="desk-muted">Ключ</span>
-                    <span class="desk-grow fw-semibold" title="{{ $data['code'] }}">{{ $data['code'] }}</span>
+                    <span class="desk-grow fw-semibold kc-wrap" title="{{ $data['code'] }}">{{ $data['code'] }}</span>
                 </div>
 
                 @if($details !== '')
                     <div class="d-flex gap-2 fs-8 desk-hide-narrow">
-                        <span class="desk-muted">Договор</span>
-                        <span class="desk-grow" title="{{ $details }}">{{ $details }}</span>
+                        {{-- ключ без спецификации: договора нет, в строке только партнёр компании --}}
+                        <span class="desk-muted">{{ $data['contract'] !== '' ? 'Договор' : 'Партнёр' }}</span>
+                        <span class="desk-grow kc-wrap" title="{{ $details }}">{{ $details }}</span>
                     </div>
                 @endif
 

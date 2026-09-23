@@ -46,8 +46,10 @@ class FunnelStagesWidget extends Widget
     {
         return [
             ['key' => 'metric', 'type' => 'select', 'label' => 'Показатель', 'default' => 'sales', 'options' => FunnelTableWidget::METRICS],
+            // только стадии, которые считает воронка: Execution (PRE-PAYMENT) она не считает,
+            // и отбор по ней всегда давал пустой виджет
             ['key' => 'stages', 'type' => 'list', 'label' => 'Стадии', 'default' => [],
-                'options' => array_combine(FunnelTableWidget::STAGES, FunnelTableWidget::STAGES),
+                'options' => fn() => array_combine(FunnelTableWidget::funnelStages(), FunnelTableWidget::funnelStages()),
                 'hint' => 'Пусто — все стадии воронки'],
             ['key' => 'counts', 'type' => 'bool', 'label' => 'Показывать количество сделок', 'default' => true],
         ];

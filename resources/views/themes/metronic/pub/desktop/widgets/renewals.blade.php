@@ -2,7 +2,7 @@
 {{--
     Поведение по размерам (ступени, не числа):
     - низкий блок — подпись и число; шире 300 px — рядом сумма и дельта в процентах;
-    - узкий блок (dw xs) — подпись «продлено», сумма без «на», дельта без пояснения;
+    - узкий блок (dw xs) — сумма без «на», дельта без пояснения; уже 230 px подпись без периода — «продлено»;
     - шире 230 px — у дельты пояснение «к прошлому отрезку»; выше 96 px — новые ключи и «без курса»;
     - высота от трёх ячеек — список продлений ($rows_max в .desk-fit, «ещё N»): компания — сумма,
       шире 230 px — + дата;
@@ -28,8 +28,9 @@
     $href = fn($row) => $preview || empty($row['url']) ? 'javascript:void(0)' : $row['url'];
 @endphp
 <div class="desk-stack rn">
+    {{-- период («Текущий квартал») — только шире 230 px, уже он уходил в многоточие; полностью — в подсказке --}}
     <div class="desk-label desk-nowrap flex-shrink-0" title="Продлено · {{ $data['label'] }} · {{ $data['dates'] }}">
-        {{ $narrow ? 'продлено' : 'продлено · ' . $data['label'] }}
+        продлено<span class="desk-only-w-md"> · {{ $data['label'] }}</span>
     </div>
 
     <div @class(['rn-main', 'desk-stack-grow' => !$with_list])>
@@ -40,7 +41,7 @@
             <span @class(['desk-muted text-nowrap', 'fs-8' => $narrow]) title="{{ $widget::money($data['amount'], $symbol, false) }}">{{ $narrow ? '' : 'на ' }}{{ $widget::money($data['amount'], $symbol) }}</span>
             @if($settings['compare'])
                 <span class="desk-delta {{ $direction }}"
-                      @if($data['prev_count'] !== null) title="Прошлый отрезок: {{ $data['prev_count'] }} на {{ $widget::money($data['prev_amount'], $symbol, false) }}" @endif>{{ $delta_value }}</span>
+                      @if($data['prev_count'] !== null) title="Прошлый отрезок{{ !empty($data['prev_dates']) ? ' ' . $data['prev_dates'] : '' }}: {{ $data['prev_count'] }} на {{ $widget::money($data['prev_amount'], $symbol, false) }}" @endif>{{ $delta_value }}</span>
                 <span class="desk-muted fs-8 text-nowrap desk-only-w-md desk-hide-short">к прошлому отрезку</span>
             @endif
             @if($settings['show_new'])

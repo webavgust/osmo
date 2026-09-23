@@ -98,9 +98,14 @@
                                         <span class="desk-muted fs-8 text-nowrap">{{ number_format($share, 1, ',', ' ') }} %</span>
                                     </div>
                                 </td>
-                                <td class="num fw-semibold" title="{{ $widget::money($row['amount'], $data['symbol'], false) }}">
-                                    {{ $widget::money($row['amount'], $data['symbol']) }}
-                                </td>
+                                @if($row['amount'] > 0)
+                                    <td class="num fw-semibold" title="{{ $widget::money($row['amount'], $data['symbol'], false) }}">
+                                        {{ $widget::money($row['amount'], $data['symbol']) }}
+                                    </td>
+                                @else
+                                    {{-- у ключей строки нет КП договора (или сумма договора ушла в строку, где его ключей больше) --}}
+                                    <td class="num desk-muted" title="Без суммы: у договора нет КП или его сумма учтена в другой строке">—</td>
+                                @endif
                             </tr>
                         @endforeach
                     </tbody>
@@ -112,7 +117,7 @@
         @if($button)
             <a class="btn btn-sm btn-light-primary w-100 text-nowrap china-btn" href="{{ $preview ? 'javascript:void(0)' : $data['url'] }}" title="{{ $hint }}">
                 <i class="fa-light fa-file-excel"></i>
-                <span class="ms-2 desk-only-w-md">Сформировать отчёт</span>
+                <span class="ms-2 desk-only-w-md">Открыть отчёт</span>
                 <span class="ms-2 china-btn-short">Отчёт</span>
             </a>
         @endif

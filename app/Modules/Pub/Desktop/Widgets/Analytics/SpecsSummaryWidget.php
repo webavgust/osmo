@@ -83,7 +83,7 @@ class SpecsSummaryWidget extends Widget
         return [
             'specs' => $specs, 'partners' => count($rows), 'companies' => 58, 'contracts' => 71,
             'configurations' => $specs - 9, 'scenarios' => $specs * 2 + 17, 'manual' => 9,
-            'mode_label' => 'отфильтрованные',
+            'mode_label' => (string) ($settings['mode'] ?? 'filtered') === 'all' ? 'все спецификации' : 'отфильтрованные',
             'rows' => array_map(fn($row) => ['name' => $row[0], 'specs' => $row[1]], $rows),
         ];
     }

@@ -19,7 +19,8 @@ use Illuminate\Support\Collection;
  * берутся КП в статусе «Проиграно» (v27). Причина — proposals.status_reason
  * (ProposalLostReason); «Заморожено» и «Отменено» с v27 живут здесь же, а не
  * в статусах. Дата решения — status_changed_at, без неё — дата отправки,
- * как в MetricRegistry::wonBetween(). Суммы — основные варианты
+ * как у проигранных в MetricRegistry::decidedDates() (выигрыши датируются
+ * иначе, но здесь их нет). Суммы — основные варианты
  * (MetricRegistry::mainSum()) в валюте стола.
  */
 class LostReasonsWidget extends Widget

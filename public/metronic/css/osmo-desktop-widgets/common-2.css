@@ -29,7 +29,17 @@
     .desk-widget[data-widget="journal"] .dj-list .dj-note { display: block; }
 }
 @container dw (max-width: 229.9px) {
-    .desk-widget[data-widget="journal"] .dj-company { flex: 1 1 auto; max-width: none; }
+    /* узкий блок (ширина 2–4): название компании переносится в две строки, а не режется */
+    .desk-widget[data-widget="journal"] .dj-company {
+        flex: 1 1 auto;
+        max-width: none;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        line-height: 1.25;
+    }
 }
 
 /* самый узкий блок: дата над компанией */
@@ -86,8 +96,9 @@
     .desk-widget[data-widget="kpi"] .dk-spark .desk-chart { display: none; }
 }
 
-/* узкий, но не низкий блок: подпись в две строки вместо многоточия */
-@container dw (width < 230px) and (height >= 110px) {
+/* неширокий (до 6 колонок), но не низкий блок: подпись в две строки вместо многоточия —
+   у показателя с периодом она длинная («КП · Выиграно за период, сумма · Текущий квартал») */
+@container dw (width < 420px) and (height >= 110px) {
     .desk-widget[data-widget="kpi"] .dk-label {
         display: -webkit-box;
         -webkit-box-orient: vertical;
@@ -215,10 +226,23 @@
 @container dw (230px <= width < 340px) {
     .desk-widget[data-widget="links"] .dl-symbol { display: none; }
 }
-/* низкий блок: плитка в одну строку */
+/* одна колонка (ширина 3–4) не выше карточки: плитка ~150 px — без значка, иначе название и
+   вторая строка (статус и сумма) не помещались в плитку по высоте и обрезались краем (4×3) */
+@container dw (width < 230px) and (height < 600px) {
+    .desk-widget[data-widget="links"] .dl-symbol { display: none; }
+}
+/* низкий блок: плитка плотнее; в несколько колонок — название в одну строку,
+   в одну колонку — в две (плитка одна, место по высоте есть) */
 @container dw (height < 110px) {
     .desk-widget[data-widget="links"] .dl-tile { padding: .2rem .5rem; }
+}
+@container dw (height < 110px) and (width >= 230px) {
     .desk-widget[data-widget="links"] .dl-tile .dl-title { -webkit-line-clamp: 1; }
+}
+/* высота 3 ячейки: подпись «ещё N» отнимала строку, и плитка с названием и второй строкой
+   в две строки обрезалась краем (3×3, 4×3, 6×3) — место отдаём плиткам */
+@container dw (height < 160px) {
+    .desk-widget[data-widget="links"] [data-fit-more] { display: none; }
 }
 /* высокий блок: плитка — карточка, значок сверху, название и вторая строка снизу */
 @container dw (height >= 600px) {
@@ -235,6 +259,18 @@
 /* список: название одной строкой, вторая строка — справа; в высоком блоке — под названием */
 .desk-widget[data-widget="links"] .dl-list .dl-title { display: block; overflow: hidden; text-overflow: ellipsis; }
 .desk-widget[data-widget="links"] .dl-list .dl-second { display: none; }
+/* неширокий список (до 8 колонок): название в две строки — номер КП и название компании
+   читаются целиком, вторая строка справа (статус и сумма) места у него не отнимает */
+@container dw (width < 420px) {
+    .desk-widget[data-widget="links"] .dl-list .dl-title {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        line-height: 1.25;
+    }
+}
 @container dw (height >= 600px) {
     .desk-widget[data-widget="links"] .dl-list > li { padding: .5rem 0; }
     .desk-widget[data-widget="links"] .dl-list .dl-title {

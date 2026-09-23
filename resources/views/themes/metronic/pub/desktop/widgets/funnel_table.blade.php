@@ -56,7 +56,7 @@
                         <td class="desk-only-w-lg">
                             <div class="d-flex align-items-center gap-2">
                                 <div class="desk-bar flex-grow-1">
-                                    <i style="width: {{ max(0, min(100, $row['share'])) }}%;"></i>
+                                    <i @class(['f2-bar-nz' => $row['share'] > 0]) style="width: {{ max(0, min(100, $row['share'])) }}%;"></i>
                                 </div>
                                 <span class="desk-muted text-end text-nowrap" style="min-width: 3.2em;">{{ number_format($row['share'], $row['share'] < 10 ? 1 : 0, ',', ' ') }} %</span>
                             </div>

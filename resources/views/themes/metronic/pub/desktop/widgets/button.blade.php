@@ -1,11 +1,19 @@
 {{-- Виджет «Действие» (patch v30): App\Modules\Pub\Desktop\Widgets\Common\ButtonWidget --}}
 @php
-    // попап и сайдбар открывает проектный box(); обычный переход — ссылкой
+    // попап и сайдбар открывает проектный box() / sidebar(); обычный переход — ссылкой.
+    // Строки в JS — через json_encode, разметку атрибута экранирует Blade
+    $js = fn($value) => json_encode((string) $value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     $onclick = match ($data['mode']) {
-        'box' => "box({href: '" . e($data['url']) . "'})",
-        'sidebar' => "sidebar({href: '" . e($data['url']) . "'})",
+        'box' => 'box({href: ' . $js($data['url']) . '})',
+        'sidebar' => 'sidebar({href: ' . $js($data['url']) . '})',
         default => null,
     };
+    // подтверждение: переход отменяет osmo-desktop.js по data-desk-confirm, а попап открыл бы
+    // onclick кнопки раньше, чем щелчок дойдёт до стола, — поэтому у попапа confirm() в самом onclick
+    $ask = !$preview && $data['confirm'];
+    if ($onclick && $ask) {
+        $onclick = 'if (confirm(' . $js($data['label'] . '?') . ')) ' . $onclick;
+    }
     // подсказка, что случится по нажатию: видна в высоком или широком блоке (common-1.css)
     $hint = match ($data['mode']) {
         'box' => 'Откроется окно',
@@ -22,7 +30,7 @@
     <a @class(['btn desk-action', 'btn-' . $data['color']])
        href="{{ $onclick || $preview ? 'javascript:void(0)' : $data['url'] }}"
        @if(!$preview && $onclick) onclick="{{ $onclick }}" @endif
-       @if(!$preview && $data['confirm']) data-desk-confirm="{{ $data['label'] }}?" @endif
+       @if($ask && !$onclick) data-desk-confirm="{{ $data['label'] }}?" @endif
        title="{{ $data['label'] }}">
         <span class="desk-action-main">
             <i class="fa-light {{ $data['icon'] }} desk-action-icon"></i>

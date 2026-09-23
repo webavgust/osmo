@@ -86,7 +86,7 @@ class ProgressWidget extends Widget
                 'hint' => 'Например plan_quarter — значение берётся из констант портала'],
             ['key' => 'caption', 'type' => 'text', 'label' => 'Подпись', 'default' => '', 'hint' => 'Пусто — название показателя'],
             ['key' => 'ring', 'type' => 'bool', 'label' => 'Кольцо вместо шкалы', 'default' => false,
-                'hint' => 'Кольцо рисуется, если блок достаточно высокий'],
+                'hint' => 'Кольцо рисуется, если блок достаточно высокий, а план не перевыполнен'],
         ];
     }
 
@@ -102,12 +102,19 @@ class ProgressWidget extends Widget
         return isset($metric['url']) ? call_user_func($metric['url']) : null;
     }
 
+    /**
+     * Образцовые данные для превью: подпись периода — как у живых данных (DesktopContext::PERIODS)
+     *
+     * @param array $settings
+     * @param DesktopContext $ctx
+     * @return array
+     */
     public function sample(array $settings, DesktopContext $ctx): array
     {
         return [
             'label' => 'План квартала', 'unit' => 'money', 'symbol' => '₽',
             'value' => 38400000.0, 'goal' => 60000000.0, 'percent' => 64.0, 'left' => 21600000.0,
-            'color' => 'warning', 'period_label' => 'III квартал',
+            'color' => 'warning', 'period_label' => DesktopContext::PERIODS['quarter'],
         ];
     }
 

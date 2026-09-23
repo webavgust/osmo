@@ -11,9 +11,10 @@ use Illuminate\Support\Facades\Route;
  * Действие (patch v30): одна кнопка — один частый переход или попап портала.
  *
  * Действия перечислены белым списком: страница создания, попап или сайдбар,
- * которые уже есть в портале. Недоступные пользователю по правам или выключенные
- * модулем маршруты в список настроек не попадают — кнопка не может увести туда,
- * куда сам портал не пускает.
+ * которые уже есть в портале. Выключенные модулем маршруты (маршрута нет) в список
+ * настроек не попадают — кнопка не может увести на несуществующую страницу. Страницы
+ * действий закрыты только входом (auth), своих прав у них нет, поэтому отдельной
+ * проверки прав у кнопки тоже нет.
  */
 class ButtonWidget extends Widget
 {
@@ -24,7 +25,7 @@ class ButtonWidget extends Widget
      */
     public const ACTIONS = [
         'proposal_create' => ['Создать КП', 'proposal.create', 'page', 'fa-file-circle-plus'],
-        'company_create' => ['Новая компания', 'company.create', 'page', 'fa-building-circle-arrow-right'],
+        'company_create' => ['Новая компания', 'company.create', 'page', 'fa-building'],
         'partner_create' => ['Новый партнёр', 'partner.create', 'page', 'fa-handshake'],
         'note_add' => ['Заметка в блокнот', 'user-notes.sidebar_add', 'sidebar', 'fa-note-sticky'],
         'deals_export' => ['Выгрузить реестр сделок', 'crm-deal.box.export', 'box', 'fa-file-excel'],
@@ -145,7 +146,7 @@ class ButtonWidget extends Widget
     }
 
     /**
-     * Действия, доступные текущему пользователю: маршрут объявлен и права позволяют
+     * Действия, у которых объявлен маршрут («Свой адрес» — всегда)
      *
      * @return array
      */

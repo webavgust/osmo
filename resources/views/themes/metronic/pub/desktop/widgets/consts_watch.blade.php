@@ -21,13 +21,20 @@
         : is_numeric($value) || mb_strlen($value) <= 16;
 @endphp
 @if(empty($data['rows']))
+    {{-- ничего не выбрано — показываются все несистемные; пусто, значит выбранных (или вообще констант) нет --}}
     <div class="desk-empty">
-        <i class="fa-light fa-sliders"></i> Константы не выбраны
+        <i class="fa-light fa-sliders"></i> {{ empty($settings['keys']) ? 'Констант нет' : 'Выбранные константы не найдены' }}
     </div>
 @elseif($table)
     <div class="desk-stack">
         <div class="desk-stack-grow desk-fit" data-fit-items="tbody > tr">
-            <table class="desk-table">
+            {{-- у обрезаемых колонок свои доли ширины (.cw-*-cell): иначе первая desk-cut забирает всё место
+                 и длинное значение (uf_crm_…, адрес) сжимается до многоточия даже в широком блоке --}}
+            <table @class([
+                'desk-table',
+                'cw-with-note' => $settings['note'],
+                'cw-has-long' => collect($list)->contains(fn($row) => !$whole($row['value'])),
+            ])>
                 <thead>
                     <tr>
                         <th>Константа</th>
@@ -40,12 +47,12 @@
                 <tbody>
                     @foreach($list as $row)
                         <tr>
-                            <td class="desk-cut">
+                            <td class="desk-cut cw-name-cell">
                                 <a href="{{ $href($row) }}" class="desk-link text-hover-primary d-block text-truncate fw-semibold" title="{{ $hint($row) }}">{{ $row['name'] }}</a>
                             </td>
                             <td @class(['fw-semibold', 'text-nowrap' => $whole($row['value']), 'desk-cut cw-value' => !$whole($row['value'])]) title="{{ $row['full'] }}">{{ $row['value'] !== '' ? $row['value'] : '—' }}</td>
                             @if($settings['note'])
-                                <td class="desk-muted desk-cut desk-only-w-xl" title="{{ $row['note'] }}">{{ $row['note'] ?: '—' }}</td>
+                                <td class="desk-muted desk-cut desk-only-w-xl cw-note-cell" title="{{ $row['note'] }}">{{ $row['note'] ?: '—' }}</td>
                             @endif
                         </tr>
                     @endforeach

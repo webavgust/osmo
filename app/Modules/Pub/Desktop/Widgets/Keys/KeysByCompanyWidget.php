@@ -11,8 +11,9 @@ use Illuminate\Support\Facades\DB;
  * Ключи по компаниям (patch v30): где сосредоточены лицензии.
  *
  * Считаются ключи из карточек компаний (license_keys), разрез — компания, партнёр
- * договора или страна компании. Для каждой строки — число ключей, доля от всех
- * и ближайшая дата окончания среди ещё не истёкших ключей.
+ * (договора, у ключа без спецификации — компании, как в реестре лицензий) или страна
+ * компании. Для каждой строки — число ключей, доля от всех и ближайшая дата окончания
+ * среди ещё не истёкших ключей.
  */
 class KeysByCompanyWidget extends Widget
 {
@@ -33,12 +34,12 @@ class KeysByCompanyWidget extends Widget
 
     public static function description(): string
     {
-        return 'Топ компаний по числу активных ключей и ближайшее окончание у каждой';
+        return 'Где сосредоточены ключи: компании, партнёры или страны по числу ключей и ближайшее окончание';
     }
 
     public static function icon(): string
     {
-        return 'fa-building-lock';
+        return 'fa-building';
     }
 
     public static function sizes(): array
@@ -79,7 +80,8 @@ class KeysByCompanyWidget extends Widget
 
     public static function sourceUrl(array $settings): ?string
     {
-        return route('analytics.licenses', array_filter(['only_active' => !empty($settings['only_active']) ? 1 : null]));
+        // пустой горизонт — «все лицензии»: без него страница покажет только истекающие за 90 дней
+        return route('analytics.licenses', ['horizon' => ''] + array_filter(['only_active' => !empty($settings['only_active']) ? 1 : null]));
     }
 
     public function sample(array $settings, DesktopContext $ctx): array
@@ -119,7 +121,9 @@ class KeysByCompanyWidget extends Widget
             ->leftJoin('companies as cm', 'cm.id', '=', 'k.company_id')
             ->leftJoin('contract_specifications as s', 's.id', '=', 'k.contract_specification_id')
             ->leftJoin('contracts as c', 'c.id', '=', 's.contract_id')
-            ->leftJoin('partners as p', 'p.id', '=', 'c.partner_id')
+            // партнёр — из договора спецификации, у ключа без спецификации — партнёр компании,
+            // как в реестре лицензий (без этого больше половины ключей уходило в «Без партнёра»)
+            ->leftJoin('partners as p', 'p.id', '=', DB::raw('COALESCE(c.partner_id, cm.partner_id)'))
             ->leftJoin('countries as co', 'co.id', '=', 'cm.country_id');
 
         if (!empty($settings['only_active'])) {

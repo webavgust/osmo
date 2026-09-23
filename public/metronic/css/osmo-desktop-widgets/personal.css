@@ -5,17 +5,93 @@
 
 /* ---------- calendar ---------- */
 
+/* месяц и панель дня: в широком блоке рядом (сетка ~60 %, панель ~40 %), иначе что-то одно */
+.desk-widget[data-widget="calendar"] .cal-wrap { display: flex; height: 100%; min-width: 0; }
+.desk-widget[data-widget="calendar"] .cal-main,
+.desk-widget[data-widget="calendar"] .cal-side { flex: 1 1 0; min-width: 0; }
+.desk-widget[data-widget="calendar"] .cal-wide .cal-main { flex-grow: 3; }
+.desk-widget[data-widget="calendar"] .cal-wide .cal-side { flex-grow: 2; margin-left: .85rem; padding-left: .85rem; }
+
+/* шапка месяца как в Windows 11: заголовок-кнопка и компактные стрелки */
+.desk-widget[data-widget="calendar"] .cal-head { min-height: 1.85em; }
+.desk-widget[data-widget="calendar"] .cal-title { padding: .15em .35em; border-radius: .45rem; line-height: 1.35; }
+.desk-widget[data-widget="calendar"] a.cal-title:hover { background: var(--bs-gray-100); color: var(--bs-primary); }
+.desk-widget[data-widget="calendar"] .cal-short { display: none; text-transform: capitalize; }
+.desk-widget[data-widget="calendar"] .cal-btn {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.85em;
+    height: 1.85em;
+    border-radius: .45rem;
+    color: var(--bs-gray-600);
+}
+.desk-widget[data-widget="calendar"] .cal-btn:hover { background: var(--bs-gray-100); color: var(--bs-primary); }
+.desk-widget[data-widget="calendar"] .cal-btn > i { color: inherit; font-size: .95em; }
+.desk-widget[data-widget="calendar"] .cal-btn.disabled,
+.desk-widget[data-widget="calendar"] .cal-tile.disabled { opacity: .3; pointer-events: none; }
+
 /* дни недели — равные колонки, как бы ни были длинны подписи внутри */
 .desk-widget[data-widget="calendar"] .cal-day { flex: 1 1 0; min-width: 0; }
-.desk-widget[data-widget="calendar"] .cal-dots { display: flex; justify-content: center; gap: .25rem; margin-top: .25rem; }
+/* число дня — в кружке от кегля; в узком или низком блоке кружок ужимается по колонке и строке */
+.desk-widget[data-widget="calendar"] .cal-num {
+    --cal-d: min(2em, 11.5cqw, 9.5cqh);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--cal-d);
+    height: var(--cal-d);
+    border-radius: 50%;
+    font-variant-numeric: tabular-nums;
+}
+.desk-widget[data-widget="calendar"] a.cal-day:hover .cal-num:not([class*="bg-"]) { background: var(--bs-gray-100); }
+/* выбранный день и плитка — кольцо с просветом: видно и на сплошном кружке «сегодня» */
+.desk-widget[data-widget="calendar"] .cal-sel { box-shadow: 0 0 0 .1em var(--bs-body-bg), 0 0 0 .22em var(--bs-primary); }
 .desk-widget[data-widget="calendar"] .cal-events { display: none; }
 
-/* крупный блок: в ячейке дня — названия событий вместо точек */
-@container dw (min-width: 640px) and (min-height: 540px) {
-    .desk-widget[data-widget="calendar"] .cal-week { align-items: stretch !important; }
-    .desk-widget[data-widget="calendar"] .cal-day { text-align: left !important; padding: .3rem .35rem !important; border-top: 1px solid var(--bs-gray-200); overflow: hidden; }
-    .desk-widget[data-widget="calendar"] .cal-dots { display: none; }
-    .desk-widget[data-widget="calendar"] .cal-events { display: flex; flex-direction: column; gap: .15rem; margin-top: .3rem; line-height: 1.25; font-weight: 400; color: var(--bs-gray-800); }
+/* выбор месяца и года: плитки 4×3 на всю сетку */
+.desk-widget[data-widget="calendar"] .cal-tiles {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: .35rem;
+    padding: .25em;
+}
+.desk-widget[data-widget="calendar"] .cal-tile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    min-height: 0;
+    border-radius: .6rem;
+    font-size: min(1.15em, 7cqw);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+.desk-widget[data-widget="calendar"] a.cal-tile:hover:not(.bg-primary) { background: var(--bs-gray-100); color: var(--bs-primary); }
+
+/* панель дня */
+.desk-widget[data-widget="calendar"] .cal-none { padding-top: .35rem; }
+
+/* крупный блок: в ячейке дня — названия событий, кружок у числа остаётся. Ширину меряем у самой
+   сетки (контейнер calgrid), а не у блока: рядом с панелью дня ячейки узкие, и названия
+   резались до «11:30 …» — там остаются только кружки */
+.desk-widget[data-widget="calendar"] .cal-main { container: calgrid / inline-size; }
+@container dw (min-height: 540px) {
+    @container calgrid (min-width: 640px) {
+        .desk-widget[data-widget="calendar"] .cal-week { align-items: stretch !important; }
+        .desk-widget[data-widget="calendar"] .cal-day { text-align: left !important; padding: .3rem .35rem !important; border-top: 1px solid var(--bs-gray-200); overflow: hidden; }
+        .desk-widget[data-widget="calendar"] .cal-events { display: flex; flex-direction: column; gap: .15rem; margin-top: .3rem; line-height: 1.25; font-weight: 400; color: var(--bs-gray-800); }
+    }
+}
+
+/* узкий блок: короткое название месяца в шапке, в панели дня название события — под временем */
+@container dw (width < 260px) {
+    .desk-widget[data-widget="calendar"] .cal-long { display: none; }
+    .desk-widget[data-widget="calendar"] .cal-short { display: inline; }
+    .desk-widget[data-widget="calendar"] .cal-agenda > li { flex-wrap: wrap; row-gap: 0; }
+    .desk-widget[data-widget="calendar"] .cal-agenda > li > .desk-grow { flex-basis: 100%; }
 }
 
 /* узкий блок: название события уходит под дату, точка цвета не нужна */
@@ -71,6 +147,16 @@
     font-variant-numeric: tabular-nums;
     color: var(--bs-gray-900);
     font-size: calc(clamp(13px, var(--clock-f), 220px) * var(--desk-font-scale));
+}
+/* 12-часовой формат («02:35 PM», как пишет tickClocks) в 13 px шире узкого блока — там мельче */
+.desk-widget[data-widget="clock"] .clock-h12 .clock-time { font-size: calc(clamp(11px, var(--clock-f), 220px) * var(--desk-font-scale)); }
+/* узкий высокий блок (часы столбиком, лишние прячет подгон по высоте): колонка не шире тела —
+   дата переносится («23 / сентября»), длинный город («Владивосток») режется многоточием.
+   Низкий блок не трогаем: там не влезшее время раздвигает ряд, и .desk-fit прячет часы по ширине */
+@container dw (min-height: 97px) and (max-width: 120px) {
+    .desk-widget[data-widget="clock"] .clock-tile { min-width: 0; }
+    .desk-widget[data-widget="clock"] .clock-date { white-space: normal; }
+    .desk-widget[data-widget="clock"] .clock-city > .desk-nowrap { display: inline-block; max-width: 100%; vertical-align: bottom; }
 }
 .desk-widget[data-widget="clock"] .clock-city { color: var(--bs-gray-700); font-size: calc(clamp(11px, calc(var(--clock-f) * .26), 28px) * var(--desk-font-scale)); line-height: 1.3; }
 .desk-widget[data-widget="clock"] .clock-date { font-size: calc(clamp(11px, calc(var(--clock-f) * .22), 24px) * var(--desk-font-scale)); line-height: 1.3; }
@@ -185,3 +271,20 @@
 /* короткая заметка крупнее в большом блоке: кегль от площади, в маленьком — обычный */
 .desk-widget[data-widget="note"] .note-short { font-size: calc(clamp(13px, min(4.2cqw, 7cqh), 30px) * var(--desk-font-scale)); }
 .desk-widget[data-widget="note"] .note-mid { font-size: calc(clamp(13px, min(3cqw, 5cqh), 22px) * var(--desk-font-scale)); }
+
+/* ---------- notebook ---------- */
+
+/* флажок задачи: серый квадрат, при наведении — основной цвет; отмеченный красит text-success */
+.desk-widget[data-widget="notebook"] .nb-check { color: var(--bs-gray-500); line-height: 1; }
+.desk-widget[data-widget="notebook"] a.nb-check:hover { color: var(--bs-primary); }
+.desk-widget-dark[data-widget="notebook"] .nb-check { color: rgba(255, 255, 255, .75); }
+/* название по содержимому, а не пополам с текстом: текст начинается сразу за ним и забирает
+   остаток строки, дата прижата вправо (ms-auto) — и когда текст спрятан */
+.desk-widget[data-widget="notebook"] .nb-title { flex: 0 1 auto; }
+/* основа текста — ноль: он берёт только остаток, а не делит нехватку места с названием поровну
+   (при basis auto длинный текст обрезал и короткое название) */
+.desk-widget[data-widget="notebook"] .nb-text { flex: 1 1 0; }
+/* текст виден — длинное название не съедает его целиком; в узком блоке название не режется зря */
+@container dw (width >= 420px) {
+    .desk-widget[data-widget="notebook"] .nb-title-cut { max-width: 48%; }
+}

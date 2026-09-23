@@ -23,7 +23,8 @@ use Illuminate\Support\Facades\DB;
  *
  * Сумма — оценка продления LicenseRenewalService::renewalAmount() (сумма спецификации,
  * делённая между её ключами) в валюте виджета по курсу на дату начала ключа;
- * ключи без курса не суммируются (skipped).
+ * ключи без курса не суммируются (skipped), у ключа без спецификации в строке прочерк.
+ * Отбор по партнёру — как в реестре лицензий: партнёр договора, иначе партнёр компании.
  */
 class RenewalsWidget extends Widget
 {
@@ -96,7 +97,8 @@ class RenewalsWidget extends Widget
     {
         $partner = (string) ($settings['partner'] ?? 'all');
 
-        return route('analytics.licenses', array_filter(['partner' => $partner === 'all' ? null : (int) $partner]));
+        // пустой горизонт — «все лицензии», и активные, и нет: продлением может быть и уже выключенный ключ
+        return route('analytics.licenses', ['horizon' => ''] + array_filter(['partner' => $partner === 'all' ? null : (int) $partner]));
     }
 
     public function sample(array $settings, DesktopContext $ctx): array
@@ -113,11 +115,15 @@ class RenewalsWidget extends Widget
             ];
         }
 
+        // подпись и даты — из периода виджета, как в data()
+        $period = $ctx->periodFor($settings);
+
         return [
             'count' => 26, 'amount' => 21400000.0, 'skipped' => 0,
             'new_count' => 4, 'new_amount' => 2100000.0,
             'prev_count' => 20, 'prev_amount' => 17900000.0, 'delta_percent' => 30.0,
-            'label' => 'Квартал', 'dates' => '01.07.2026 – 30.09.2026', 'symbol' => '₽',
+            'prev_dates' => DesktopContext::previousPeriod($period['key'])['dates'],
+            'label' => $period['label'], 'dates' => $period['dates'], 'symbol' => $ctx->symbol($ctx->currencyFor($settings)),
             'rows' => array_map(fn($row) => ['company' => $row[0], 'date' => $row[1], 'amount' => $row[2], 'url' => null], $rows),
         ];
     }
@@ -128,7 +134,7 @@ class RenewalsWidget extends Widget
      * @param array $settings
      * @param DesktopContext $ctx
      * @return array ['count', 'amount', 'skipped', 'new_count', 'new_amount', 'prev_count',
-     *     'prev_amount', 'delta_percent', 'label', 'dates', 'symbol',
+     *     'prev_amount', 'delta_percent', 'prev_dates', 'label', 'dates', 'symbol',
      *     'rows' => [['company', 'date', 'amount', 'url']]]
      */
     public function data(array $settings, DesktopContext $ctx): array
@@ -137,6 +143,8 @@ class RenewalsWidget extends Widget
         $period = $ctx->periodFor($settings);
         $partner = (string) $settings['partner'] === 'all' ? null : (int) $settings['partner'];
 
+        // продления — прогноз: в идущем периоде есть ключи с будущей датой начала,
+        // поэтому прошлый отрезок берётся целиком, а не по то же число
         [$prev_from, $prev_to] = DesktopContext::previousRange($period['key']);
 
         $current = static::totals($period['from'], $period['to'], $currency, $partner);
@@ -153,6 +161,7 @@ class RenewalsWidget extends Widget
             'delta_percent' => !empty($previous['count'])
                 ? round(($current['count'] - $previous['count']) / abs($previous['count']) * 100, 1)
                 : null,
+            'prev_dates' => $prev_from->format('d.m.Y') . ' – ' . $prev_to->format('d.m.Y'),
             'label' => $period['label'],
             'dates' => $period['dates'],
             'symbol' => $ctx->symbol($currency),
@@ -175,7 +184,13 @@ class RenewalsWidget extends Widget
         $keys = LicenseKey::query()
             ->with(['company', 'specification'])
             ->whereBetween('active_from', [$from->format('Y-m-d'), $to->format('Y-m-d')])
-            ->when($partner, fn($query) => $query->whereHas('specification.contract', fn($builder) => $builder->where('partner_id', $partner)))
+            // партнёр — как в реестре лицензий: из договора спецификации, а если у договора
+            // партнёра нет или ключ без спецификации — партнёр компании
+            ->when($partner, fn($query) => $query->where(fn($builder) => $builder
+                ->whereHas('specification.contract', fn($contract) => $contract->where('partner_id', $partner))
+                ->orWhere(fn($own) => $own
+                    ->whereDoesntHave('specification.contract', fn($contract) => $contract->whereNotNull('partner_id'))
+                    ->whereHas('company', fn($company) => $company->where('partner_id', $partner)))))
             ->orderByDesc('active_from')
             ->get();
 
@@ -212,7 +227,8 @@ class RenewalsWidget extends Widget
                     $ret['rows'][] = [
                         'company' => (string) ($key->company?->name ?? '—'),
                         'date' => $start?->format('d.m.Y'),
-                        'amount' => $amount,
+                        // без спецификации суммы нет — прочерк, а не «0 ₽»
+                        'amount' => $key->specification && (float) $key->specification->amount > 0 ? $amount : null,
                         'url' => $key->company_id ? route('company.detail', $key->company_id) : null,
                     ];
                 }

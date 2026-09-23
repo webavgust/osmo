@@ -26,12 +26,17 @@ class PartnerActivityWidget extends Widget
     /** Сколько партнёров можно сравнить на одном графике */
     public const MAX_PARTNERS = 3;
 
-    /** Показатели: ключ => [подпись, подпись единицы] */
+    /**
+     * Показатели: ключ => [подпись, подпись единицы]. «Платежи» — все платежи графика по дате
+     * факта (иначе плана), как колонка «Платежи» в расшифровке партнёра, а не только оплаченные;
+     * проекты дают балл скоринга с patch v26
+     */
     public const METRICS = [
         'proposals' => ['КП', 'КП'],
         'specs' => ['Спецификации', 'спецификаций'],
-        'payments' => ['Оплаты', 'платежей'],
+        'payments' => ['Платежи', 'платежей'],
         'deals' => ['Сделки Битрикс24', 'сделок'],
+        'projects' => ['Проекты', 'проектов'],
     ];
 
     /** Цвета Metronic по порядку партнёров */
@@ -45,7 +50,7 @@ class PartnerActivityWidget extends Widget
 
     public static function description(): string
     {
-        return 'Динамика по годам: КП, спецификации, оплаты или сделки одного партнёра или сравнение до трёх';
+        return 'Динамика по годам: КП, спецификации, платежи, сделки или проекты одного партнёра или сравнение до трёх';
     }
 
     public static function icon(): string { return 'fa-chart-column'; }
@@ -145,10 +150,16 @@ class PartnerActivityWidget extends Widget
         $names = empty($ids) ? collect() : Partner::whereIn('id', $ids)->pluck('name', 'id');
         $ids = array_values(array_filter($ids, fn($id) => isset($names[$id])));
 
-        // партнёр не выбран — берём самого активного по этому показателю
+        // партнёр не выбран — берём самого активного по этому показателю за те же «Лет»,
+        // что покажет график, а не за всю историю
         $auto = empty($ids);
         if ($auto) {
-            $totals = array_map('array_sum', $counts);
+            $since = (int) now()->year - max(2, (int) $settings['years']) + 1;
+            $totals = array_map(
+                fn($by_year) => array_sum(array_filter($by_year, fn($year) => $year >= $since, ARRAY_FILTER_USE_KEY)),
+                $counts
+            );
+            $totals = array_filter($totals);
             arsort($totals);
             $ids = array_slice(array_keys($totals), 0, 1);
             $names = empty($ids) ? collect() : Partner::whereIn('id', $ids)->pluck('name', 'id');
@@ -207,6 +218,8 @@ class PartnerActivityWidget extends Widget
             'specs' => [PartnerScoringService::specifications(), fn($row) => PartnerScoringService::specYear($row)],
             'payments' => [PartnerScoringService::payments(), fn($row) => ($row->date_fact ?? $row->date_plan)?->year],
             'deals' => [PartnerScoringService::deals(), fn($row) => $row->year_ref],
+            // проекты — по дате начала, архивные тоже, как в скоринге (patch v26)
+            'projects' => [PartnerScoringService::projects(), fn($row) => $row->year_ref],
             default => [PartnerScoringService::proposals(), fn($row) => $row->year_ref],
         };
 
@@ -224,31 +237,33 @@ class PartnerActivityWidget extends Widget
     }
 
     /**
-     * Годы графика: последние $limit лет, в которых у выбранных партнёров
-     * что-то было; если не было ничего — последние годы по сегодняшний
+     * Годы графика: $limit лет подряд по текущий (или позже, если есть плановые платежи),
+     * но не раньше первого года, в котором у выбранных партнёров что-то было.
+     *
+     * Год без событий остаётся нулевым столбиком: раньше такие годы выпадали, и
+     * 2023 → 2025 выглядело как два соседних года
      *
      * @param array $counts
      * @param array $ids
      * @param int $limit
-     * @return array по возрастанию
+     * @return array по возрастанию, без пропусков, не меньше двух лет
      */
     public static function years(array $counts, array $ids, int $limit): array
     {
         $limit = max(2, $limit);
+        $now = (int) now()->year;
 
         $years = [];
         foreach ($ids as $id) {
-            foreach (array_keys($counts[$id] ?? []) as $year) $years[$year] = $year;
+            foreach (array_keys($counts[$id] ?? []) as $year) $years[] = (int) $year;
         }
 
-        if (empty($years)) {
-            return range((int) now()->year - $limit + 1, (int) now()->year);
+        $last = empty($years) ? $now : max($now, max($years));
+        $first = $last - $limit + 1;
+        if (!empty($years)) {
+            $first = min(max($first, min($years)), $last - 1);
         }
 
-        rsort($years);
-        $years = array_slice($years, 0, $limit);
-        sort($years);
-
-        return array_map('intval', $years);
+        return range($first, $last);
     }
 }

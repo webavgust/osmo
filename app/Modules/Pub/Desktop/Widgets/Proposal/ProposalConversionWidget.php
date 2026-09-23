@@ -16,9 +16,13 @@ use Illuminate\Support\Collection;
  *
  * Считается по последним редакциям групп (ProposalStatusService::latestIterations()),
  * статусы — три из v27: «В работе», «Выиграно», «Проиграно». Решённые — те,
- * у кого статус финальный (выиграно и проиграно). Дата решения — status_changed_at,
- * а если её нет (старые записи) — дата отправки, как в MetricRegistry::wonBetween().
+ * у кого статус финальный (выиграно и проиграно). Дата решения — MetricRegistry::decidedDates():
+ * у выигранных — первая оплата по спецификации (без неё — смена статуса), у проигранных —
+ * status_changed_at, а если её нет (старые записи) — дата отправки.
+ * Прошлый отрезок идущего периода — по то же число (DesktopContext::previousRange(), $to_date).
  * Сумма выигранных — основные варианты через MetricRegistry::mainSum().
+ * Спарклайн — 12 месяцев до конца периода, но не дальше текущего месяца; месяц без
+ * решённых КП — разрыв линии, а не ноль.
  */
 class ProposalConversionWidget extends Widget
 {
@@ -74,6 +78,7 @@ class ProposalConversionWidget extends Widget
             'conversion' => 62.5,
             'previous' => 54.0,
             'previous_resolved' => 20,
+            'prev_dates' => DesktopContext::previousPeriod($period['key'], true)['dates'],
             'delta' => 8.5,
             'won' => 15,
             'lost' => 9,
@@ -92,28 +97,36 @@ class ProposalConversionWidget extends Widget
      *
      * @param array $settings
      * @param DesktopContext $ctx
-     * @return array ['conversion', 'previous', 'previous_resolved', 'delta', 'won', 'lost', 'resolved', 'amount', 'symbol', 'label', 'dates', 'spark', 'spark_labels']
+     * @return array ['conversion', 'previous', 'previous_resolved', 'prev_dates', 'delta', 'won', 'lost', 'resolved', 'amount', 'symbol', 'label', 'dates', 'spark', 'spark_labels']
      */
     public function data(array $settings, DesktopContext $ctx): array
     {
         $currency = $ctx->currencyFor($settings);
         $period = $ctx->periodFor($settings);
-        [$prev_from, $prev_to] = DesktopContext::previousRange($period['key']);
+        // решения — факт: прошлый отрезок идущего периода берётся по то же число
+        $prev = DesktopContext::previousPeriod($period['key'], true);
 
         $all = static::scope($settings, $ctx);
-        $resolved = static::resolvedBetween($all, $period['from'], $period['to']);
+        $dates = MetricRegistry::decidedDates($all);
+        $resolved = static::resolvedBetween($all, $dates, $period['from'], $period['to']);
         $won = $resolved->filter(fn($row) => $row->status === ProposalStatus::WON->value)->values();
 
         // в прошлом отрезке могло не быть ни одного решённого КП — тогда сравнивать не с чем
-        $prev_resolved = static::resolvedBetween($all, $prev_from, $prev_to);
+        $prev_resolved = static::resolvedBetween($all, $dates, $prev['from'], $prev['to']);
         $previous = $prev_resolved->isEmpty() ? null : ProposalStatusService::conversion($prev_resolved);
         $conversion = ProposalStatusService::conversion($resolved);
+
+        // спарклайн кончается месяцем конца периода, но не позже текущего: у «Текущего года»
+        // месяцы после сегодняшнего пустые, и нулями они рисовали бы провал конверсии
+        $spark_end = $period['to']->copy()->min(now());
 
         return [
             'conversion' => $conversion,
             'previous' => $previous,
             'previous_resolved' => $prev_resolved->count(),
-            'delta' => $previous === null ? null : round($conversion - $previous, 1),
+            'prev_dates' => $prev['dates'],
+            // решённых в периоде нет — конверсии нет, и сравнивать нечего
+            'delta' => $previous === null || $resolved->isEmpty() ? null : round($conversion - $previous, 1),
             'won' => $won->count(),
             'lost' => $resolved->count() - $won->count(),
             'resolved' => $resolved->count(),
@@ -121,8 +134,8 @@ class ProposalConversionWidget extends Widget
             'symbol' => $ctx->symbol($currency),
             'label' => $period['label'],
             'dates' => $period['dates'],
-            'spark' => $settings['spark'] ? static::spark($all, $period['to']) : [],
-            'spark_labels' => $settings['spark'] ? static::sparkLabels($period['to']) : [],
+            'spark' => $settings['spark'] ? static::spark($all, $dates, $spark_end) : [],
+            'spark_labels' => $settings['spark'] ? static::sparkLabels($spark_end) : [],
         ];
     }
 
@@ -147,46 +160,48 @@ class ProposalConversionWidget extends Widget
 
     /**
      * Решённые КП (выиграно и проиграно), решение по которым принято в отрезке.
-     * Дата решения — status_changed_at, без неё — дата отправки
+     * Дата решения — из MetricRegistry::decidedDates()
      *
      * @param Collection $rows
+     * @param array $dates код группы => дата решения
      * @param Carbon $from
      * @param Carbon $to
      * @return Collection
      */
-    protected static function resolvedBetween(Collection $rows, Carbon $from, Carbon $to): Collection
+    protected static function resolvedBetween(Collection $rows, array $dates, Carbon $from, Carbon $to): Collection
     {
         $from = $from->copy()->startOfDay();
         $to = $to->copy()->endOfDay();
 
-        return $rows->filter(function ($row) use ($from, $to) {
+        return $rows->filter(function ($row) use ($dates, $from, $to) {
             $status = ProposalStatus::tryFrom((string) $row->status);
             if (!$status || !$status->isFinal()) return false;
 
-            $date = $row->status_changed_at ?? $row->sended_at;
+            $date = $dates[(string) $row->group] ?? null;
 
             return $date !== null && $date->between($from, $to);
         })->values();
     }
 
     /**
-     * Конверсия по месяцам, заканчивая месяцем конца периода
+     * Конверсия по месяцам, заканчивая месяцем конца периода.
+     * Месяц без решённых КП — null (разрыв линии), а не 0: ноль читался бы как провал
      *
      * @param Collection $rows
-     * @param Carbon $to конец периода
-     * @return array значения 0..100
+     * @param array $dates код группы => дата решения
+     * @param Carbon $to последний месяц
+     * @return array значения 0..100 или null; пусто — ни в одном месяце решённых нет
      */
-    protected static function spark(Collection $rows, Carbon $to): array
+    protected static function spark(Collection $rows, array $dates, Carbon $to): array
     {
         $values = [];
 
         foreach (static::months($to) as $month) {
-            $values[] = ProposalStatusService::conversion(
-                static::resolvedBetween($rows, $month->copy()->startOfMonth(), $month->copy()->endOfMonth())
-            );
+            $resolved = static::resolvedBetween($rows, $dates, $month->copy()->startOfMonth(), $month->copy()->endOfMonth());
+            $values[] = $resolved->isEmpty() ? null : ProposalStatusService::conversion($resolved);
         }
 
-        return $values;
+        return array_filter($values, fn($value) => $value !== null) === [] ? [] : $values;
     }
 
     /**

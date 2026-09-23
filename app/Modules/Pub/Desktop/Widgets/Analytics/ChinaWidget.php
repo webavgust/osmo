@@ -8,6 +8,7 @@ use App\Modules\Pub\Desktop\Widgets\Widget;
 use App\Modules\Pub\LicenseKey\Models\LicenseKey;
 use App\Modules\Pub\Report\Services\ChinaReportService;
 use App\Modules\Pub\User\Models\User;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Китай: сводка (patch v30) — ключевые цифры отчёта «Китай» (/report/china).
@@ -19,8 +20,10 @@ use App\Modules\Pub\User\Models\User;
  * на какую сумму и сколько ключей истекает в ближайшие три месяца — отчёт эти ключи
  * подсвечивает.
  *
- * Суммы КП сведены в валюту виджета по текущему курсу; ключи, для которых курса нет,
- * в сумму не попадают и считаются в skipped. Года у отчёта нет — он всегда «на сегодня».
+ * Сумму КП отчёт повторяет в строке каждого ключа договора, поэтому в итог она идёт
+ * один раз на договор; в разрезе — у строки, где ключей этого договора больше.
+ * Суммы КП сведены в валюту виджета по текущему курсу; договоры, для валюты которых курса
+ * нет, в сумму не попадают и считаются в skipped. Года у отчёта нет — он всегда «на сегодня».
  *
  * Сам файл отчёта на странице собирается формой (выбор ключей, валюты и курсов вручную),
  * поэтому кнопка виджета ведёт на страницу отчёта, а не выгружает файл.
@@ -136,9 +139,11 @@ class ChinaWidget extends Widget
             return $out;
         }
 
-        $companies = $countries = $partners = $groups = [];
+        $grid = ChinaReportService::getData__China1();
+        $contract_of = static::keyContracts($grid);
+        $companies = $countries = $partners = $groups = $contracts = [];
 
-        foreach (ChinaReportService::getData__China1() as $row) {
+        foreach ($grid as $row) {
             // строки одного ключа склеены: считаем только первую, остальные — его же комментарий
             if (empty($row[0])) continue;
 
@@ -152,27 +157,35 @@ class ChinaWidget extends Widget
 
             if (!empty($row[5]['class']['warning'])) $out['expiring']++;
 
-            // сумма КП идёт в валюте самого КП — сводим к валюте виджета по текущему курсу
-            $sum = (float) ($row[3]['cell'] ?? 0);
-            $amount = 0.0;
-
-            if ($sum > 0) {
-                $converted = CurrencyService::convertAmount($sum, $row[3]['currency'] ?? null, $currency, now());
-                if ($converted === null) {
-                    $out['skipped']++;
-                } else {
-                    $amount = (float) $converted;
-                    $out['amount'] += $amount;
-                }
-            }
-
             $name = trim((string) ($row[$column]['cell'] ?? ''));
             if ($name === '') $name = '—';
 
             $groups[$name] ??= ['name' => $name, 'keys' => 0, 'licenses' => 0, 'amount' => 0.0];
             $groups[$name]['keys']++;
             $groups[$name]['licenses'] += $licenses;
-            $groups[$name]['amount'] += $amount;
+
+            // отчёт повторяет сумму КП договора в строке каждого его ключа — в итог она идёт один раз
+            $sum = (float) ($row[3]['cell'] ?? 0);
+            if ($sum <= 0) continue;
+
+            $key = (int) $row[0]['system'];
+            $contract = $contract_of[$key] ?? 'key' . $key;
+            $contracts[$contract] ??= ['sum' => $sum, 'currency' => $row[3]['currency'] ?? null, 'groups' => []];
+            $contracts[$contract]['groups'][$name] = ($contracts[$contract]['groups'][$name] ?? 0) + 1;
+        }
+
+        foreach ($contracts as $contract) {
+            // сумма КП идёт в валюте самого КП — сводим к валюте виджета по текущему курсу
+            $converted = CurrencyService::convertAmount($contract['sum'], $contract['currency'], $currency, now());
+            if ($converted === null) {
+                $out['skipped']++;
+                continue;
+            }
+
+            // ключи договора попали в разные строки разреза — сумма у строки, где их больше
+            arsort($contract['groups']);
+            $groups[array_key_first($contract['groups'])]['amount'] += (float) $converted;
+            $out['amount'] += (float) $converted;
         }
 
         $out['companies'] = count($companies);
@@ -190,5 +203,27 @@ class ChinaWidget extends Widget
         $out['rows'] = $rows;
 
         return $out;
+    }
+
+    /**
+     * Договор каждого ключа отчёта: ключ → спецификация → договор
+     *
+     * @param array $grid строки ChinaReportService::getData__China1()
+     * @return array id ключа => id договора (ключи без спецификации не попадают)
+     */
+    protected static function keyContracts(array $grid): array
+    {
+        $keys = [];
+        foreach ($grid as $row) {
+            if (!empty($row[0]['system'])) $keys[] = (int) $row[0]['system'];
+        }
+
+        if (!$keys) return [];
+
+        return DB::table('license_keys as k')
+            ->join('contract_specifications as cs', 'cs.id', '=', 'k.contract_specification_id')
+            ->whereIn('k.id', $keys)
+            ->pluck('cs.contract_id', 'k.id')
+            ->all();
     }
 }

@@ -1,6 +1,8 @@
 {{-- Виджет «Возраст КП» (patch v30): App\Modules\Pub\Desktop\Widgets\Proposal\ProposalsAgingWidget --}}
 @php
     $total = (int) $data['total'];
+    // крупное число — все КП в работе, в том числе без даты отправки (в корзины они не попадают)
+    $in_work = (int) ($data['in_work'] ?? $total);
     $href = $preview || empty($data['url']) ? 'javascript:void(0)' : $data['url'];
     $buckets = $data['buckets'];
 
@@ -26,7 +28,7 @@
     };
     $side = in_array($layout, ['line', 'tiles'], true);
 @endphp
-@if($total === 0)
+@if($in_work === 0)
     <div class="desk-empty">
         <i class="fa-light fa-hourglass-half"></i> КП в работе нет
     </div>
@@ -36,7 +38,7 @@
             <div class="desk-label desk-nowrap" title="КП в работе{{ $data['manager_label'] !== 'Все' ? ' · ' . $data['manager_label'] : '' }}">
                 в работе{{ $data['manager_label'] !== 'Все' ? ' · ' . $data['manager_label'] : '' }}
             </div>
-            <div @class(['desk-value', 'pa-value-chips' => $layout === 'chips', 'text-danger' => $oldest_bucket && $oldest_bucket['count'] > 0])>{{ $total }}</div>
+            <div @class(['desk-value', 'pa-value-chips' => $layout === 'chips', 'text-danger' => $oldest_bucket && $oldest_bucket['count'] > 0])>{{ $in_work }}</div>
 
             @if(!in_array($layout, ['line', 'column'], true))
                 <div class="d-flex column-gap-2 align-items-baseline flex-wrap desk-hide-short">

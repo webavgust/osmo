@@ -113,7 +113,7 @@ class PaymentSummaryWidget extends Widget
             'open' => 1750000.0, 'open_count' => 3,
             'overdue' => 640000.0, 'overdue_count' => 1,
             'percent' => 79.5, 'diff' => -1750000.0,
-            'label' => 'Текущий квартал', 'dates' => '01.07.2026 – 30.09.2026',
+            'label' => 'Текущий квартал', 'dates' => now()->startOfQuarter()->format('d.m.Y') . ' – ' . now()->endOfQuarter()->format('d.m.Y'),
             'symbol' => '₽', 'skipped' => 0,
         ];
     }

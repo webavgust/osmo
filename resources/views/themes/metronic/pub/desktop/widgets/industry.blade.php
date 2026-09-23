@@ -48,7 +48,10 @@
                     <thead class="desk-hide-short">
                         <tr>
                             <th>Отрасль</th>
-                            <th class="desk-only-w-xl">Ведущий менеджер</th>
+                            {{-- колонка менеджера — по настройке «Показывать ведущего менеджера», как в списке --}}
+                            @if($settings['managers'])
+                                <th class="desk-only-w-xl">Ведущий менеджер</th>
+                            @endif
                             <th class="num desk-only-w-lg">Сделок</th>
                             <th class="num">Сумма</th>
                             <th class="desk-only-w-lg" style="width: 22%;">Доля</th>
@@ -63,13 +66,15 @@
                                         <span class="desk-muted">({{ $row['rest'] }})</span>
                                     @endif
                                 </td>
-                                <td class="desk-cut desk-muted desk-only-w-xl" title="{{ $row['manager'] ?? '—' }}">{{ $row['manager'] ?? '—' }}</td>
+                                @if($settings['managers'])
+                                    <td class="desk-cut desk-muted desk-only-w-xl" title="{{ $row['manager'] ?? '—' }}">{{ $row['manager'] ?? '—' }}</td>
+                                @endif
                                 <td class="num desk-only-w-lg">{{ $row['count'] }}</td>
                                 <td class="num fw-semibold" title="{{ $widget::money($row['amount'], $symbol, false) }}">{{ $widget::money($row['amount'], $symbol) }}</td>
                                 <td class="desk-only-w-lg">
                                     <div class="d-flex align-items-center gap-2">
                                         <div class="desk-bar flex-grow-1">
-                                            <i style="width: {{ max(0, min(100, $row['bar'])) }}%;"></i>
+                                            <i @class(['f2-bar-nz' => $row['bar'] > 0]) style="width: {{ max(0, min(100, $row['bar'])) }}%;"></i>
                                         </div>
                                         <span class="desk-muted text-end text-nowrap" style="min-width: 3.2em;">{{ number_format($row['share'], $row['share'] < 10 ? 1 : 0, ',', ' ') }} %</span>
                                     </div>
@@ -81,7 +86,9 @@
                         <tfoot>
                             <tr>
                                 <td class="desk-cut" title="{{ $data['label'] }}">Итого <span class="desk-muted fw-normal desk-only-w-lg">· {{ $data['label'] }}</span></td>
-                                <td class="desk-only-w-xl"></td>
+                                @if($settings['managers'])
+                                    <td class="desk-only-w-xl"></td>
+                                @endif
                                 <td class="num desk-only-w-lg">{{ $data['count_total'] }}</td>
                                 <td class="num" title="{{ $widget::money($data['total'], $symbol, false) }}">{{ $widget::money($data['total'], $symbol) }}</td>
                                 <td class="desk-only-w-lg"></td>
@@ -103,7 +110,7 @@
                         @endif
 
                         <div class="desk-bar desk-only-w-md" style="flex: 0 1 32%;">
-                            <i style="width: {{ max(0, min(100, $row['bar'])) }}%;"></i>
+                            <i @class(['f2-bar-nz' => $row['bar'] > 0]) style="width: {{ max(0, min(100, $row['bar'])) }}%;"></i>
                         </div>
 
                         @if($settings['managers'] && $row['manager'])

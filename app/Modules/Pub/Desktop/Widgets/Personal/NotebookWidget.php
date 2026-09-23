@@ -12,6 +12,10 @@ use Illuminate\Support\Str;
  * Заметки берутся связью User::notes() (таблица user_notes), поэтому чужих заметок
  * виджет не покажет. Клик по заметке открывает сайдбар правки
  * (user-notes.sidebar_edit), ссылка внизу — сайдбар создания (user-notes.sidebar_add).
+ *
+ * Заметка — это и задача: флажок в строке ставит и снимает отметку «сделано»
+ * (api.user-notes.done, колонка done_at). Выполненные всегда ниже невыполненных,
+ * а показывать ли их — решает настройка «Выполненные задачи».
  */
 class NotebookWidget extends Widget
 {
@@ -19,6 +23,13 @@ class NotebookWidget extends Widget
     public const SORTS = [
         'favorite' => 'Избранные вверх',
         'date' => 'По дате',
+    ];
+
+    /** Что делать с выполненными задачами */
+    public const DONE = [
+        'day' => 'Показывать сутки, потом скрывать',
+        'bottom' => 'Показывать внизу списка',
+        'hide' => 'Сразу скрывать',
     ];
 
     public static function id(): string { return 'notebook'; }
@@ -29,7 +40,7 @@ class NotebookWidget extends Widget
 
     public static function description(): string
     {
-        return 'Личные заметки: избранные вверху, добавление и правка сайдбаром';
+        return 'Личные заметки и задачи: отметка «сделано», избранные вверху, добавление и правка сайдбаром';
     }
 
     public static function icon(): string { return 'fa-note'; }
@@ -47,29 +58,54 @@ class NotebookWidget extends Widget
         return [
             ['key' => 'favorite_only', 'type' => 'bool', 'label' => 'Только избранные', 'default' => false],
             ['key' => 'sort', 'type' => 'select', 'label' => 'Сортировка', 'default' => 'favorite', 'options' => static::SORTS],
+            ['key' => 'done', 'type' => 'select', 'label' => 'Выполненные задачи', 'default' => 'day', 'options' => static::DONE],
             ['key' => 'limit', 'type' => 'number', 'label' => 'Количество', 'default' => 10, 'min' => 1, 'max' => 50],
         ];
     }
 
     /**
-     * Строки: ['id', 'title', 'text', 'favorite', 'date', 'url'] плюс ссылка добавления
+     * Строки: ['id', 'title', 'text', 'favorite', 'done', 'date', 'url', 'done_url'] плюс ссылка
+     * добавления и число выполненных задач, скрытых настройкой (для пустого состояния)
      *
      * @param array $settings
      * @param DesktopContext $ctx
-     * @return array ['rows' => [...], 'add_url' => string|null]
+     * @return array ['rows' => [...], 'add_url' => string|null, 'hidden_done' => int]
      */
     public function data(array $settings, DesktopContext $ctx): array
     {
         $add_url = route('user-notes.sidebar_add');
         $user = $ctx->user;
         if (!$user) {
-            return ['rows' => [], 'add_url' => $add_url];
+            return ['rows' => [], 'add_url' => $add_url, 'hidden_done' => 0];
         }
 
-        // связь notes() уже отсортирована «избранные вверх, новые выше»
+        $done = $settings['done'] ?? 'day';
+        $since = now()->subDay();
+
         $query = $user->notes();
         if ($settings['favorite_only']) $query->where('favorite', true);
-        if ($settings['sort'] === 'date') $query->reorder()->orderByDesc('created_at');
+
+        // сколько выполненных задач спрячет настройка: «все задачи выполнены» вместо «заметок нет»
+        $hidden = match ($done) {
+            'day' => (clone $query)->where('done_at', '<', $since)->count(),
+            'hide' => (clone $query)->whereNotNull('done_at')->count(),
+            default => 0,
+        };
+
+        // выполненные — сутки или сразу прочь; в скобках, чтобы не сломать «только избранные»
+        if ($done === 'day') {
+            $query->where(fn($q) => $q->whereNull('done_at')->orWhere('done_at', '>=', $since));
+        } elseif ($done === 'hide') {
+            $query->whereNull('done_at');
+        }
+
+        // невыполненные всегда выше выполненных, дальше прежний порядок
+        $query->reorder()->orderByRaw('done_at is not null');
+        if ($settings['sort'] === 'date') {
+            $query->orderByDesc('created_at');
+        } else {
+            $query->orderByDesc('favorite')->orderByDesc('created_at');
+        }
 
         $notes = $query->limit((int) $settings['limit'])->get();
 
@@ -81,13 +117,15 @@ class NotebookWidget extends Widget
                 'title' => Str::limit((string) $note->title, 70),
                 'text' => static::plain((string) $note->text),
                 'favorite' => (bool) $note->favorite,
+                'done' => $note->isDone(),
                 // год — только у заметок не этого года
                 'date' => $created ? $created->format($created->isCurrentYear() ? 'd.m' : 'd.m.y') : '',
                 'url' => route('user-notes.sidebar_edit', $note),
+                'done_url' => route('api.user-notes.done', $note),
             ];
         }
 
-        return ['rows' => $rows, 'add_url' => $add_url];
+        return ['rows' => $rows, 'add_url' => $add_url, 'hidden_done' => $hidden];
     }
 
     /**
@@ -111,13 +149,20 @@ class NotebookWidget extends Widget
             ['Созвон с Пекином', 'Разница +5 ч, звонить до 12:00 по Москве'],
         ];
 
+        $n = min(40, max(1, (int) $settings['limit']));
+        // последние две-три задачи выполнены — они и на столе идут в конце списка
+        $done_from = $n - min(3, intdiv($n, 3));
+
         $rows = [];
-        for ($i = 0, $n = min(40, max(1, (int) $settings['limit'])); $i < $n; $i++) {
+        for ($i = 0; $i < $n; $i++) {
             [$title, $text] = $pool[$i % count($pool)];
-            $rows[] = ['id' => $i + 1, 'title' => $title, 'text' => $text, 'favorite' => $i < 2, 'date' => now()->subDays($i * 3)->format('d.m'), 'url' => null];
+            $rows[] = [
+                'id' => $i + 1, 'title' => $title, 'text' => $text, 'favorite' => $i < 2, 'done' => $i >= $done_from,
+                'date' => now()->subDays($i * 3)->format('d.m'), 'url' => null, 'done_url' => null,
+            ];
         }
 
-        return ['rows' => $rows, 'add_url' => null];
+        return ['rows' => $rows, 'add_url' => null, 'hidden_done' => 0];
     }
 
     /**

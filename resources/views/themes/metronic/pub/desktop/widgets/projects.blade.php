@@ -39,7 +39,7 @@
 
             <div class="d-flex gap-2 align-items-baseline flex-wrap desk-hide-short">
                 @if($settings['show_amount'])
-                    <span class="desk-muted text-nowrap" title="Сумма сделок, пересчитанная по курсу на сегодня: {{ $widget::money($data['amount'], $data['symbol'], false) }}">
+                    <span class="desk-muted text-nowrap" title="{{ $waiting ? 'Сумма всех ждущих сделок' : 'Сумма сделок всех проектов в счётчике' }}, пересчитанная по курсу на сегодня: {{ $widget::money($data['amount'], $data['symbol'], false) }}">
                         {{ $widget::money($data['amount'], $data['symbol']) }}
                     </span>
                 @endif
@@ -117,7 +117,7 @@
                             {{ $waiting ? $row['title'] : ($row['partner'] ?: $row['title']) }}
                         </a>
                         <span class="desk-muted fs-8 text-nowrap flex-shrink-0 desk-only-w-md"
-                              title="Сделок в проекте">{{ $waiting ? $row['date'] : $row['deals'] . ' сд.' }}</span>
+                              title="{{ $waiting ? 'Дата создания сделки' : 'Сделок в проекте' }}">{{ $waiting ? $row['date'] : $row['deals'] . ' сд.' }}</span>
                         @if($settings['show_amount'])
                             {{-- в колонке шириной 2 сумма не влезает рядом с названием — она в подсказке --}}
                             <span class="fw-semibold text-nowrap flex-shrink-0 desk-hide-narrow"

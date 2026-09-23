@@ -156,13 +156,14 @@ class ProjectsWidget extends Widget
             return static::pack($mode, $rows, $counts, $amount, $skipped, $ctx->symbol($currency), $partner_name);
         }
 
+        // все проекты режима, а не первые $limit: сумма под счётчиком — по всем проектам,
+        // как и сам счётчик (раньше она считалась только по показанным строкам)
         $projects = DealProject::query()
             ->when($mode === 'archive', fn($builder) => $builder->archived(), fn($builder) => $builder->active())
             ->when($partner_id, fn($builder) => $builder->where('partner_id', $partner_id))
             ->with(['partner:id,name', 'company:id,name', 'deals'])
             ->withCount(['specifications'])
             ->orderByDesc('id')
-            ->limit($limit)
             ->get();
 
         // суммы сделок проектов — одним запросом в базу Битрикса
@@ -193,6 +194,8 @@ class ProjectsWidget extends Widget
             }
 
             $total += $amount;
+
+            if (count($rows) >= $limit) continue;
 
             $rows[] = [
                 'title' => (string) $project->label,

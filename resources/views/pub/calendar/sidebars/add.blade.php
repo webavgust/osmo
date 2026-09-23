@@ -16,7 +16,7 @@
 
                         <div mode="day" class="date-select-inputs mt-2">
                             <div class="form-group">
-                                <input type="date" class="form-control" value="{{ date("Y-m-d") }}" name="date">
+                                <input type="date" class="form-control" value="{{ $date ?? date("Y-m-d") }}" name="date">
                             </div>
                         </div>
                     </div>
@@ -43,13 +43,13 @@
 
                         <div mode="time" class="date-select-inputs mt-2 d-none">
                             <div class="input-group mb-3">
-                                <input type="date" class="form-control" value="{{  now()->floorMinutes(5)->format('Y-m-d') }}"
+                                <input type="date" class="form-control" value="{{ $date ?? now()->floorMinutes(5)->format('Y-m-d') }}"
                                        name="datetime[date1]">
                                 <input type="time" class="form-control" value="{{  now()->floorMinutes(5)->format('H:i') }}"
                                        name="datetime[time1]">
                             </div>
                             <div class="input-group mb-3">
-                                <input type="date" class="form-control" value="{{ now()->addHour()->floorMinutes(5)->format('Y-m-d') }}"
+                                <input type="date" class="form-control" value="{{ $date ?? now()->addHour()->floorMinutes(5)->format('Y-m-d') }}"
                                        name="datetime[date2]">
                                 <input type="time" class="form-control" value="{{  now()->addHour()->floorMinutes(5)->format('H:i') }}"
                                        name="datetime[time2]">
@@ -150,6 +150,13 @@
                     dataType: "json",
                     data: $("form#calendar_add").serialize(),
                     success: function (result) {
+                        // рабочий стол: перерисовать виджет «Календарь» вместо перезагрузки страницы
+                        if (window.Desk && window.Desk.grid) {
+                            $(block_elem).unblock();
+                            $(document).trigger("desk:refresh", ["calendar"]);
+                            sidebar_close();
+                            return;
+                        }
                         location.reload();
                     },
                     error: function () {

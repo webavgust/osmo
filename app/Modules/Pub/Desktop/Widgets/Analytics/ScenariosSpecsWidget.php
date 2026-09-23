@@ -103,7 +103,8 @@ class ScenariosSpecsWidget extends Widget
 
         return [
             'view' => $view,
-            'rows' => array_slice($rows, 0, (int) ($settings['limit'] ?? 20)), 'total' => count($rows),
+            // «строк отчёта» — как в разрезе «Строки отчёта» (там их 40) в обоих разрезах
+            'rows' => array_slice($rows, 0, (int) ($settings['limit'] ?? 20)), 'total' => 40,
             'companies' => count($companies), 'specs' => count($companies), 'scenarios' => count($scenarios),
             'partners' => count($partners),
         ];
@@ -136,7 +137,6 @@ class ScenariosSpecsWidget extends Widget
 
         $out = [
             'view' => $view,
-            'total' => count($lines),
             'partners' => count($partners),
             'companies' => count($companies),
             'specs' => count($specs),
@@ -145,11 +145,10 @@ class ScenariosSpecsWidget extends Widget
 
         if ($view === 'scenarios') {
             $out['rows'] = array_slice(static::byScenario($lines), 0, $limit);
-
-            return $out;
         }
 
-        // без разбивки по нейросервисам одинаковые строки схлопываются в одну
+        // без разбивки по нейросервисам одинаковые строки схлопываются в одну;
+        // «строк отчёта» в обоих разрезах — столько, сколько их в разрезе «Строки отчёта»
         if (!$neuro) {
             $unique = [];
             foreach ($lines as $line) {
@@ -160,7 +159,7 @@ class ScenariosSpecsWidget extends Widget
         }
 
         $out['total'] = count($lines);
-        $out['rows'] = array_slice($lines, 0, $limit);
+        $out['rows'] ??= array_slice($lines, 0, $limit);
 
         return $out;
     }

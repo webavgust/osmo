@@ -96,7 +96,7 @@ class DealCardWidget extends Widget
             'partner' => 'ООО «Интегратор»',
             'customer' => 'АО «Восток»',
             'quarter' => 'IV квартал 2026',
-            'proposal' => 'КП № AA-794 · Платформа Восток',
+            'proposal' => '№ AA794 · Платформа Восток',
             'proposal_url' => null,
             'project' => 'Проект от 12.03.2026',
             'project_url' => null,

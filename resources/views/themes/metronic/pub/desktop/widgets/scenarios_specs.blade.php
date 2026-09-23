@@ -86,24 +86,24 @@
                 <table class="desk-table">
                     <thead>
                         <tr>
-                            <th class="desk-only-w-xl">Партнёр</th>
-                            <th>Клиент</th>
-                            <th>Спецификация</th>
+                            <th class="desk-only-w-xl sp-c-partner">Партнёр</th>
+                            <th class="sp-c-company">Клиент</th>
+                            <th class="sp-c-spec">Спецификация</th>
                             <th>Сценарий</th>
                             @if($settings['neuro'])
-                                <th class="desk-only-w-xl">Нейросервис</th>
+                                <th class="desk-only-w-xl sp-c-neuro">Нейросервис</th>
                             @endif
                         </tr>
                     </thead>
                     <tbody>
                         @foreach($list as $row)
                             <tr>
-                                <td class="desk-cut desk-muted desk-only-w-xl" title="{{ $row['partner'] }}">{{ $row['partner'] ?: '—' }}</td>
-                                <td class="desk-cut" title="{{ $row['company'] }}">{{ $row['company'] ?: '—' }}</td>
-                                <td class="desk-cut desk-muted" title="{{ $row['spec'] }}">{{ $row['spec'] ?: '—' }}</td>
+                                <td class="desk-cut desk-muted desk-only-w-xl sp-c-partner" title="{{ $row['partner'] }}">{{ $row['partner'] ?: '—' }}</td>
+                                <td class="desk-cut sp-c-company" title="{{ $row['company'] }}">{{ $row['company'] ?: '—' }}</td>
+                                <td class="desk-cut desk-muted sp-c-spec" title="{{ $row['spec'] }}">{{ $row['spec'] ?: '—' }}</td>
                                 <td class="desk-cut" title="{{ $row['scenario'] }}">{{ $row['scenario'] ?: '—' }}</td>
                                 @if($settings['neuro'])
-                                    <td class="desk-cut desk-muted desk-only-w-xl" title="{{ $row['neuro'] }}">{{ $row['neuro'] ?: '—' }}</td>
+                                    <td class="desk-cut desk-muted desk-only-w-xl sp-c-neuro" title="{{ $row['neuro'] }}">{{ $row['neuro'] ?: '—' }}</td>
                                 @endif
                             </tr>
                         @endforeach

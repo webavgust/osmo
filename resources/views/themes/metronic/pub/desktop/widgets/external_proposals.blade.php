@@ -92,7 +92,13 @@
                         </span>
                         @if($tall)
                             <span class="d-flex gap-1 align-items-baseline min-w-0 desk-muted fs-8">
-                                <span class="desk-nowrap">{{ $row['customer'] }}{{ $row['customer'] !== '' && $row['cameras'] ? ' · ' : '' }}{{ $row['cameras'] ? $row['cameras'] . ' кам.' : '' }}</span>
+                                {{-- число камер — своим элементом: в многоточие уходит только заказчик; на узком блоке камер нет (они в подсказке) --}}
+                                @if($row['customer'] !== '')
+                                    <span class="desk-nowrap">{{ $row['customer'] }}</span>
+                                @endif
+                                @if($row['cameras'])
+                                    <span class="text-nowrap flex-shrink-0 desk-hide-narrow">{{ $row['customer'] !== '' ? '· ' : '' }}{{ $row['cameras'] }} кам.</span>
+                                @endif
                                 @if($row['date'])
                                     <span class="flex-shrink-0 desk-only-w-md">{{ $row['date'] }}</span>
                                 @endif

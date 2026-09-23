@@ -39,7 +39,8 @@ class ApiCalendarController
                 list($from, $to) = explode(" - ", $request->validated('dates'));
                 $from = Carbon::createFromTimestamp(strtotime($from))->startOfDay();
                 $to = Carbon::createFromTimestamp(strtotime($to))->endOfDay();
-                $all_day = false;
+                // период — целые дни, как при правке (edit): иначе событие выглядит «00:00»
+                $all_day = true;
                 break;
             case 'time':
                 $from = Carbon::createFromTimestamp(strtotime($request->validated('datetime.date1') . ' ' . $request->validated('datetime.time1')));

@@ -98,12 +98,17 @@ class ClockWidget extends Widget
         ];
     }
 
+    /**
+     * Образец для превью: Москва и Пекин в настоящем времени и выбранном формате
+     * (застывшие «14:35» и «14 сентября» в превью врали бы о дате)
+     *
+     * @param array $settings
+     * @param DesktopContext $ctx
+     * @return array
+     */
     public function sample(array $settings, DesktopContext $ctx): array
     {
-        return ['rows' => [
-            ['zone' => 'Europe/Moscow', 'city' => 'Москва', 'time' => '14:35', 'date' => '14 сентября', 'shift' => ''],
-            ['zone' => 'Asia/Shanghai', 'city' => 'Пекин', 'time' => '19:35', 'date' => '14 сентября', 'shift' => '+5 ч'],
-        ]];
+        return $this->data(['zone_1' => 'Europe/Moscow', 'zone_2' => 'Asia/Shanghai', 'zone_3' => 'none', 'zone_4' => 'none'] + $settings, $ctx);
     }
 
     /**
@@ -115,7 +120,8 @@ class ClockWidget extends Widget
      */
     public function data(array $settings, DesktopContext $ctx): array
     {
-        $format = $settings['format'] === '12' ? 'g:i a' : 'H:i';
+        // как у tickClocks (Intl ru-RU, hour: 2-digit): «02:35 PM», иначе через секунду время перепрыгнет
+        $format = $settings['format'] === '12' ? 'h:i A' : 'H:i';
         $own = now()->utcOffset();
         $rows = [];
 

@@ -5,8 +5,10 @@ namespace App\Modules\Pub\Desktop\Widgets\Proposal;
 use App\Modules\Pub\Desktop\Services\DesktopContext;
 use App\Modules\Pub\Desktop\Widgets\Widget;
 use App\Modules\Pub\Proposal\Models\Proposal;
+use App\Modules\Pub\Proposal\Models\ProposalLink;
 use App\Modules\Pub\Proposal\Models\ProposalStatus;
 use App\Modules\Pub\Proposal\Services\ProposalStatusService;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 
 /**
@@ -17,6 +19,9 @@ use Illuminate\Support\Collection;
  * порядок по updated_at. Сумма берётся у основного варианта (variants: is_main desc, id)
  * и показывается в валюте самого КП — ровно как в колонке «Стоимость» списка КП,
  * без пересчёта курса. Статусы — три из v27.
+ *
+ * Второстепенные КП связки (patch v33) в отбор и счётчики не входят, а, как в списке КП,
+ * стоят ветками сразу под строкой своего главного (packTree()).
  */
 class ProposalsRecentWidget extends Widget
 {
@@ -61,7 +66,13 @@ class ProposalsRecentWidget extends Widget
 
     public function sample(array $settings, DesktopContext $ctx): array
     {
-        return ['rows' => static::sampleRows(), 'total' => 128];
+        $rows = static::sampleRows();
+
+        return [
+            'rows' => static::sampleBranch($rows, 1),
+            'total' => 128,
+            'fresh' => count(array_filter($rows, fn($row) => $row['fresh'])),
+        ];
     }
 
     /**
@@ -69,7 +80,7 @@ class ProposalsRecentWidget extends Widget
      *
      * @param array $settings
      * @param DesktopContext $ctx
-     * @return array ['rows' => [...], 'total']
+     * @return array ['rows' => [...], 'total', 'fresh' — изменено за неделю среди всех КП по отбору]
      */
     public function data(array $settings, DesktopContext $ctx): array
     {
@@ -82,11 +93,15 @@ class ProposalsRecentWidget extends Widget
         }
 
         $total = $rows->count();
+        // «за неделю» — по всем КП отбора, а не только по показанным: список ограничен настройкой
+        $fresh_from = now()->subDays(static::FRESH_DAYS);
+        $fresh = $rows->filter(fn($row) => ($row->updated_at ?? $row->created_at)?->gte($fresh_from))->count();
+
         $take = $rows->sortByDesc(fn($row) => $row->updated_at ?? $row->created_at)
             ->take((int) $settings['limit'])
             ->values();
 
-        return ['rows' => static::pack($take), 'total' => $total];
+        return ['rows' => static::packTree($take), 'total' => $total, 'fresh' => $fresh];
     }
 
     /**
@@ -126,7 +141,7 @@ class ProposalsRecentWidget extends Widget
      * @param Collection $proposals редакции КП
      * @return array [['group', 'number', 'name', 'company', 'partner', 'manager', 'status', 'status_label',
      *     'status_color', 'status_icon', 'amount', 'symbol', 'date', 'updated', 'days', 'fresh',
-     *     'url', 'status_url', 'deal_url']]
+     *     'url', 'status_url', 'deal_url', 'is_child', 'main_ref']]
      */
     public static function pack(Collection $proposals): array
     {
@@ -157,7 +172,8 @@ class ProposalsRecentWidget extends Widget
                 'status_label' => $info['label'],
                 'status_color' => $color,
                 'status_icon' => $info['icon'],
-                'amount' => $variant?->cost_total !== null ? (float) $variant->cost_total : null,
+                // нулевая сумма — «нет расчёта», как прочерк в колонке «Стоимость» списка КП
+                'amount' => !empty($variant?->cost_total) ? (float) $variant->cost_total : null,
                 'symbol' => (string) ($currencies[(string) $row->currency_slug]->symbol ?? $row->currency_slug),
                 'date' => $row->sended_at?->format('d.m.Y'),
                 'updated' => $updated?->format('d.m.Y'),
@@ -166,8 +182,64 @@ class ProposalsRecentWidget extends Widget
                 'url' => route('proposal.detail', [$row->group, $row->iteration]),
                 'status_url' => route('proposal.box_status', [$row->group, $row->iteration]),
                 'deal_url' => route('proposal.box_deal', [$row->group, $row->iteration]),
+                'is_child' => false,
+                'main_ref' => null,
             ];
         })->all();
+    }
+
+    /**
+     * Строки списка с ветками второстепенных КП (patch v33). В отбор и счётчики второстепенные
+     * не входят (counted()), но, как в списке КП (ProposalService::tableDefault()), стоят сразу
+     * под строкой своего главного — приглушены, без смены статуса и привязки сделки
+     *
+     * @param Collection $proposals КП отбора (последние редакции, без второстепенных)
+     * @return array строки pack(); у веток is_child = true и main_ref — «№ AA793» главного
+     */
+    public static function packTree(Collection $proposals): array
+    {
+        if ($proposals->isEmpty()) return [];
+
+        $proposals = new EloquentCollection($proposals->all());
+        $proposals->load('secondary_links');
+
+        // ветки — одним запросом на весь список
+        $groups = $proposals->flatMap->secondary_links->pluck('secondary_group')->unique()->values();
+        $children = $groups->isEmpty() ? collect() : Proposal::query()
+            ->whereIn('proposals.group', $groups->all())
+            ->latestIteration()
+            ->get()
+            ->keyBy('group');
+
+        $items = new EloquentCollection();
+        $mains = [];
+
+        foreach ($proposals as $row) {
+            $items->push($row);
+            $mains[] = null;
+
+            foreach ($row->secondary_links as $link) {
+                $child = $children->get($link->secondary_group);
+                if (!$child) continue;
+
+                $items->push($child);
+                $mains[] = $row;
+            }
+        }
+
+        $rows = static::pack($items);
+
+        foreach ($rows as $i => $row) {
+            if ($mains[$i] === null) continue;
+
+            // второстепенное только для просмотра: статус и сделку у него не меняют
+            $rows[$i]['is_child'] = true;
+            $rows[$i]['main_ref'] = ProposalLink::refOf($mains[$i]);
+            $rows[$i]['status_url'] = null;
+            $rows[$i]['deal_url'] = null;
+        }
+
+        return $rows;
     }
 
     /**
@@ -226,8 +298,38 @@ class ProposalsRecentWidget extends Widget
                 'url' => null,
                 'status_url' => null,
                 'deal_url' => null,
+                'is_child' => false,
+                'main_ref' => null,
             ];
         }
+
+        return $rows;
+    }
+
+    /**
+     * Образцовая ветка второстепенного КП (patch v33) под строкой $after — превью показывает дерево,
+     * как живой список со связкой
+     *
+     * @param array $rows строки sampleRows()
+     * @param int $after индекс строки главного КП
+     * @return array
+     */
+    public static function sampleBranch(array $rows, int $after = 1): array
+    {
+        if (!isset($rows[$after])) return $rows;
+
+        $main = $rows[$after];
+        $child = array_merge($main, [
+            'group' => $main['group'] . '-secondary',
+            'number' => (string) ((int) $main['number'] - 260),
+            'amount' => $main['amount'] !== null ? round($main['amount'] * 0.9, -4) : null,
+            'updated' => now()->subDays(128)->format('d.m.Y'),
+            'fresh' => false,
+            'is_child' => true,
+            'main_ref' => '№ ' . $main['number'],
+        ]);
+
+        array_splice($rows, $after + 1, 0, [$child]);
 
         return $rows;
     }

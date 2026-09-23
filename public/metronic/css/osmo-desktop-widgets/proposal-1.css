@@ -79,6 +79,8 @@
 /* невысокий блок шириной ≥6: сумма слева, редакции справа */
 .desk-widget[data-widget="price_history"] .desk-ph-side { flex-direction: row; gap: 1.25rem; }
 .desk-widget[data-widget="price_history"] .desk-ph-side > .desk-ph-head { flex: 0 0 auto; max-width: 50%; }
+/* редакции сбоку от суммы: «ред. 12» не режется — не влезает с суммой в строку, сумма уходит под неё */
+.desk-widget[data-widget="price_history"] .desk-ph-side .desk-ph-iter > li { flex-wrap: wrap; row-gap: 0; }
 /* название блока и заметка в строке сжимаются в многоточие, дата и суммы — нет */
 .desk-widget[data-widget="price_history"] .desk-ph-sub,
 .desk-widget[data-widget="price_history"] .desk-ph-note { min-width: 0; }
@@ -114,6 +116,11 @@
 /* очень высокий блок: строки просторнее */
 @container dw (min-height: 560px) {
     .desk-widget[data-widget="proposal_card"] .desk-card-props > li { padding-top: .55rem; padding-bottom: .55rem; }
+}
+/* огромный блок: у КП без сделок и спецификаций свойств десяток — строки ещё просторнее
+   (кроме узкого, где строки и так в две строки) */
+@container dw (min-height: 1100px) and (min-width: 201px) {
+    .desk-widget[data-widget="proposal_card"] .desk-card-props > li { padding-top: 1rem; padding-bottom: 1rem; }
 }
 
 /* === proposal_conversion === */

@@ -21,6 +21,8 @@
     // счётчики по видам: пустые виды не занимают место
     $badges = array_filter($data['issues'], fn($issue) => $issue['count'] > 0);
     $money = $data['money'];
+    // сумма расхождения — про вид «Сумма не сходится»: при отборе другого вида она не к месту (как на странице)
+    $show_money = $settings['show_money'] && $money['count'] > 0 && in_array($data['issue'], [null, 'amount'], true);
     $label = $data['issue'] ? mb_strtolower($data['issue_label']) : 'расхождений';
 
     $href = fn($row) => $preview || empty($row['url']) ? 'javascript:void(0)' : $row['url'];
@@ -54,7 +56,7 @@
             </div>
 
             <div @class(['d-flex gap-2 align-items-baseline flex-wrap', 'desk-hide-short' => !$tight, 'mt-1' => $tight && !$low, 'desk-only-w-md' => $tight && $low])>
-                @if($settings['show_money'] && $money['count'] > 0)
+                @if($show_money)
                     {{-- «на» переносится отдельно: сумма не режется даже в самом узком блоке --}}
                     <span class="desk-muted"
                           title="По {{ $money['count'] }} КП: в Битрикс24 {{ tools()->cost_normalize(round($money['deals_total'])) }}, в КП {{ tools()->cost_normalize(round($money['proposal_total'])) }}. Валюты не пересчитываются">
@@ -94,7 +96,7 @@
                                 <th>КП</th>
                                 <th class="cmm-company">Компания</th>
                                 <th class="desk-only-w-xl">Статус</th>
-                                <th>Что не так</th>
+                                <th class="cmm-issue">Что не так</th>
                                 <th class="num">Расхождение</th>
                             </tr>
                             </thead>
@@ -109,7 +111,7 @@
                                     <td class="desk-only-w-xl">
                                         <span class="badge badge-light-{{ $row['status_color'] }} fs-8">{{ $row['status_label'] }}</span>
                                     </td>
-                                    <td class="desk-cut text-{{ $row['color'] }}" title="{{ implode(', ', $row['labels']) }}">{{ implode(', ', $row['labels']) }}</td>
+                                    <td class="desk-cut cmm-issue text-{{ $row['color'] }}" title="{{ implode(', ', $row['labels']) }}">{{ implode(', ', $row['labels']) }}</td>
                                     <td class="num fw-bold text-{{ $row['color'] }}" title="{{ $row['diff'] != 0 ? tools()->cost_normalize(round($row['diff'])) : 'Суммы сходятся' }}">
                                         {{ $row['diff'] == 0 ? '—' : $diff($row['diff']) }}
                                     </td>

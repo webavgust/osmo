@@ -14,6 +14,10 @@
 
     $href = fn($url) => $preview || empty($url) ? 'javascript:void(0)' : $url;
     $word = \App\Facades\Tools::morph($data['total'], 'партнёра', 'партнёров', 'партнёров');
+
+    // высокий блок, а несопоставленных мало (живых — единицы): под списком шкала «сопоставлено» кольцом
+    // на всё свободное место — иначе блок пустовал (e на 16×24, 16×32); узкая полоска тогда не нужна
+    $gauge = $with_list && $dh === 'xl' && $dw !== 'xs' && $data['total'] > 0 && count($list) + 7 <= $rows;
 @endphp
 <div @class(['desk-stack', 'desk-center' => !$with_list])>
     <div>
@@ -24,7 +28,7 @@
             <span class="desk-muted text-nowrap desk-hide-short" title="Всего партнёров в отборе: {{ $data['total'] }}">из {{ $data['total'] }}<span class="desk-hide-narrow"> {{ $word }}</span></span>
             <span class="desk-muted fs-8 text-nowrap desk-hide-short desk-only-w-md" title="Партнёры, у которых компания Битрикс24 уже выбрана">сопоставлено: {{ $data['linked'] }}</span>
         </div>
-        @if($with_list && $data['total'] > 0)
+        @if($with_list && $data['total'] > 0 && !$gauge)
             <div class="desk-bar mt-2 desk-only-h-lg" title="Сопоставлено {{ $data['linked'] }} из {{ $data['total'] }} · {{ number_format($linked_share, 0, ',', ' ') }} %">
                 @if($linked_share > 0)<i class="bg-success" style="width: {{ min(100, $linked_share) }}%;"></i>@endif
             </div>
@@ -33,9 +37,9 @@
 
     @if($with_list)
         @if(empty($list))
-            <div class="desk-stack-grow desk-muted fs-8">Все партнёры сопоставлены с Битрикс24</div>
+            <div @class(['desk-muted', 'fs-8', 'desk-stack-grow' => !$gauge])>Все партнёры сопоставлены с Битрикс24</div>
         @elseif($table)
-            <div class="desk-stack-grow desk-fit" data-fit-items="tbody > tr" data-fit-min="0">
+            <div @class(['desk-fit', 'desk-stack-grow' => !$gauge]) data-fit-items="tbody > tr" data-fit-min="0">
                 <table class="desk-table">
                     <thead>
                         <tr>
@@ -65,7 +69,7 @@
             </div>
             <div class="desk-muted fs-8 desk-hide-short desk-fit-out" data-fit-more="ещё {n}"></div>
         @else
-            <ul class="desk-list desk-stack-grow desk-fit" data-fit-min="0">
+            <ul @class(['desk-list', 'desk-fit', 'desk-stack-grow' => !$gauge]) data-fit-min="0">
                 @foreach($list as $row)
                     <li>
                         <a href="{{ $href($row['url']) }}" class="desk-link desk-grow text-hover-primary" title="{{ $row['name'] }}">{{ $row['name'] }}</a>
@@ -79,6 +83,18 @@
                 @endforeach
             </ul>
             <div class="desk-muted fs-8 desk-hide-short desk-fit-out" data-fit-more="ещё {n}"></div>
+        @endif
+
+        @if($gauge)
+            <div class="desk-stack-grow pu-gauge" title="Сопоставлено с Битрикс24 {{ $data['linked'] }} из {{ $data['total'] }}">
+                {!! $widget::chart([
+                    'type' => 'radialBar',
+                    'label' => true,
+                    'labels' => ['сопоставлено'],
+                    'colors' => ['success'],
+                    'series' => [round($linked_share, 1)],
+                ]) !!}
+            </div>
         @endif
     @endif
 </div>

@@ -48,7 +48,8 @@ class JournalWidget extends Widget
         return [
             ['key' => 'company', 'type' => 'entity', 'label' => 'Компания', 'entities' => ['company'],
                 'default' => null, 'hint' => 'Пусто — записи по всем компаниям'],
-            ['key' => 'limit', 'type' => 'number', 'label' => 'Сколько записей', 'default' => 10, 'min' => 3, 'max' => 50],
+            ['key' => 'limit', 'type' => 'number', 'label' => 'Сколько записей', 'default' => 40, 'min' => 3, 'max' => 50,
+                'hint' => 'Верхняя граница: сколько строк влезет в блок — решает высота'],
         ];
     }
 
@@ -104,7 +105,8 @@ class JournalWidget extends Widget
                 'company' => (string) ($log->company?->name ?? '—'),
                 'company_url' => $log->company ? route('company.detail', $log->company->id) : null,
                 'proposal' => $proposal ? ($number !== '' ? '№ ' . $number : (string) $proposal->name) : '',
-                'proposal_url' => $proposal ? route('proposal.detail', [$proposal->id, $proposal->iteration]) : null,
+                // ключ маршрута КП — group (Proposal::getRouteKeyName), по числовому id карточка отдаёт 404
+                'proposal_url' => $proposal ? route('proposal.detail', [$proposal, $proposal->iteration]) : null,
                 'text' => static::plain($log->text),
                 'url' => route('log.box_detail', $log->id),
             ];
@@ -139,7 +141,7 @@ class JournalWidget extends Widget
 
         // столько записей, сколько задано настройкой: высокий блок есть чем заполнить
         $rows = [];
-        for ($i = 0, $n = max(1, (int) ($settings['limit'] ?? 10)); $i < $n; $i++) {
+        for ($i = 0, $n = max(1, (int) ($settings['limit'] ?? 40)); $i < $n; $i++) {
             [$company, $proposal, $text] = $pool[$i % count($pool)];
 
             $rows[] = [

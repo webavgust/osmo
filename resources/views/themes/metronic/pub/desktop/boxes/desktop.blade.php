@@ -11,7 +11,7 @@
     <form id="desk_box_form" data-mode="{{ $mode }}" data-desktop="{{ $desktop?->id }}" autocomplete="off">
         @if($mode === 'system')
             <div class="alert alert-primary d-flex align-items-center p-4 mb-5 fs-7">
-                <i class="fa-light fa-shield-halved fs-3 text-primary me-3"></i>
+                <i class="fa-light fa-shield fs-3 text-primary me-3"></i>
                 @if($desktop)
                     Пресет станет копией стола «{{ $desktop->name }}» в сохранённом виде. Его увидят все пользователи и смогут сделать своим.
                 @else

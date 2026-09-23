@@ -5,15 +5,14 @@
 funnel-1, funnel-2, finance, partner, personal, keys-admin, analytics — 66 виджетов.
 
 Общая категория (Common, 16) — агенты остановлены владельцем на паузу, часть работы не доведена:
-- готовы и описаны: `banner`, `button`, `journal`, `link`, `progress`;
-- описаны, но не закончены проверки: `changes` (живые данные, без заголовка, render_widgets),
-  `currency` (живые данные), `kpi` (правки после описания — перепрогнать всю сетку);
-- начаты, не описаны (вьюха могла остаться недописанной — сначала прогнать стенд):
-  `chart` (common-1), `rates` (common-3);
-- не начаты: `compare`, `embed`, `heading`, `links`, `period`, `team`.
-Файлы стилей: `common-1.css` (banner, button, changes, chart), `common-2.css` (journal, kpi, link),
-`common-3.css` (progress, rates), `common-4.css` (currency). Задание агентам — в README ниже не
-дублируется: см. `WIDGETS.md` «Прогон по сетке» и правила там же; агенту — не больше одной долгой
+- аудит 23.09.2026 пройден (сетка, свободные размеры, без заголовка, живые данные — `grid/common-1.md`,
+  `common-2.md`, `common-3.md`): `banner`, `button`, `changes`, `chart`, `journal`, `kpi`, `link`,
+  `links`, `progress`, `rates`;
+- аудит 23.09.2026 пройден (сетка, высота 1, без заголовка, живые данные — `grid/common-4.md`):
+  `currency`, `period`, `compare`, `team`, `embed`, `heading`;
+Файлы стилей: `common-1.css` (banner, button, changes, chart), `common-2.css` (journal, kpi, link, links),
+`common-3.css` (progress, rates), `common-4.css` (currency, period, compare, team, embed,
+heading). Задание агентам — в README ниже не дублируется: см. `WIDGETS.md` «Прогон по сетке» и правила там же; агенту — не больше одной долгой
 команды в сообщении.
 
 ## Общие правки, уже сделанные

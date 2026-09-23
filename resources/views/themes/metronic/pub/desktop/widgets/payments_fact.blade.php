@@ -9,9 +9,12 @@
     $delta_short = $delta === null
         ? '—'
         : ($delta > 0 ? '+' : ($delta < 0 ? '−' : '')) . number_format(abs($delta), 0, ',', ' ') . ' %';
+    // даты прошлого отрезка: у идущего периода он обрезан по то же число
+    $prev_dates = !empty($data['prev_dates']) ? ' ' . $data['prev_dates'] : '';
+    $prev_caption = !empty($data['prev_until']) ? 'к прошлому по ' . $data['prev_until'] : 'к прошлому отрезку';
     $delta_hint = $data['previous'] !== null
-        ? 'Прошлый отрезок: ' . $widget::money($data['previous'], $data['symbol'], false)
-        : 'Оплат в прошлом отрезке нет — сравнивать не с чем';
+        ? 'Прошлый отрезок' . $prev_dates . ': ' . $widget::money($data['previous'], $data['symbol'], false)
+        : 'Оплат в прошлом отрезке' . $prev_dates . ' нет — сравнивать не с чем';
     $full = $data['label'] . ': ' . $widget::money($data['value'], $data['symbol'], false);
 
     // график оплат по дням, неделям или месяцам отрезка: спарклайн, в широком и высоком блоке — с осями
@@ -48,7 +51,7 @@
             <div class="fin-line desk-fit desk-hide-short" data-fit-axis="x" data-fit-min="0">
                 @if($settings['compare'])
                     <span class="desk-delta {{ $direction }}" title="{{ $delta_hint }}">
-                        {{ $delta_short }}<span class="desk-only-w-md"> к прошлому отрезку</span>
+                        {{ $delta_short }}<span class="desk-only-w-md"> {{ $prev_caption }}</span>
                     </span>
                 @endif
                 <span class="desk-muted">

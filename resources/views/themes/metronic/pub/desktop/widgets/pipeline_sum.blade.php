@@ -11,7 +11,9 @@
         : ($delta > 0 ? '+' : ($delta < 0 ? '−' : '')) . number_format(abs($delta), 0, ',', ' ') . ' %';
     $delta_title = $data['previous'] === null
         ? 'Сравнивать не с чем: отбор по периоду выключен или в прошлом отрезке КП не было'
-        : 'К прошлому такому же отрезку: ' . $widget::money($data['previous'], $data['symbol'], false);
+        : 'Прошлый отрезок' . (!empty($data['prev_dates']) ? ' ' . $data['prev_dates'] : '') . ': ' . $widget::money($data['previous'], $data['symbol'], false);
+    // идущий период сравнивается с прошлым по то же число — так и подписано
+    $prev_caption = !empty($data['prev_until']) ? 'к прошлому по ' . $data['prev_until'] : 'к прошлому отрезку';
     $total_title = $widget::money($data['total'], $data['symbol'], false) . ' · ' . $data['scope_label'] . ' (' . $data['dates'] . ')';
 
     // высота 1–2 ячейки — сумма (в широком блоке и дельта в строку); с 3 — дельта, число КП и разбивка:
@@ -53,7 +55,7 @@
             <div class="d-flex align-items-baseline column-gap-3 min-w-0">
                 <div class="{{ $value_class }} flex-shrink-0" title="{{ $total_title }}">{{ $widget::money($data['total'], $data['symbol']) }}</div>
                 @if(!$split && $settings['compare'])
-                    <span class="desk-delta {{ $direction }} desk-only-w-lg" title="{{ $delta_title }}">{{ $delta_short }}<span class="desk-only-w-xl"> к прошлому отрезку</span></span>
+                    <span class="desk-delta {{ $direction }} desk-only-w-lg" title="{{ $delta_title }}">{{ $delta_short }}<span class="desk-only-w-xl"> {{ $prev_caption }}</span></span>
                 @endif
             </div>
         @endif
@@ -61,7 +63,7 @@
         @unless($tall)
             <div class="d-flex column-gap-2 align-items-baseline flex-wrap desk-hide-short">
                 @if($settings['compare'])
-                    <span class="desk-delta {{ $direction }}" title="{{ $delta_title }}">{{ $delta_short }}@unless($side)<span class="desk-only-w-md"> к прошлому отрезку</span>@endunless</span>
+                    <span class="desk-delta {{ $direction }}" title="{{ $delta_title }}">{{ $delta_short }}@unless($side)<span class="desk-only-w-md"> {{ $prev_caption }}</span>@endunless</span>
                 @endif
                 <span class="desk-muted text-nowrap" title="Столько КП в сумме">{{ $data['count'] }} КП</span>
             </div>

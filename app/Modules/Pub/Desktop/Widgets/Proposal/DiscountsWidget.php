@@ -141,7 +141,7 @@ class DiscountsWidget extends Widget
         }
 
         return [
-            'label' => '2026 год',
+            'label' => now()->year . ' год',
             'count' => 55,
             'average' => 24.7,
             'max' => 70.3,

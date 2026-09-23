@@ -208,6 +208,20 @@ abstract class Widget
         return $this->data($settings, $ctx);
     }
 
+    /**
+     * Состояние просмотра блока (листаемый месяц, раскрытый день): живёт в браузере до
+     * перезагрузки страницы, в настройках не хранится. Приходит от клика по
+     * [data-desk-view] и уходит в data() / sample() третьим аргументом и во вьюху как $view.
+     * Виджет сам отбирает допустимые ключи; по умолчанию состояния нет
+     *
+     * @param array $input сырое состояние из браузера
+     * @return array
+     */
+    public static function viewState(array $input): array
+    {
+        return [];
+    }
+
     /*** НАСТРОЙКИ ***/
 
     /**
@@ -589,18 +603,25 @@ abstract class Widget
      * @param DesktopContext $ctx
      * @param bool $preview превью в библиотеке: образцовые данные, без ссылок
      * @param bool $fresh сбросить кэш данных
+     * @param array $view состояние просмотра блока (см. viewState())
      * @return string
      */
-    public function html(int $w, int $h, array $settings, DesktopContext $ctx, bool $preview = false, bool $fresh = false): string
+    public function html(int $w, int $h, array $settings, DesktopContext $ctx, bool $preview = false, bool $fresh = false, array $view = []): string
     {
         $settings = static::normalize($settings);
+
+        // блок в одну ячейку высотой: заголовок съел бы почти всё место — не показываем его
+        // (и тело считает строки без заголовка), настройка при этом не меняется
+        if ($h <= 1) {
+            $settings['show_title'] = false;
+        }
 
         return view('pub.desktop.partials.widget', [
             'widget' => static::class,
             'w' => $w,
             'h' => $h,
             'settings' => $settings,
-            'body' => $this->body($w, $h, $settings, $ctx, $preview, $fresh),
+            'body' => $this->body($w, $h, $settings, $ctx, $preview, $fresh, $view),
             'url' => $preview ? null : static::sourceUrl($settings),
             'preview' => $preview,
         ])->render();
@@ -615,14 +636,17 @@ abstract class Widget
      * @param DesktopContext $ctx
      * @param bool $preview
      * @param bool $fresh
+     * @param array $view сырое состояние просмотра блока
      * @return string
      */
-    public function body(int $w, int $h, array $settings, DesktopContext $ctx, bool $preview = false, bool $fresh = false): string
+    public function body(int $w, int $h, array $settings, DesktopContext $ctx, bool $preview = false, bool $fresh = false, array $view = []): string
     {
         $settings = static::normalize($settings);
+        $view = static::viewState($view);
 
         try {
-            $data = $preview ? $this->sample($settings, $ctx) : $this->cachedData($settings, $ctx, $fresh);
+            // состояние просмотра — третьим аргументом: виджетам без него лишний аргумент не мешает
+            $data = $preview ? $this->sample($settings, $ctx, $view) : $this->cachedData($settings, $ctx, $fresh, $view);
 
             return view(static::view(), [
                 'widget' => static::class,
@@ -637,6 +661,7 @@ abstract class Widget
                 'data' => $data,
                 'ctx' => $ctx,
                 'preview' => $preview,
+                'view' => $view,
             ])->render();
         } catch (\Throwable $e) {
             report($e);
@@ -652,24 +677,25 @@ abstract class Widget
      * @param array $settings
      * @param DesktopContext $ctx
      * @param bool $fresh
+     * @param array $view состояние просмотра блока (уже отобранное viewState())
      * @return array
      */
-    protected function cachedData(array $settings, DesktopContext $ctx, bool $fresh = false): array
+    protected function cachedData(array $settings, DesktopContext $ctx, bool $fresh = false, array $view = []): array
     {
         $ttl = static::ttl();
 
         if ($ttl <= 0) {
-            return $this->data($settings, $ctx);
+            return $this->data($settings, $ctx, $view);
         }
 
         $view_keys = collect(static::schema())->where('group', 'view')->pluck('key')->all();
         $key = 'desktop_widget:' . static::id() . ':'
-            . md5(json_encode([array_diff_key($settings, array_flip($view_keys)), $ctx->cacheKey()]));
+            . md5(json_encode([array_diff_key($settings, array_flip($view_keys)), $ctx->cacheKey(), $view]));
 
         if ($fresh) {
             Cache::forget($key);
         }
 
-        return Cache::remember($key, $ttl, fn() => $this->data($settings, $ctx));
+        return Cache::remember($key, $ttl, fn() => $this->data($settings, $ctx, $view));
     }
 }

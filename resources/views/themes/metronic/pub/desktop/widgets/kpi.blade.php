@@ -22,10 +22,13 @@
         $delta > 0 => 'up',
         default => 'down',
     };
+    // знак — по округлённому значению: +0,4 % выводится «0 %», а не «+0 %»
     $delta_short = $delta === null
         ? '—'
-        : ($delta > 0 ? '+' : ($delta < 0 ? '−' : '')) . number_format(abs($delta), 0, ',', ' ') . ' %';
+        : ($direction === 'flat' ? '' : ($delta > 0 ? '+' : '−')) . number_format(abs($delta), 0, ',', ' ') . ' %';
     $delta_text = $delta_short . ' к прошлому';
+    // с чем сравнивается: у идущего периода прошлый отрезок обрезан по то же число
+    $delta_title = empty($data['prev_dates']) ? '' : 'Прошлый отрезок ' . $data['prev_dates'] . ': ' . $format($data['previous'], false);
 
     $full = $format($data['value'], false);
 
@@ -53,8 +56,9 @@
                 {{ $data['unit'] === 'money' ? $widget::compact($data['value']) : $format($data['value']) }}
             </div>
             <div class="desk-only-h-md"><div class="desk-label dk-label-wrap">{{ $label }}</div></div>
-            @if($data['previous'] !== null)
-                <div class="desk-only-h-md"><span class="desk-delta {{ $direction }}">{{ $delta_short }}</span></div>
+            {{-- прошлое значение нулевое — процент не считается, «—» вместо дельты ничего не говорит --}}
+            @if($delta !== null)
+                <div class="desk-only-h-md"><span class="desk-delta {{ $direction }}" title="{{ $delta_title }}">{{ $delta_short }}</span></div>
             @endif
         </div>
         @if($spark)
@@ -70,8 +74,11 @@
             <div @class(['desk-value', 'desk-value-lg' => $big]) title="{{ $full }}">{{ $format($data['value']) }}</div>
 
             @if($data['previous'] !== null)
-                <div class="d-flex gap-2 align-items-baseline flex-wrap desk-hide-short">
-                    <span class="desk-delta {{ $direction }}">{{ $delta_text }}</span>
+                <div class="d-flex gap-2 align-items-baseline flex-wrap desk-hide-short" title="{{ $delta_title }}">
+                    {{-- от нулевого прошлого процента нет: остаётся только «было: 0» --}}
+                    @if($delta !== null)
+                        <span class="desk-delta {{ $direction }}">{{ $delta_text }}</span>
+                    @endif
                     <span class="desk-muted desk-only-h-md">было: {{ $format($data['previous']) }}</span>
                 </div>
             @endif

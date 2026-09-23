@@ -410,10 +410,11 @@ class DesktopService
      * @param User $user
      * @param bool $fresh сбросить кэш данных
      * @param bool $free размер задан вручную — к размерам виджета не приводится
+     * @param array $view состояние просмотра блока (листаемый месяц и т.п.), отбирает сам виджет
      * @return string
      * @throws AuthorizationException
      */
-    public static function render(Desktop $desktop, string $widget_id, int $w, int $h, array $settings, User $user, bool $fresh = false, bool $free = false): string
+    public static function render(Desktop $desktop, string $widget_id, int $w, int $h, array $settings, User $user, bool $fresh = false, bool $free = false, array $view = []): string
     {
         static::assertView($desktop, $user);
 
@@ -427,7 +428,7 @@ class DesktopService
             [$w, $h] = $class::nearestSize($w, $h);
         }
 
-        return WidgetRegistry::instance($widget_id)->html($w, $h, $settings, static::context($desktop, $user), false, $fresh);
+        return WidgetRegistry::instance($widget_id)->html($w, $h, $settings, static::context($desktop, $user), false, $fresh, $view);
     }
 
     /**
@@ -435,7 +436,7 @@ class DesktopService
      * остальные: на его месте плашка «Не удалось загрузить виджет» с кнопкой «Повторить»
      *
      * @param Desktop $desktop
-     * @param array $items [['uid', 'widget', 'w', 'h', 'free_size', 'settings'], …]; плохой или повторный uid пропускается
+     * @param array $items [['uid', 'widget', 'w', 'h', 'free_size', 'settings', 'view'], …]; плохой или повторный uid пропускается
      * @param User $user
      * @param bool $fresh сбросить кэш данных
      * @return array uid => html
@@ -456,6 +457,10 @@ class DesktopService
             if (is_string($settings)) {
                 $settings = json_decode($settings, true);
             }
+            $view = $item['view'] ?? [];
+            if (is_string($view)) {
+                $view = json_decode($view, true);
+            }
 
             try {
                 $html[$uid] = static::render(
@@ -466,7 +471,8 @@ class DesktopService
                     is_array($settings) ? $settings : [],
                     $user,
                     $fresh,
-                    !empty($item['free_size'])
+                    !empty($item['free_size']),
+                    is_array($view) ? $view : []
                 );
             } catch (\Throwable $e) {
                 report($e);

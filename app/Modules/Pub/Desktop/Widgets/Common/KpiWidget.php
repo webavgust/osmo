@@ -8,7 +8,9 @@ use App\Modules\Pub\Desktop\Widgets\Widget;
 
 /**
  * Число (patch v30): один показатель из MetricRegistry крупно. Для показателя
- * с периодом — сравнение с прошлым таким же периодом.
+ * с периодом — сравнение с прошлым таким же периодом: у фактического показателя
+ * идущий месяц/квартал/год сравнивается с прошлым по то же число, у прогнозного
+ * ('forecast' в реестре) — с прошлым целиком (DesktopContext::previousRange()).
  */
 class KpiWidget extends Widget
 {
@@ -64,8 +66,9 @@ class KpiWidget extends Widget
 
         return [
             'value' => 21700000.0, 'previous' => 22600000.0, 'delta_percent' => -4.0, 'unit' => 'money', 'symbol' => '₽',
-            // образец — показатель с периодом: у него есть ряд для спарклайна
-            'label' => 'КП · Выиграно за период, сумма', 'period_label' => null, 'url' => null,
+            'prev_dates' => DesktopContext::previousPeriod('quarter', true)['dates'],
+            // образец — показатель с периодом: у него есть ряд для спарклайна и подпись периода, как у живых данных
+            'label' => 'КП · Выиграно за период, сумма', 'period_label' => 'Текущий квартал', 'url' => null,
             'series' => array_map(fn($month, $value) => ['label' => $month, 'title' => $month . ' 2026', 'value' => $value * 1000000], $months, $values),
         ];
     }
@@ -75,7 +78,7 @@ class KpiWidget extends Widget
      *
      * @param array $settings
      * @param DesktopContext $ctx
-     * @return array ['value', 'previous', 'delta_percent', 'unit', 'symbol', 'label', 'period_label', 'url',
+     * @return array ['value', 'previous', 'delta_percent', 'prev_dates', 'unit', 'symbol', 'label', 'period_label', 'url',
      *     'series' => [['label', 'title', 'value']]]
      */
     public function data(array $settings, DesktopContext $ctx): array
@@ -84,7 +87,7 @@ class KpiWidget extends Widget
         $metric = MetricRegistry::find($key);
 
         $out = [
-            'value' => null, 'previous' => null, 'delta_percent' => null,
+            'value' => null, 'previous' => null, 'delta_percent' => null, 'prev_dates' => null,
             'unit' => $metric['unit'] ?? 'count',
             'symbol' => $ctx->symbol($ctx->currencyFor($settings)),
             'label' => MetricRegistry::title($key),
@@ -110,8 +113,10 @@ class KpiWidget extends Widget
         $out['series'] = MetricRegistry::series($key, $ctx, $settings, 'month', 12);
 
         if ($settings['compare']) {
-            [$from, $to] = DesktopContext::previousRange($period['key']);
-            $out['previous'] = MetricRegistry::value($key, $ctx, $settings, $from, $to);
+            // факт идущего периода — к прошлому по то же число, прогноз — к прошлому целиком
+            $prev = DesktopContext::previousPeriod($period['key'], empty($metric['forecast']));
+            $out['prev_dates'] = $prev['dates'];
+            $out['previous'] = MetricRegistry::value($key, $ctx, $settings, $prev['from'], $prev['to']);
 
             if ($out['value'] !== null && !empty($out['previous'])) {
                 $out['delta_percent'] = round(($out['value'] - $out['previous']) / abs($out['previous']) * 100, 1);

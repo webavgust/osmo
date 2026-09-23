@@ -34,7 +34,8 @@
         @if($summary)
             <div class="desk-only-h-lg">
                 <div class="d-flex flex-wrap align-items-baseline column-gap-2">
-                    <span class="desk-value-sm" title="{{ $widget::money($data['total'], $symbol, false) }}">{{ $widget::money($data['total'], $symbol) }}</span>
+                    {{-- итог — сумма показанных сделок, а не всех сделок периода --}}
+                    <span class="desk-value-sm" title="Сумма показанных сделок ({{ count($list) }} из {{ $data['found'] }}): {{ $widget::money($data['total'], $symbol, false) }}">{{ $widget::money($data['total'], $symbol) }}</span>
                     <span class="desk-label text-nowrap">{{ count($list) }} из {{ $data['found'] }}</span>
                     <span class="desk-label text-nowrap desk-only-w-md">· {{ $data['dates'] }}</span>
                 </div>

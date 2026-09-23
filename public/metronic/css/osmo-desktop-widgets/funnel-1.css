@@ -114,3 +114,33 @@
     .desk-widget[data-widget="deal_card"] .dc-fields > li > .desk-label { flex-basis: 100%; }
     .desk-widget[data-widget="deal_card"] .dc-fields > li > .desk-grow { text-align: left !important; }
 }
+
+/*** Доли обрезаемых колонок таблиц (аудит 23.09.2026) ***/
+
+/* У .desk-cut ширина 99 %: когда таких колонок в строке две и больше, сумма процентов выходит
+   за 100, и браузер отдаёт место первой по порядку, а следующие («Что не так», «Проблема»,
+   «Стадия») режет до многоточия даже в широком блоке. Здесь доли заданы явно, в сумме 100 %. */
+.desk-widget[data-widget="crm_mismatch"] .cmm-list .desk-table td.desk-cut:first-child,
+.desk-widget[data-widget="deal_issues"] .cmm-list .desk-table td.desk-cut:first-child { width: 50%; }
+.desk-widget[data-widget="crm_mismatch"] .cmm-list .desk-table td.cmm-issue,
+.desk-widget[data-widget="deal_issues"] .cmm-list .desk-table td.cmm-issue { width: 50%; }
+@container dw (min-width: 860px) {
+    .desk-widget[data-widget="crm_mismatch"] .cmm-list .desk-table td.desk-cut:first-child { width: 38%; }
+    .desk-widget[data-widget="crm_mismatch"] .cmm-list .desk-table td.cmm-company { width: 24%; }
+    .desk-widget[data-widget="crm_mismatch"] .cmm-list .desk-table td.cmm-issue { width: 38%; }
+}
+
+/* реестр сделок: сделка и стадия; от 620 px ещё менеджер, от 800 px — партнёр */
+.desk-widget[data-widget="deals_registry"] .desk-table td.dr-name { width: 60%; }
+.desk-widget[data-widget="deals_registry"] .desk-table td.dr-stage { width: 40%; }
+@container dw (min-width: 620px) {
+    .desk-widget[data-widget="deals_registry"] .desk-table td.dr-name { width: 46%; }
+    .desk-widget[data-widget="deals_registry"] .desk-table td.dr-stage { width: 30%; }
+    .desk-widget[data-widget="deals_registry"] .desk-table td.dr-man { width: 24%; }
+}
+@container dw (min-width: 800px) {
+    .desk-widget[data-widget="deals_registry"] .desk-table td.dr-name { width: 38%; }
+    .desk-widget[data-widget="deals_registry"] .desk-table td.dr-stage { width: 24%; }
+    .desk-widget[data-widget="deals_registry"] .desk-table td.dr-wide { width: 20%; }
+    .desk-widget[data-widget="deals_registry"] .desk-table td.dr-man { width: 18%; }
+}

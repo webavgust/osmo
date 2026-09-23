@@ -18,7 +18,9 @@
     $cost_full = fn($row) => $row['amount'] === null ? 'Нет расчёта' : $widget::money($row['amount'], $row['symbol'], false);
     $caption = fn($row) => trim(($row['number'] !== '' ? '№ ' . $row['number'] . ' · ' : '') . $row['name']);
     $company = fn($row) => $row['company'] ?: ($row['partner'] ?: $row['name']);
-    $label = 'без сделки Битрикс24' . ($settings['only_in_work'] ? ', в работе' : '');
+    $label = 'без сделки Битрикс24' . ($settings['only_in_work'] ? ', в работе' : '') . (!empty($settings['mine']) ? ', мои' : '');
+    // пустой список — формулировка по отбору: «все мои КП в работе привязаны к сделкам»
+    $all_linked = 'Все ' . (!empty($settings['mine']) ? 'мои ' : '') . 'КП' . ($settings['only_in_work'] ? ' в работе' : '') . ' привязаны к сделкам';
 @endphp
 <div @class([
     'desk-center' => $line && empty($chips),
@@ -28,12 +30,12 @@
 ])>
     <div @class(['min-w-0', 'nd-side flex-shrink-0' => $side || !empty($chips)])>
         {{-- в колонке сбоку подпись короче: «Битрикс24» не влезает и режется посередине --}}
-        <div class="desk-label desk-nowrap" title="{{ $label }}">без сделки@if(!$side && empty($chips))<span class="desk-only-w-md"> Битрикс24</span>@endif{{ $settings['only_in_work'] ? ', в работе' : '' }}</div>
+        <div class="desk-label desk-nowrap" title="{{ $label }}">без сделки@if(!$side && empty($chips))<span class="desk-only-w-md"> Битрикс24</span>@endif{{ $settings['only_in_work'] ? ', в работе' : '' }}{{ !empty($settings['mine']) ? ', мои' : '' }}</div>
         <div @class(['desk-value', 'nd-value-list' => !empty($list) && !$line, 'text-warning' => $count > 0])>{{ $count }}</div>
         @if($count > 0)
             <div class="desk-muted fs-8 desk-hide-short desk-hide-narrow">не видно в воронке и расхождениях</div>
         @elseif(!$line)
-            <div class="desk-muted fs-8 desk-hide-short">Все КП привязаны к сделкам</div>
+            <div class="desk-muted fs-8 desk-hide-short">{{ $all_linked }}</div>
         @endif
     </div>
 

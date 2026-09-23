@@ -7,7 +7,9 @@
     $href = fn($row) => $preview || empty($row['url']) ? 'javascript:void(0)' : $row['url'];
     $hint = fn($row) => trim($row['type_label'] . ' · ' . $row['title'] . ' · ' . $row['event_label']
         . ' · ' . $row['user'] . ' · ' . $row['when']
-        . ($row['changes'] > 0 ? ' · правок: ' . $row['changes'] : ''));
+        . ($row['changes'] > 0 ? ' · правок: ' . $row['changes'] : '')
+        // объект удалён — ленты нет, строка не ссылка
+        . (!$preview && empty($row['url']) ? ' · объект удалён' : ''));
 @endphp
 @if(empty($list))
     <div class="desk-empty">
@@ -58,10 +60,11 @@
                     {{-- название и автор режутся каждый сам по себе, автор сжимается первым --}}
                     <a href="{{ $href($row) }}" class="desk-link desk-grow d-flex align-items-baseline gap-2 text-hover-primary" title="{{ $hint($row) }}">
                         <span class="changes-title fw-semibold text-truncate">{{ $row['title'] }}</span>
-                        <span class="changes-user desk-muted fs-8 text-truncate desk-only-w-md">{{ $row['user'] }}</span>
+                        <span class="changes-user desk-muted fs-8 text-truncate">{{ $row['user'] }}</span>
                     </a>
-                    {{-- в узком блоке времени нет места: оно в подсказке названия --}}
-                    <span class="desk-muted fs-8 text-nowrap flex-shrink-0 desk-hide-narrow" title="{{ $row['when'] }}">{{ $row['ago'] }}</span>
+                    {{-- время коротко («12 мин.»): полное «12 минут назад» съедало название; оно в подсказке.
+                         В узком блоке времени нет места — оно в подсказке названия --}}
+                    <span class="desk-muted fs-8 text-nowrap flex-shrink-0 desk-hide-narrow" title="{{ $row['when'] }} · {{ $row['ago'] }}">{{ $row['ago_short'] ?? $row['ago'] }}</span>
                 </li>
             @endforeach
         </ul>

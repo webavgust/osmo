@@ -12,6 +12,9 @@
     // цвет давности: чем дольше договор висит без подписи, тем тревожнее
     $color = fn($days) => $days === null ? 'secondary' : ($days > 180 ? 'danger' : ($days > 60 ? 'warning' : 'secondary'));
     $href = fn($row) => $preview || empty($row['url']) ? 'javascript:void(0)' : $row['url'];
+    // у договора без спецификаций суммы нет — прочерк, а не «0 ₽»
+    $amount = fn($row) => $row['specs'] > 0 ? $widget::money($row['amount'], $data['symbol']) : '—';
+    $amount_hint = fn($row) => $row['specs'] > 0 ? $widget::money($row['amount'], $data['symbol'], false) : 'Спецификаций у договора нет';
 
     $hint = fn($row) => $row['partner'] . ' · ' . $row['type'] . ' № ' . $row['number']
         . ' · от ' . ($row['date'] ?? 'без даты')
@@ -109,8 +112,8 @@
                                 <td class="num desk-muted">{{ $row['date'] ?? '—' }}</td>
                                 <td class="num text-{{ $color($row['days']) }} fw-semibold">{{ $widget::age($row['days']) }}</td>
                                 <td class="num desk-muted desk-only-w-xl">{{ $row['specs'] ?: '—' }}</td>
-                                <td class="num fw-bold" title="{{ $widget::money($row['amount'], $data['symbol'], false) }}">
-                                    {{ $widget::money($row['amount'], $data['symbol']) }}
+                                <td class="num fw-bold" title="{{ $amount_hint($row) }}">
+                                    {{ $amount($row) }}
                                 </td>
                             </tr>
                         @endforeach
@@ -127,8 +130,8 @@
                         <span class="badge badge-light-{{ $color($row['days']) }} flex-shrink-0 desk-only-w-md">
                             {{ $widget::age($row['days']) }}
                         </span>
-                        <span class="fw-bold fin-amount" title="{{ $widget::money($row['amount'], $data['symbol'], false) }}">
-                            {{ $widget::money($row['amount'], $data['symbol']) }}
+                        <span class="fw-bold fin-amount" title="{{ $amount_hint($row) }}">
+                            {{ $amount($row) }}
                         </span>
                     </li>
                 @endforeach

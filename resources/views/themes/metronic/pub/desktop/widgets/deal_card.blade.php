@@ -55,8 +55,13 @@
     }
 @endphp
 @if(empty($data['found']))
+    {{-- сделку выбрали, но в выгрузке Битрикс24 её нет (удалили) — это не «не выбрана» --}}
     <div class="desk-empty">
-        <i class="fa-light fa-handshake"></i> Сделка не выбрана
+        @if(!empty($data['id']))
+            <i class="fa-light fa-link-slash"></i> Сделки #{{ $data['id'] }} нет в Битрикс24
+        @else
+            <i class="fa-light fa-handshake"></i> Сделка не выбрана
+        @endif
     </div>
 @elseif($low)
     <div class="desk-center">

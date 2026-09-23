@@ -131,6 +131,12 @@
     opacity: .8;
     font-size: calc(clamp(11px, min(3cqw, 4cqh), 16px) * var(--desk-font-scale));
 }
+/* кнопка стоит в теле с одинаковым отступом со всех сторон (общий отступ тела сверху меньше) */
+.desk-widget[data-widget="button"] .desk-widget-body { padding: .6rem; }
+@container dw (max-height: 96px) {
+    .desk-widget[data-widget="button"] .desk-widget-body { padding: .45rem; }
+}
+.desk-widget[data-widget="button"].desk-h-xs .desk-widget-body { padding: .15rem; }
 @container dw (min-height: 150px) {
     .desk-widget[data-widget="button"] .desk-action-hint { display: block; }
 }
@@ -182,6 +188,21 @@
 /* строка списка: название и автор режутся многоточием по отдельности, автор уступает первым */
 .desk-widget[data-widget="changes"] .changes-title { flex: 0 1 auto; min-width: 0; }
 .desk-widget[data-widget="changes"] .changes-user { flex: 0 100 auto; min-width: 0; }
+/* автор — от 330 px (ширина 7+): уже ему оставалось бы несколько пикселей под «…» */
+@container dw (width < 330px) {
+    .desk-widget[data-widget="changes"] .changes-user { display: none; }
+}
+/* ширина 2–4: название переносится в две строки, чтобы номер КП читался целиком */
+@container dw (width < 230px) {
+    .desk-widget[data-widget="changes"] .changes-title {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        line-height: 1.25;
+    }
+}
 
 /* ================= chart — График показателя ================= */
 
@@ -191,6 +212,14 @@
 }
 /* шапка графика: подпись, итог, последнее значение в строку */
 .desk-widget[data-widget="chart"] .chart-head { display: flex; align-items: baseline; gap: .5rem; min-width: 0; }
+/* значение не сжимается и не уходит в многоточие — место уступает подпись */
+.desk-widget[data-widget="chart"] .chart-last { flex-shrink: 0; }
+/* место под график ниже 44 px (ширина 3–4 при высоте 3: подпись в две строки и значение) —
+   график не рисуется, остаются подпись и значение */
+.desk-widget[data-widget="chart"] .desk-stack > .desk-stack-grow { container-type: size; container-name: dchart; }
+@container dchart (max-height: 44px) {
+    .desk-widget[data-widget="chart"] .desk-chart { display: none; }
+}
 /* узкий блок (ширина 2–4) или высокий не широкий: подпись до двух строк над значением */
 @container dw (max-width: 229.98px) or ((max-width: 419.98px) and (min-height: 230px)) {
     .desk-widget[data-widget="chart"] .chart-head { flex-wrap: wrap; row-gap: .1rem; }
@@ -202,6 +231,8 @@
         -webkit-box-orient: vertical;
         -webkit-line-clamp: 2;
     }
+    /* значение на своей строке: длинное («123,4 млн ₽») переносится по пробелу, а не режется */
+    .desk-widget[data-widget="chart"] .chart-last { flex-shrink: 1; min-width: 0; white-space: normal !important; }
 }
 /* низкий узкий блок (высота 2, ширина 2–4): вместо графика — значение с подписью */
 @container dw (max-height: 96px) and (max-width: 229.98px) {

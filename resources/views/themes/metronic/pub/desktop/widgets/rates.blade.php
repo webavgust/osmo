@@ -2,7 +2,7 @@
 
     Поведение по размерам (ступени, стили — osmo-desktop-widgets/common-3.css):
     - ширина xs: код валюты мелко над курсом, без дельты и графика; внизу дата «на 14.09»;
-    - ширина от sm: код, курс, дельта ко вчера; от 230 px — название валюты;
+    - ширина от sm: код, курс, дельта ко вчера (уже 170 px — только в подсказке); от 230 px — название валюты;
     - от 420 px — шапка колонок и «мин–макс за период»; от 620 px — изменение за период;
     - высота lg/xl и настройка «График» — под списком график первой валюты (не меньше 45 % высоты);
     - строк с запасом ($rows_max) в .desk-fit — лишние прячет подгон.
@@ -21,7 +21,13 @@
 
         return ($value > 0 ? '+' : ($value < 0 ? '−' : '')) . number_format(abs($value), 1, ',', ' ') . ' %';
     };
-    $rate = fn($value) => number_format($value, 2, ',', ' ') . ' ₽';
+    // знаков после запятой — по величине курса: у сума (0,00712 ₽) два знака дали бы «0,01 ₽»
+    $num = fn($value) => number_format($value, match (true) {
+        abs($value) >= 1 => 2,
+        abs($value) >= 0.01 => 4,
+        default => 5,
+    }, ',', ' ');
+    $rate = fn($value) => $num($value) . ' ₽';
     // мин, макс и изменение за период — по истории курса
     $range = function ($row) {
         $history = $row['history'] ?? [];
@@ -38,7 +44,7 @@
 @endphp
 @if(empty($data['rows']))
     <div class="desk-empty">
-        <i class="fa-light fa-money-bill-transfer"></i> Курсы не загружены
+        <i class="fa-light fa-coins"></i> Курсы не загружены
     </div>
 @else
     <div class="desk-stack">
@@ -61,19 +67,20 @@
                     </li>
                 @else
                     @php($period = $range($row))
-                    <li title="{{ $row['name'] }}">
+                    <li title="{{ $row['name'] }}@if($row['delta'] !== null) · {{ $pct($row['delta']) }} ко вчера@endif">
                         <span class="fw-bold flex-shrink-0 dr-slug">{{ $row['slug'] }}</span>
                         <span class="desk-muted desk-grow desk-only-w-md" title="{{ $row['name'] }}">{{ $row['name'] }}</span>
                         @if($period)
                             <span class="desk-muted fs-8 text-nowrap flex-shrink-0 dr-range desk-only-w-lg">
-                                {{ number_format($period['min'], 2, ',', ' ') }}–{{ number_format($period['max'], 2, ',', ' ') }}
+                                {{ $num($period['min']) }}–{{ $num($period['max']) }}
                             </span>
                             <span class="desk-delta {{ $arrow($period['change']) }} flex-shrink-0 dr-col desk-only-w-xl">
                                 {{ $period['change'] === null ? '—' : $pct($period['change']) }}
                             </span>
                         @endif
                         <span class="fw-semibold text-nowrap ms-auto flex-shrink-0 dr-rate">{{ $rate($row['rate']) }}</span>
-                        <span class="desk-delta {{ $arrow($row['delta']) }} flex-shrink-0 dr-col">
+                        {{-- ширина 3 (уже 170 px): код и курс занимают всю строку — дельта в подсказке строки --}}
+                        <span class="desk-delta {{ $arrow($row['delta']) }} flex-shrink-0 dr-col desk-hide-narrow">
                             {{ $row['delta'] === null ? '' : $pct($row['delta']) }}
                         </span>
                     </li>

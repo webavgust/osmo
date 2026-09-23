@@ -14,7 +14,7 @@ enum CrmDealIssues
     case NO_MONTH_OR_QUARTER;                       // Не заполнен месяц сделки или квартал
     case SUM_LICENSE_SERVICES_NOT_MATCH_TOTAL;      // Стоимость лицензий и услуг не совпадает с общей (не валютные сделки)
 
-    case LICENCE_OR_SERVICE_AMOUNT_DOESNT_FILL;     // Не указана стоимость лиценцзий и(или) услуг
+    case LICENCE_OR_SERVICE_AMOUNT_DOESNT_FILL;     // Не указана стоимость лицензий и(или) услуг
     case AMOUNT_IS_NULL;                            // Не указана стоимость сделки
     case FOREIGN_LICENSE_OR_SERVICE_CONTAINS_SPACE; // Стоимость лицензий и услуг имеет кривые символы [НЕ РУБ!]
 
@@ -78,7 +78,7 @@ enum CrmDealIssues
                 }
             ],
             self::LICENCE_OR_SERVICE_AMOUNT_DOESNT_FILL => [
-                'label' => 'Не указана стоимость лиценцзий и(или) услуг',
+                'label' => 'Не указана стоимость лицензий и(или) услуг',
                 'validate' => function ($deal) {
                     if(in_array($deal->stage_name, [
                         'Lead',

@@ -151,3 +151,28 @@
 .desk-widget[data-widget="proposals_nodeal"] .nd-value-list {
     font-size: calc(clamp(15px, min(13cqw, 20cqh), 64px) * var(--desk-font-scale));
 }
+
+/*** ВЕТКИ ВТОРОСТЕПЕННЫХ КП — proposals_recent, proposals_mine (patch v33) ***/
+
+/* как в списке КП: строка сразу под главным, уголок, приглушена; фон полупрозрачный — годится
+   и для тёмных блоков */
+.desk-widget[data-widget="proposals_recent"] .pl-child,
+.desk-widget[data-widget="proposals_mine"] .pl-child { background: rgba(128, 128, 128, .08); }
+.desk-widget[data-widget="proposals_recent"] li.pl-child > *,
+.desk-widget[data-widget="proposals_mine"] li.pl-child > *,
+.desk-widget[data-widget="proposals_recent"] tr.pl-child > td > *,
+.desk-widget[data-widget="proposals_mine"] tr.pl-child > td > * { opacity: .6; }
+.desk-widget[data-widget="proposals_recent"] .pl-branch,
+.desk-widget[data-widget="proposals_mine"] .pl-branch {
+    flex: 0 0 auto;
+    display: inline-block;
+    width: 10px;
+    height: 8px;
+    margin: 0 0 .3em 4px;
+    vertical-align: middle;
+    border-left: 1px solid currentColor;
+    border-bottom: 1px solid currentColor;
+    border-bottom-left-radius: 3px;
+}
+/* «Последние КП»: в строке списка уголок стоит на месте точки статуса — той же ширины */
+.desk-widget[data-widget="proposals_recent"] li .pl-branch { width: 8px; margin-left: 0; }

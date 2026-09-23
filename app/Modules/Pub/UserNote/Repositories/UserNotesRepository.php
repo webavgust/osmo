@@ -43,6 +43,46 @@ class UserNotesRepository
     }
 
 
+    /**
+     * Правка заметки на месте: id, дата создания, напоминание и отметка «выполнено»
+     * сохраняются (раньше правка удаляла заметку и создавала новую)
+     *
+     * @param UserNote $note
+     * @param array $data ['title', 'text', 'favorite', 'done' — необязательно]
+     * @return UserNote
+     */
+    public function update(UserNote $note, array $data): UserNote
+    {
+        $note->fill([
+            'title' => $data['title'],
+            'text' => $data['text'] ?? null,
+            'favorite' => (bool) ($data['favorite'] ?? false),
+        ]);
+
+        // флажок «Задача выполнена» есть только в сайдбаре правки; время первой отметки не сбиваем
+        if (array_key_exists('done', $data)) {
+            $note->done_at = $data['done'] ? ($note->done_at ?? now()) : null;
+        }
+
+        $note->save();
+
+        return $note;
+    }
+
+    /**
+     * Переключить отметку «выполнено»
+     *
+     * @param UserNote $note
+     * @return UserNote
+     */
+    public function toggleDone(UserNote $note): UserNote
+    {
+        $note->done_at = $note->done_at ? null : now();
+        $note->save();
+
+        return $note;
+    }
+
     public function delete(UserNote $note)
     {
         if($note->canEdit()) {

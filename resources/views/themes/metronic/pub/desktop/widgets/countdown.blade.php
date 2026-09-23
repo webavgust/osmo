@@ -1,7 +1,8 @@
 {{-- Виджет «Обратный отсчёт» (patch v30): App\Modules\Pub\Desktop\Widgets\Personal\CountdownWidget --}}
 @if($data['days'] === null)
     <div class="desk-empty">
-        <i class="fa-light fa-hourglass-half"></i> Укажите дату в настройках
+        {{-- дата введена, но не разобрана — подсказать формат, а не «укажите» --}}
+        <i class="fa-light fa-hourglass-half"></i> {{ trim((string) $settings['date']) !== '' ? 'Дата не распознана — нужно ДД.ММ.ГГГГ' : 'Укажите дату в настройках' }}
     </div>
 @else
     @php
@@ -13,7 +14,8 @@
         $progress = $data['progress'] ?? null;
     @endphp
     {{-- раскладку (столбик или ряд) и кегль выбирает personal.css по пропорции блока --}}
-    <div class="cd-box" style="--cd-em: {{ $em }}" title="{{ $data['date'] }}">
+    {{-- в подсказке — какой день считается концом и что сегодняшний в число не входит --}}
+    <div class="cd-box" style="--cd-em: {{ $em }}" title="{{ $data['hint'] ?? $data['date'] }}">
         <div @class([
                 'cd-value',
                 'text-primary' => $data['today'],

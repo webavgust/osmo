@@ -14,7 +14,7 @@
 @endphp
 @if(empty($list))
     <div class="desk-empty">
-        <i class="fa-light fa-ranking-star"></i> Нет данных{{ $data['year'] ? ' за ' . $data['year'] . ' год' : '' }}
+        <i class="fa-light fa-trophy"></i> Нет данных{{ $data['year'] ? ' за ' . $data['year'] . ' год' : '' }}
     </div>
 @else
     <div class="desk-stack">
@@ -74,6 +74,6 @@
                 @endforeach
             </ul>
         @endif
-        <div class="desk-muted fs-8 desk-hide-short desk-fit-out" data-fit-more="ещё {n}"></div>
+        <div class="desk-muted fs-8 desk-hide-short desk-fit-out" data-fit-more="ещё {n}" data-fit-extra="{{ max(0, $data['total'] - count($list)) }}"></div>
     </div>
 @endif

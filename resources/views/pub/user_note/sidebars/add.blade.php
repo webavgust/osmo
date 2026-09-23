@@ -64,6 +64,8 @@
                 success: function (html) {
                     $(block_elem).unblock();
                     $(".note-has-grid").html(html);
+                    // рабочий стол: перерисовать виджет «Блокнот»
+                    $(document).trigger("desk:refresh", ["notebook"]);
                     sidebar_close();
                 },
                 error: function () {

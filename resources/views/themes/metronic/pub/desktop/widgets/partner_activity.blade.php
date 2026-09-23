@@ -24,14 +24,16 @@
     $year_max = max(1, max(array_column($year_rows, 'value') ?: [0]));
 @endphp
 @if(empty($series))
-    <div class="desk-empty">
-        <i class="fa-light fa-chart-column"></i> Партнёр не выбран
+    {{-- рядов нет только без выбора, когда ни у кого нет событий за эти годы: сам выбор не обязателен --}}
+    <div class="desk-empty" title="{{ $data['metric_label'] }}{{ $period ? ': ' . $period : '' }}">
+        <i class="fa-light fa-chart-column"></i> <span class="desk-hide-narrow">{{ $data['metric_label'] }}:</span> нет данных
     </div>
 @else
     <div class="desk-stack">
         <div>
             <div class="desk-label desk-nowrap" title="{{ $data['metric_label'] }} по годам{{ $period ? ', ' . $period : '' }}{{ $data['auto'] ? ' · партнёр выбран по наибольшей активности' : '' }}">
-                {{ $data['metric_label'] }} по годам{{ $many ? ' · сравнение' : '' }}
+                {{-- уже 230 px — только показатель: «Спецификации по годам · сравнение» уходило в многоточие --}}
+                {{ $data['metric_label'] }}<span class="desk-only-w-md"> по годам{{ $many ? ' · сравнение' : '' }}</span>
             </div>
 
             @unless($many)

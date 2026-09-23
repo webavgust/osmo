@@ -31,8 +31,32 @@ class ApiUserNoteController
     public function edit(CreateRequest $request, UserNote $note)
     {
         if(!$note->canEdit()) abort(404);
-        $this->repo->delete($note);
-        return $this->create($request);
+
+        $data = [
+            'title' => $request->validated('title'),
+            'text' => $request->validated('text'),
+            'favorite' => $request->boolean('favorite'),
+        ];
+        if ($request->has('done')) {
+            $data['done'] = $request->boolean('done');
+        }
+        $this->repo->update($note, $data);
+
+        return View::make('components.dashboard.user.note_block', ['notes' => auth()->user()->notes()->get()]);
+    }
+
+    /**
+     * Отметить задачу выполненной или вернуть в работу (виджет «Блокнот»)
+     *
+     * @param UserNote $note
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function done(UserNote $note)
+    {
+        if(!$note->canEdit()) abort(404);
+        $this->repo->toggleDone($note);
+
+        return Response::json(['result' => 'success', 'done' => $note->isDone()]);
     }
 
     public function delete(UserNote $note)

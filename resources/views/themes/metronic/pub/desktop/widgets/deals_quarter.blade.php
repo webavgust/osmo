@@ -5,7 +5,8 @@
       году — шире 230 px, суммы кварталов ячейками в ряд — шире 420 px;
     - ширина 2 (dw xs), высота ≥3: сумма за год, кварталы строками в .desk-fit (сумма, прошлый год);
       высота ≥6 — под ними столбики без осей на оставшееся место;
-    - ширина ≥3, высота ≥3: строка «план 2026 · N сделок», прошлый год и дельта (шире 230 px), сумма;
+    - ширина ≥3, высота ≥3: строка «2026 · N сделок» (число сделок — шире 230 px), прошлый год
+      (шире 420 px) и дельта (шире 230 px), сумма;
       график столбцами на всё место; предупреждение «без квартала» переносится по словам;
     - высота ≥10 (dh xl) и ширина ≥6: под графиком таблица кварталов — сумма, прошлый год, дельта,
       число сделок (от 420 px).
@@ -80,7 +81,8 @@
             </div>
         @else
             <div class="d-flex align-items-baseline gap-2 min-w-0">
-                <span class="desk-label desk-grow" title="{{ $total_title }}">{{ $data['year'] }} · {{ $morph($data['count_total']) }}</span>
+                {{-- число сделок — от 230 px: в узком блоке строка уходила в многоточие вместе с числом --}}
+                <span class="desk-label desk-grow" title="{{ $total_title }}">{{ $data['year'] }}<span class="desk-only-w-md"> · {{ $morph($data['count_total']) }}</span></span>
                 @if($compare)
                     <span class="desk-muted text-nowrap desk-only-w-lg" title="{{ $data['prev_year'] }} год: {{ $widget::money($data['prev_total'], $symbol, false) }}">
                         {{ $data['prev_year'] }}: {{ $widget::money($data['prev_total'], $symbol) }}

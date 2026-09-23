@@ -39,7 +39,7 @@
         context: {},        // валюта и период стола
         config: {},         // columns, narrow_columns, narrow_width, list_width
         urls: {},           // render, save, context, store, copy
-        state: {},          // uid => {widget, settings, w, h, free_size, meta, available, requested, loaded, xhr}
+        state: {},          // uid => {widget, settings, view, w, h, free_size, meta, available, requested, loaded, xhr}
         editing: false,
         dirty: false,
         loading: false,     // первичная раскладка: события сетки не считаются правкой
@@ -263,6 +263,8 @@
         Desk.state[uid] = {
             widget: String(item.widget || ''),
             settings: settings,
+            // состояние просмотра (листаемый месяц и т.п.): не сохраняется, живёт до перезагрузки
+            view: {},
             w: w,
             h: h,
             // отжат замок: размер задан вручную и к размерам виджета не приводится
@@ -420,6 +422,41 @@
         if (!queueTimer) queueTimer = setTimeout(flushQueue, BATCH_DELAY);
     };
 
+    /**
+     * Перерисовать все блоки виджета (со сбросом кэша) — после правки данных вне стола:
+     * сайдбар заметки, события и т.п. шлют $(document).trigger('desk:refresh', ['notebook'])
+     *
+     * @param {string|string[]} widgets id виджетов
+     */
+    Desk.refreshWidget = function (widgets) {
+        var ids = [].concat(widgets || []);
+
+        Object.keys(Desk.state).forEach(function (uid) {
+            if (ids.indexOf(Desk.state[uid].widget) !== -1) Desk.refresh(uid, true);
+        });
+    };
+
+    /**
+     * Сменить состояние просмотра блока и перерисовать его. Ключ со значением null
+     * удаляется; что допустимо — решает виджет (Widget::viewState)
+     *
+     * @param {string} uid
+     * @param {Object} patch
+     */
+    Desk.setView = function (uid, patch) {
+        var st = Desk.state[uid];
+        if (!st || !patch || typeof patch !== 'object') return;
+
+        var view = $.extend({}, st.view || {});
+        Object.keys(patch).forEach(function (key) {
+            if (patch[key] === null) delete view[key];
+            else view[key] = patch[key];
+        });
+        st.view = view;
+
+        Desk.refresh(uid, false);
+    };
+
     /** Отправить очередь: блоки со сбросом кэша и без — отдельными пачками по BATCH_SIZE */
     function flushQueue() {
         var plain = [];
@@ -453,7 +490,7 @@
 
             st.seq = ++requestSeq;
             seqs[uid] = st.seq;
-            items.push({uid: uid, widget: st.widget, w: st.w, h: st.h, free_size: st.free_size ? 1 : 0, settings: st.settings || {}});
+            items.push({uid: uid, widget: st.widget, w: st.w, h: st.h, free_size: st.free_size ? 1 : 0, settings: st.settings || {}, view: st.view || {}});
         });
         if (!items.length) return;
 
@@ -582,6 +619,52 @@
                 event.preventDefault();
                 event.stopImmediatePropagation();
             }
+        });
+
+        // состояние просмотра блока: data-desk-view='{"month":"2026-10"}' (листание, раскрытый день)
+        $grid.on('click', '[data-desk-view]', function (event) {
+            event.preventDefault();
+
+            var uid = uidOf(this);
+            var patch = null;
+            try {
+                patch = JSON.parse(this.getAttribute('data-desk-view'));
+            } catch (e) {
+                patch = null;
+            }
+            if (uid && patch) Desk.setView(uid, patch);
+        });
+
+        // действие виджета без перехода: data-desk-post="url" — POST, затем перерисовка всех
+        // блоков этого виджета со сбросом кэша (отметка задачи в «Блокноте» и т.п.)
+        $grid.on('click', '[data-desk-post]', function (event) {
+            event.preventDefault();
+
+            var node = this;
+            var uid = uidOf(node);
+            var st = uid ? Desk.state[uid] : null;
+            if (!st || node.classList.contains('desk-posting')) return;
+
+            node.classList.add('desk-posting');
+            post(node.getAttribute('data-desk-post'))
+                .done(function (response) {
+                    // успех — только {result: 'success'}; чужой токен AjaxApi отвечает {error: 'auth'}
+                    if (!response || response.result !== 'success') {
+                        node.classList.remove('desk-posting');
+                        toastr.error(errorText(response), 'Это провал!');
+                        return;
+                    }
+                    Desk.refreshWidget(st.widget);
+                })
+                .fail(function (xhr) {
+                    node.classList.remove('desk-posting');
+                    toastr.error(errorText(xhr && xhr.responseJSON), 'Это провал!');
+                });
+        });
+
+        // данные поменялись вне стола (сайдбар заметки, события): перерисовать виджеты
+        $(document).on('desk:refresh', function (event, widgets) {
+            Desk.refreshWidget(widgets);
         });
 
         // виджеты «Валюта» и «Период» меняют контекст всего стола

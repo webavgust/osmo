@@ -100,7 +100,8 @@
                 @endif
                 <span class="desk-muted text-nowrap" title="Редакций у КП: {{ $data['iterations'] }}">{{ $data['iterations'] }} ред.</span>
                 @if($data['date'])
-                    <span class="desk-muted text-nowrap desk-hide-narrow" title="Дата последней редакции">{{ $data['date'] }}</span>
+                    {{-- сбоку от списка шапка узкая: дата там — только в широком блоке, она есть в строках редакций --}}
+                    <span @class(['desk-muted text-nowrap desk-hide-narrow', 'desk-only-w-lg' => $side]) title="Дата последней редакции">{{ $data['date'] }}</span>
                 @endif
             </div>
 
@@ -129,7 +130,7 @@
         @endif
 
         @if(!empty($list))
-            <ul class="desk-list desk-stack-grow desk-fit desk-ph-list" data-fit-min="0">
+            <ul @class(['desk-list desk-stack-grow desk-fit desk-ph-list', 'desk-ph-iter' => !$positions]) data-fit-min="0">
                 @foreach($list as $row)
                     <li>
                         @if($tall)

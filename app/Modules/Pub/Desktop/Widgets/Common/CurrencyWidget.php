@@ -6,12 +6,14 @@ use App\Modules\Pub\Currency\Models\Currency;
 use App\Modules\Pub\Currency\Services\CurrencyService;
 use App\Modules\Pub\Desktop\Services\DesktopContext;
 use App\Modules\Pub\Desktop\Widgets\Widget;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Выбор валюты стола (patch v30).
  *
  * Меняет контекст стола: денежные виджеты с настройкой «Со стола» пересчитываются
- * в выбранную валюту. Рядом (на ширине 8) — курс выбранной валюты к рублю на сегодня.
+ * в выбранную валюту. Рядом (шире 230 px) или в карточке под выбором — курс выбранной
+ * валюты к рублю: последний курс ЦБ не позже сегодня и его дата.
  */
 class CurrencyWidget extends Widget
 {
@@ -83,9 +85,10 @@ class CurrencyWidget extends Widget
             $slug = in_array('USD', $others, true) ? 'USD' : ($others[0] ?? null);
 
             if ($slug !== null) {
-                $rate = CurrencyService::getConvertRateForDate(now(), $slug, Currency::CURRENCY_DEFAULT);
+                [$rate, $date] = static::rate($slug);
                 $data['current'] = $slug;
-                $data['rate'] = $rate === null ? 90.0 : (float) $rate;
+                $data['rate'] = $rate ?? 90.0;
+                $data['rate_date'] = $date ?? now()->format('d.m.Y');
             }
         }
 
@@ -97,7 +100,7 @@ class CurrencyWidget extends Widget
      *
      * @param array $settings
      * @param DesktopContext $ctx
-     * @return array ['currencies' => [slug => ['slug', 'name', 'symbol']], 'current', 'rate', 'rate_date']
+     * @return array ['currencies' => [slug => ['slug', 'name', 'symbol']], 'current', 'rate', 'rate_date' — дата курса в базе]
      */
     public function data(array $settings, DesktopContext $ctx): array
     {
@@ -121,15 +124,40 @@ class CurrencyWidget extends Widget
             ];
         }
 
-        $rate = $ctx->currency === Currency::CURRENCY_DEFAULT
-            ? 1.0
-            : CurrencyService::getConvertRateForDate(now(), $ctx->currency, Currency::CURRENCY_DEFAULT);
+        [$rate, $date] = static::rate($ctx->currency);
 
         return [
             'currencies' => $currencies,
             'current' => $ctx->currency,
-            'rate' => $rate === null ? null : (float) $rate,
-            'rate_date' => now()->format('d.m.Y'),
+            'rate' => $rate,
+            'rate_date' => $date,
         ];
+    }
+
+    /**
+     * Курс валюты к рублю на сегодня и дата, на которую он установлен. Курс берётся
+     * последний не позже сегодняшнего (как в CurrencyService) — поэтому и дата его, а не
+     * сегодняшняя: в выходные и при сбое загрузки курсов она отстаёт
+     *
+     * @param string $slug
+     * @return array [курс или null, 'd.m.Y' или null]
+     */
+    protected static function rate(string $slug): array
+    {
+        if ($slug === Currency::CURRENCY_DEFAULT) {
+            return [1.0, null];
+        }
+
+        $rate = CurrencyService::getConvertRateForDate(now(), $slug, Currency::CURRENCY_DEFAULT);
+        if ($rate === null) {
+            return [null, null];
+        }
+
+        $date = DB::table('currency_rates')
+            ->where('slug', $slug)
+            ->where('date', '<=', now()->format('Y-m-d'))
+            ->max('date');
+
+        return [(float) $rate, $date ? date('d.m.Y', strtotime((string) $date)) : null];
     }
 }

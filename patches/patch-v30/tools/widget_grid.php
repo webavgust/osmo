@@ -14,6 +14,7 @@
  *   php patches/patch-v30/tools/widget_grid.php kpi --sizes=2x2,4x6  — только эти размеры
  *   php patches/patch-v30/tools/widget_grid.php kpi --live           — живые данные вместо образца
  *   php patches/patch-v30/tools/widget_grid.php kpi --settings='{"show_title":false}'
+ *   php patches/patch-v30/tools/widget_grid.php calendar --view='{"mode":"months"}' — состояние просмотра блока
  *   php patches/patch-v30/tools/widget_grid.php kpi --cell=40 --margin=8
  *
  * Страница и отчёт остаются в storage/app/desk-grid/{id}.html и {id}.json.
@@ -40,7 +41,7 @@ if ($path && is_dir($path)) {
 /*** АРГУМЕНТЫ ***/
 
 $ids = [];
-$opt = ['cell' => 47.25, 'margin' => 8, 'budget' => 12000, 'live' => false, 'sizes' => null, 'detail' => [], 'settings' => []];
+$opt = ['cell' => 47.25, 'margin' => 8, 'budget' => 12000, 'live' => false, 'sizes' => null, 'detail' => [], 'settings' => [], 'view' => []];
 
 foreach (array_slice($argv, 1) as $arg) {
     if (!str_starts_with($arg, '--')) {
@@ -55,6 +56,7 @@ foreach (array_slice($argv, 1) as $arg) {
         'sizes' => $opt['sizes'] = array_filter(explode(',', (string) $value)),
         'detail' => $opt['detail'] = array_filter(explode(',', (string) $value)),
         'settings' => $opt['settings'] = (array) json_decode((string) $value, true),
+        'view' => $opt['view'] = (array) json_decode((string) $value, true),
         default => exit("Неизвестный ключ --$key\n"),
     };
 }
@@ -123,7 +125,7 @@ function runWidget(string $id, string $class, array $sizes, array $opt, DesktopC
         $ph = round($h * $opt['cell'] - 2 * $opt['margin'], 2);
 
         try {
-            $html = app($class)->html($w, $h, $settings, $ctx, !$opt['live']);
+            $html = app($class)->html($w, $h, $settings, $ctx, !$opt['live'], false, $opt['view']);
             $sections[] = "<section class=\"desk-grid-run\" data-size=\"{$w}x{$h}\" style=\"width:{$pw}px;height:{$ph}px\">"
                 . "<div class=\"desk-item\"><div class=\"desk-item-body\">{$html}</div></div></section>";
         } catch (\Throwable $e) {

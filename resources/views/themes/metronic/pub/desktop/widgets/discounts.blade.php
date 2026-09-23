@@ -132,8 +132,14 @@
                                 <span class="d-block text-truncate" title="{{ $title($row) }}">{{ $row['label'] }}</span>
                             @endif
                             @if($tall && ($row['sub'] !== '' || $row['count'] !== null))
-                                <span class="d-block text-truncate desk-muted fs-8" title="{{ $title($row) }}">
-                                    {{ $row['count'] !== null ? $row['count'] . ' КП' : '' }}{{ $row['count'] !== null && $row['sub'] !== '' ? ' · ' : '' }}{{ $row['sub'] }}
+                                {{-- число КП — своим элементом: в многоточие уходит только описание --}}
+                                <span class="d-flex column-gap-1 min-w-0 desk-muted fs-8" title="{{ $title($row) }}">
+                                    @if($row['count'] !== null)
+                                        <span class="text-nowrap flex-shrink-0">{{ $row['count'] }} КП{{ $row['sub'] !== '' ? ' ·' : '' }}</span>
+                                    @endif
+                                    @if($row['sub'] !== '')
+                                        <span class="desk-nowrap">{{ $row['sub'] }}</span>
+                                    @endif
                                 </span>
                             @endif
                         </div>

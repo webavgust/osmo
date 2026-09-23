@@ -12,7 +12,8 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Оплаты за период (patch v30): сумма фактических поступлений и сравнение
- * с предыдущим таким же отрезком.
+ * с предыдущим таким же отрезком. Оплаты — факт, поэтому идущий месяц/квартал/год
+ * сравнивается с прошлым по то же число (DesktopContext::previousRange(), $to_date).
  *
  * Отбор — как в платёжном календаре: платёж с датой факта считается оплаченным
  * и попадает в показатели при любом статусе спецификации (отбор по умолчанию
@@ -101,6 +102,8 @@ class PaymentsFactWidget extends Widget
 
         return [
             'value' => 6800000.0, 'count' => 14, 'previous' => 5620000.0, 'delta_percent' => 21.0,
+            'prev_dates' => now()->subDays(59)->format('d.m.Y') . ' – ' . now()->subDays(30)->format('d.m.Y'),
+            'prev_until' => null,
             'label' => 'за 30 дней', 'symbol' => '₽', 'skipped' => 0,
             'series' => ['labels' => array_values($buckets['labels']), 'values' => $values],
         ];
@@ -111,7 +114,7 @@ class PaymentsFactWidget extends Widget
      *
      * @param array $settings
      * @param DesktopContext $ctx
-     * @return array ['value', 'count', 'previous', 'delta_percent', 'label', 'symbol', 'skipped', 'series' => ['labels', 'values']]
+     * @return array ['value', 'count', 'previous', 'delta_percent', 'prev_dates', 'prev_until', 'label', 'symbol', 'skipped', 'series' => ['labels', 'values']]
      */
     public function data(array $settings, DesktopContext $ctx): array
     {
@@ -122,11 +125,14 @@ class PaymentsFactWidget extends Widget
             $from = now()->subDays($days - 1)->startOfDay();
             $to = now()->endOfDay();
             [$prev_from, $prev_to] = [$from->copy()->subDays($days), $to->copy()->subDays($days)];
+            $prev_until = null;
             $label = 'за ' . $days . ' ' . Tools::morph($days, 'день', 'дня', 'дней');
         } else {
             $period = $ctx->periodFor($settings);
             [$from, $to, $label] = [$period['from'], $period['to'], $period['label']];
-            [$prev_from, $prev_to] = DesktopContext::previousRange($period['key']);
+            // оплаты — факт: идущий период сравнивается с прошлым по то же число
+            $prev = DesktopContext::previousPeriod($period['key'], true);
+            [$prev_from, $prev_to, $prev_until] = [$prev['from'], $prev['to'], $prev['until']];
         }
 
         // разбивка текущего отрезка по дням, неделям или месяцам — для графика в крупном блоке
@@ -145,6 +151,8 @@ class PaymentsFactWidget extends Widget
             'delta_percent' => !empty($previous['amount'])
                 ? round(($current['amount'] - $previous['amount']) / abs($previous['amount']) * 100, 1)
                 : null,
+            'prev_dates' => $prev_from->format('d.m.Y') . ' – ' . $prev_to->format('d.m.Y'),
+            'prev_until' => $prev_until,
             'label' => $label,
             'symbol' => $ctx->symbol($currency),
             'skipped' => $current['skipped'],

@@ -32,6 +32,49 @@
     .desk-widget[data-widget="partners_grades"] .pg-tile { gap: .4rem; }
 }
 
+/* partners_grades: кольцо долей цветами медалей. Широкий высокий блок — квадрат на 40 % ширины
+   слева, по центру высоты (в низком блоке — во всю высоту), итог и грейды справа */
+.desk-widget[data-widget="partners_grades"] .pg-side { height: 100%; display: flex; gap: 1rem; min-height: 0; overflow: hidden; }
+.desk-widget[data-widget="partners_grades"] .pg-ring { position: relative; flex: 0 0 40%; aspect-ratio: 1; max-height: 100%; align-self: center; min-width: 0; }
+/* итог в середине кольца; подсказки сегментов проходят сквозь него */
+.desk-widget[data-widget="partners_grades"] .pg-ring-total {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.15;
+    pointer-events: none;
+}
+.desk-widget[data-widget="partners_grades"] .pg-side > .desk-stack { flex: 1 1 0; min-width: 0; }
+/* блок шириной 3–11: квадрат над списком; места мало — сжимается кольцо, а не список (pg-list-keep);
+   места много — лишнюю высоту делят строки списка (pg-list-fill), пустоты под кольцом нет */
+.desk-widget[data-widget="partners_grades"] .pg-ring-top { flex: 0 1 auto; aspect-ratio: 1; min-height: 0; }
+.desk-widget[data-widget="partners_grades"] .pg-list-keep { flex: 1 0 auto; }
+.desk-widget[data-widget="partners_grades"] .pg-list-fill { display: flex; flex-direction: column; }
+.desk-widget[data-widget="partners_grades"] .pg-list-fill > li { flex: 1 1 0; }
+
+/* partners_grades: низкий блок от 6 колонок — грейды в две колонки, ряды делят высоту; в узкой
+   колонке остаются медаль, название и число, шкала — от 620 px, процент — от 420 px */
+.desk-widget[data-widget="partners_grades"] .pg-cols {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: 1fr;
+    column-gap: 1.25rem;
+}
+@container dw (width < 620px) {
+    .desk-widget[data-widget="partners_grades"] .pg-cols .desk-bar { display: none; }
+}
+@container dw (width < 420px) {
+    .desk-widget[data-widget="partners_grades"] .pg-cols .pg-pct { display: none; }
+}
+
+/* partners_unlinked: шкала «сопоставлено» кольцом берёт всю высоту под коротким списком; сам график —
+   квадрат по меньшей стороне и по центру (ApexCharts рисует кольцо у верхнего края высокого холста) */
+.desk-widget[data-widget="partners_unlinked"] .pu-gauge { flex-basis: 0; container-type: size; display: grid; place-items: center; }
+.desk-widget[data-widget="partners_unlinked"] .pu-gauge > .desk-chart { width: min(100cqw, 100cqh); height: min(100cqw, 100cqh); }
+
 /* partner_activity: в узкой высокой колонке годы списком делят высоту поровну — колонка не пустует */
 .desk-widget[data-widget="partner_activity"] .pa-years { display: flex; flex-direction: column; }
 .desk-widget[data-widget="partner_activity"] .pa-years > li { flex: 1 1 0; align-content: center; row-gap: .25rem; }

@@ -45,7 +45,7 @@ class RatesWidget extends Widget
 
     public static function icon(): string
     {
-        return 'fa-money-bill-transfer';
+        return 'fa-coins';
     }
 
     public static function sizes(): array
@@ -83,17 +83,24 @@ class RatesWidget extends Widget
         ];
     }
 
+    /**
+     * Образцовые данные для превью: десяток валют с историей за 30 дней
+     *
+     * @param array $settings
+     * @param DesktopContext $ctx
+     * @return array
+     */
     public function sample(array $settings, DesktopContext $ctx): array
     {
         // десяток валют: высоким блокам есть чем заполнить список
         $sample = [
             ['USD', 'Доллар США', '$', 91.42, 0.3],
             ['EUR', 'Евро', '€', 99.10, -0.2],
-            ['CNY', 'Юань', '¥', 12.55, 0.1],
+            ['CNY', 'Китайский юань', '¥', 12.55, 0.1],
             ['GBP', 'Фунт стерлингов', '£', 116.37, 0.4],
             ['CHF', 'Швейцарский франк', '₣', 103.84, -0.1],
-            ['JPY', 'Японская иена', '¥', 0.62, 0.0],
-            ['KZT', 'Казахстанский тенге', '₸', 0.19, -0.3],
+            ['JPY', 'Японская иена', '¥', 0.5836, 0.0],
+            ['KZT', 'Казахстанский тенге', '₸', 0.1742, -0.3],
             ['BYN', 'Белорусский рубль', 'Br', 27.95, 0.2],
             ['TRY', 'Турецкая лира', '₺', 2.71, -0.6],
             ['AED', 'Дирхам ОАЭ', 'د.إ', 24.89, 0.3],
@@ -141,7 +148,8 @@ class RatesWidget extends Widget
             return ['date' => null, 'stale' => true, 'days' => $days, 'rows' => []];
         }
 
-        $from = Carbon::parse($last_date)->subDays($days);
+        // ровно $days дат, включая последнюю: подписи «за 30 дн.» и график — об одном отрезке
+        $from = Carbon::parse($last_date)->subDays($days - 1);
         $rates = DB::table('currency_rates')
             ->where('date', '>=', $from->format('Y-m-d'))
             ->orderBy('date')

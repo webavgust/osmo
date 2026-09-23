@@ -147,6 +147,13 @@
                     dataType: "json",
                     data: $("form#calendar_edit").serialize(),
                     success: function (result) {
+                        // рабочий стол: перерисовать виджет «Календарь» вместо перезагрузки страницы
+                        if (window.Desk && window.Desk.grid) {
+                            $(block_elem).unblock();
+                            $(document).trigger("desk:refresh", ["calendar"]);
+                            sidebar_close();
+                            return;
+                        }
                         location.reload();
                     },
                     error: function () {

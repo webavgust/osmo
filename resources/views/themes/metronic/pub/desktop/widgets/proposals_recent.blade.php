@@ -12,11 +12,16 @@
     $cost = fn($row) => $row['amount'] === null ? '—' : $widget::money($row['amount'], $row['symbol']);
     $cost_full = fn($row) => $row['amount'] === null ? 'Нет расчёта' : $widget::money($row['amount'], $row['symbol'], false);
     $caption = fn($row) => trim(($row['number'] !== '' ? '№ ' . $row['number'] . ' · ' : '') . $row['name']);
-    $fresh = count(array_filter($data['rows'], fn($row) => $row['fresh']));
+    // «за неделю» считает data() по всем КП отбора; в показанных строках их может быть меньше
+    $fresh = (int) ($data['fresh'] ?? count(array_filter($data['rows'], fn($row) => $row['fresh'] && empty($row['is_child']))));
+    // patch v33: второстепенное КП — ветка под своим главным, как в списке КП
+    $child = fn($row) => !empty($row['is_child']);
+    $branch = fn($row) => 'Второстепенное к ' . $row['main_ref'] . ': только просмотр, в расчётах не участвует';
+    $filtered = !empty($settings['mine']) || (string) $settings['status'] !== 'all';
 @endphp
 @if(empty($list))
     <div class="desk-empty">
-        <i class="fa-light fa-clock-rotate-left"></i> Нет КП
+        <i class="fa-light fa-clock-rotate-left"></i> {{ $filtered ? 'Нет КП по отбору' : 'Нет КП' }}
     </div>
 @else
     <div class="desk-stack">
@@ -35,8 +40,9 @@
                     </thead>
                     <tbody>
                         @foreach($list as $row)
-                            <tr>
+                            <tr @class(['pl-child' => $child($row)]) @if($child($row)) title="{{ $branch($row) }}" @endif>
                                 <td class="desk-nowrap">
+                                    @if($child($row))<span class="pl-branch"></span>@endif
                                     <a href="{{ $href($row) }}" class="desk-link fw-semibold text-hover-primary" title="{{ $row['name'] }}">
                                         {{ $row['number'] !== '' ? $row['number'] : '—' }}
                                     </a>
@@ -50,9 +56,13 @@
                                     <td class="num desk-nowrap" title="{{ $cost_full($row) }}">{{ $cost($row) }}</td>
                                 @endif
                                 <td>
-                                    <span class="badge badge-light-{{ $row['status_color'] }} text-nowrap" title="{{ $row['status_label'] }}">
-                                        <i class="fa-light {{ $row['status_icon'] }} fs-8 me-1"></i>{{ $row['status_label'] }}
-                                    </span>
+                                    @if($child($row))
+                                        <span class="badge badge-light-warning text-nowrap" title="{{ $branch($row) }} · статус: {{ $row['status_label'] }}">второстепенное</span>
+                                    @else
+                                        <span class="badge badge-light-{{ $row['status_color'] }} text-nowrap" title="{{ $row['status_label'] }}">
+                                            <i class="fa-light {{ $row['status_icon'] }} fs-8 me-1"></i>{{ $row['status_label'] }}
+                                        </span>
+                                    @endif
                                 </td>
                                 <td class="num desk-muted desk-nowrap desk-only-w-xl">{{ $row['updated'] ?? '—' }}</td>
                             </tr>
@@ -65,17 +75,30 @@
                 @foreach($list as $row)
                     @if($narrow)
                         {{-- две колонки: точка статуса и номер, остальное — в подсказке --}}
-                        <li title="{{ $caption($row) }} · {{ $row['company'] ?: $row['partner'] }} · {{ $row['status_label'] }} · {{ $cost_full($row) }}">
-                            <span class="bullet bullet-dot bg-{{ $row['status_color'] }} w-8px h-8px flex-shrink-0"></span>
+                        <li @class(['pl-child' => $child($row)])
+                            title="{{ $child($row) ? $branch($row) . ' · ' : '' }}{{ $caption($row) }} · {{ $row['company'] ?: $row['partner'] }} · {{ $row['status_label'] }} · {{ $cost_full($row) }}">
+                            {{-- у ветки уголок — на месте точки статуса, строка не шире главной --}}
+                            @if($child($row))
+                                <span class="pl-branch"></span>
+                            @else
+                                <span class="bullet bullet-dot bg-{{ $row['status_color'] }} w-8px h-8px flex-shrink-0"></span>
+                            @endif
                             <a href="{{ $href($row) }}" class="desk-link fw-semibold text-nowrap">{{ $row['number'] !== '' ? $row['number'] : '—' }}</a>
                         </li>
                     @else
-                        <li>
-                            <span class="bullet bullet-dot bg-{{ $row['status_color'] }} w-8px h-8px flex-shrink-0" title="{{ $row['status_label'] }}"></span>
-                            <a href="{{ $href($row) }}" class="desk-link desk-grow d-flex align-items-baseline gap-1 text-hover-primary" title="{{ $caption($row) }}">
+                        <li @class(['pl-child' => $child($row)])>
+                            @if($child($row))
+                                <span class="pl-branch" title="{{ $branch($row) }} · статус: {{ $row['status_label'] }}"></span>
+                            @else
+                                <span class="bullet bullet-dot bg-{{ $row['status_color'] }} w-8px h-8px flex-shrink-0" title="{{ $row['status_label'] }}"></span>
+                            @endif
+                            <a href="{{ $href($row) }}" class="desk-link desk-grow d-flex align-items-baseline gap-1 text-hover-primary" title="{{ $child($row) ? $branch($row) . ' · ' : '' }}{{ $caption($row) }}">
                                 <span class="fw-semibold flex-shrink-0 desk-hide-narrow">{{ $row['number'] !== '' ? $row['number'] : '—' }}</span>
                                 <span class="desk-muted desk-nowrap min-w-0" title="{{ $row['company'] ?: ($row['partner'] ?: $row['name']) }}">{{ $row['company'] ?: ($row['partner'] ?: $row['name']) }}</span>
                             </a>
+                            @if($child($row))
+                                <span class="badge badge-light-warning flex-shrink-0 desk-only-w-lg" title="{{ $branch($row) }}">второстепенное</span>
+                            @endif
                             @if($row['fresh'])
                                 <i class="fa-light fa-sparkles text-primary flex-shrink-0 fs-8 desk-only-w-md" title="Изменено за последнюю неделю"></i>
                             @endif

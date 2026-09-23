@@ -95,10 +95,21 @@
 
 /* строка итога: куски целиком, лишние прячут desk-only-w-* */
 .desk-widget[data-widget="scenarios_specs"] .sp-line { display: flex; gap: .3rem; white-space: nowrap; overflow: hidden; }
-/* клиент в строке списка не отнимает у сценария больше половины */
-.desk-widget[data-widget="scenarios_specs"] .sp-company { flex: 0 1 auto; max-width: 45%; }
+/* клиент в строке списка не отнимает у сценария больше половины; короткое название не сжимается
+   (иначе длинный сценарий отнимал у «ССР» последние буквы) */
+.desk-widget[data-widget="scenarios_specs"] .sp-company { flex: 0 0 auto; max-width: 45%; }
 .desk-widget[data-widget="scenarios_specs"] th.sp-share,
 .desk-widget[data-widget="scenarios_specs"] td.sp-share { width: 22%; }
+/* таблица отчёта: у каждой .desk-cut ширина 99%, и первая колонка забирала почти всё место —
+   остальным задаём долю явно, сценарий берёт остаток */
+.desk-widget[data-widget="scenarios_specs"] :is(th, td).sp-c-company { width: 22%; }
+.desk-widget[data-widget="scenarios_specs"] :is(th, td).sp-c-spec { width: 25%; }
+@container dw (min-width: 620px) {
+    .desk-widget[data-widget="scenarios_specs"] :is(th, td).sp-c-partner { width: 15%; }
+    .desk-widget[data-widget="scenarios_specs"] :is(th, td).sp-c-company { width: 20%; }
+    .desk-widget[data-widget="scenarios_specs"] :is(th, td).sp-c-spec { width: 20%; }
+    .desk-widget[data-widget="scenarios_specs"] :is(th, td).sp-c-neuro { width: 15%; }
+}
 
 /*** Выгрузка отчёта (report_download) ***/
 

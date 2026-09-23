@@ -92,9 +92,19 @@ class EmbedWidget extends Widget
         return static::allowed($url) ? $url : null;
     }
 
+    /**
+     * Образец для превью: чужую страницу не грузим, вьюха рисует схему окна браузера
+     * с доменом — первым разрешённым или example.com, если список пуст
+     *
+     * @param array $settings
+     * @param DesktopContext $ctx
+     * @return array те же ключи, что у data()
+     */
     public function sample(array $settings, DesktopContext $ctx): array
     {
-        return ['url' => null, 'allowed' => false, 'host' => 'example.com', 'domains' => static::domains(), 'reload' => 0, 'preview' => true];
+        $domains = static::domains();
+
+        return ['url' => null, 'allowed' => false, 'host' => $domains[0] ?? 'example.com', 'domains' => $domains, 'reload' => 0, 'preview' => true];
     }
 
     /**

@@ -37,7 +37,8 @@
     }
     if ($scored) {
         $facts['place'] = ['место', $data['place'] . ' из ' . $data['total'], $score_title, ''];
-        $facts['won'] = ['КП выиграно', $data['won'] . ' из ' . $data['proposals'], 'Выиграно из решённых КП' . $year_text, ''];
+        // «из» — все КП партнёра за год (и в работе тоже); конверсия ниже — от решённых
+        $facts['won'] = ['КП выиграно', $data['won'] . ' из ' . $data['proposals'], 'Выиграно из всех КП партнёра' . $year_text, ''];
         $facts['conversion'] = ['конверсия', $percent($data['conversion']), 'Конверсия решённых КП' . $year_text, ''];
     }
     if ($settings['counts']) {
@@ -127,7 +128,7 @@
                         @elseif(!$grid && $key === 'paid_sum' && $data['overdue_sum'] > 0)
                             <div class="desk-muted fs-8 desk-nowrap desk-only-h-md" title="{{ $facts['overdue_sum'][2] }}">просрочка {{ $facts['overdue_sum'][1] }}</div>
                         @elseif(!$grid && $key === 'amount_won')
-                            <div class="desk-muted fs-8 desk-nowrap desk-only-h-md" title="Выиграно из решённых КП">{{ $data['won'] }} из {{ $data['proposals'] }}</div>
+                            <div class="desk-muted fs-8 desk-nowrap desk-only-h-md" title="Выиграно из всех КП партнёра{{ $year_text }}">{{ $data['won'] }} из {{ $data['proposals'] }}</div>
                         @endif
                     </div>
                 @endforeach

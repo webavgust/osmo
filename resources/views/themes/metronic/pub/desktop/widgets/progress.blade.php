@@ -6,7 +6,7 @@
       «осталось» от высоты 110 px;
     - высота lg/xl: подпись сверху, крупный процент и толстая шкала посередине, внизу плитки
       «Факт / Цель / Осталось» (или «Сверх плана»);
-    - кольцо (настройка) — вместо процента и шкалы, когда высота от md и ширина от sm.
+    - кольцо (настройка) — вместо процента и шкалы, когда высота от md, ширина от sm и план не перевыполнен.
 --}}
 @php
     $format = function ($value) use ($widget, $data) {
@@ -32,8 +32,10 @@
     $caption = $data['label'] . ($data['period_label'] ? ' · ' . $data['period_label'] : '');
     // перевыполнение показываем вместо нулевого остатка
     $over = $data['value'] !== null && $data['goal'] !== null && $data['value'] > $data['goal'];
-    // кольцо просят настройкой и рисуем, когда блоку хватает высоты и ширины
-    $ring = $settings['ring'] && !$narrow && in_array($dh, ['md', 'lg', 'xl'], true) && $percent !== null;
+    // кольцо просят настройкой и рисуем, когда блоку хватает высоты и ширины. При перевыполнении
+    // кольца нет: оно полное и в центре пишет «100 %» (подпись — значение ряда, а ряд ограничен 100),
+    // а процент и «сверх плана» честно показывает обычная раскладка
+    $ring = $settings['ring'] && !$narrow && in_array($dh, ['md', 'lg', 'xl'], true) && $percent !== null && !$over;
 @endphp
 @if($data['value'] === null || $data['goal'] === null || $data['goal'] <= 0)
     <div class="desk-empty">
@@ -42,7 +44,7 @@
     </div>
 @elseif($tall)
     <div class="desk-stack">
-        <div class="desk-label desk-nowrap" title="{{ $caption }}">{{ $caption }}</div>
+        <div class="desk-label desk-nowrap dp-caption" title="{{ $caption }}">{{ $caption }}</div>
         <div class="desk-stack-grow">
             @if($ring)
                 {!! $widget::chart([
@@ -80,7 +82,7 @@
     </div>
 @elseif($ring)
     <div class="desk-stack">
-        <div class="desk-label desk-nowrap desk-hide-short" title="{{ $caption }}">{{ $caption }}</div>
+        <div class="desk-label desk-nowrap dp-caption desk-hide-short" title="{{ $caption }}">{{ $caption }}</div>
         <div class="desk-stack-grow">
             {!! $widget::chart([
                 'type' => 'radialBar',
@@ -96,7 +98,7 @@
     </div>
 @elseif($narrow)
     <div class="desk-center">
-        <div class="desk-label desk-nowrap desk-hide-short" title="{{ $caption }}">{{ $caption }}</div>
+        <div class="desk-label desk-nowrap dp-caption desk-hide-short" title="{{ $caption }}">{{ $caption }}</div>
         <div class="desk-value text-{{ $data['color'] }}" title="{{ $format($data['value']) }} из {{ $format($data['goal']) }}">{{ $text }}</div>
         <div class="desk-bar mt-1">
             <i class="bg-{{ $data['color'] }}" style="width: {{ $width }}%"></i>
@@ -106,7 +108,7 @@
     </div>
 @else
     <div class="desk-center">
-        <div class="desk-label desk-nowrap" title="{{ $caption }}">{{ $caption }}</div>
+        <div class="desk-label desk-nowrap dp-caption" title="{{ $caption }}">{{ $caption }}</div>
         <div class="d-flex flex-wrap align-items-baseline column-gap-2 dp-row">
             <span class="desk-value flex-shrink-0 text-{{ $data['color'] }}" title="{{ $full }}">{{ $text }}</span>
             <span class="desk-muted dp-wrap dp-fact">{{ $format($data['value']) }} из {{ $format($data['goal']) }}</span>

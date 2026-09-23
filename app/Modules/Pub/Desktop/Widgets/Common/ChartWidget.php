@@ -92,18 +92,36 @@ class ChartWidget extends Widget
         return isset($metric['url']) ? call_user_func($metric['url']) : null;
     }
 
+    /**
+     * Образцовые данные для превью: 12 последних месяцев в том же виде, что отдаёт
+     * MetricRegistry::series() (подпись оси, даты отрезка), итог — сумма отрезков
+     *
+     * @param array $settings
+     * @param DesktopContext $ctx
+     * @return array
+     */
     public function sample(array $settings, DesktopContext $ctx): array
     {
+        $values = [3.2, 5.1, 4.3, 7.6, 6.4, 9.1, 5.2, 6.6, 4.9, 7.1, 8.0, 9.1];
+        $start = now()->startOfMonth()->subMonths(count($values) - 1);
+
+        $rows = array_map(function ($value, $index) use ($start) {
+            $from = $start->copy()->addMonths($index);
+
+            return [
+                'label' => $from->locale('ru')->isoFormat('MMM'),
+                'title' => $from->format('d.m.Y') . ' — ' . $from->copy()->endOfMonth()->format('d.m.Y'),
+                'value' => $value * 1000000,
+            ];
+        }, $values, array_keys($values));
+
         return [
-            'label' => 'Оплаты факт по месяцам',
+            'label' => 'Оплаты · Факт за период, сумма',
             'unit' => 'money',
             'symbol' => '₽',
-            'total' => 68400000.0,
-            'last' => 9100000.0,
-            'rows' => collect(['окт', 'ноя', 'дек', 'янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен'])
-                ->zip([3.2, 5.1, 4.3, 7.6, 6.4, 9.1, 5.2, 6.6, 4.9, 7.1, 8.0, 9.1])
-                ->map(fn($pair, $index) => ['label' => $pair[0], 'title' => $pair[0] . ($index < 3 ? ' 2025' : ' 2026'), 'value' => $pair[1] * 1000000])
-                ->all(),
+            'total' => array_sum(array_column($rows, 'value')),
+            'last' => end($rows)['value'],
+            'rows' => $rows,
         ];
     }
 

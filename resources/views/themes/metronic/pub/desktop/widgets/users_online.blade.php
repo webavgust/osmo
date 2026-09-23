@@ -59,10 +59,10 @@
                     <tbody>
                         @foreach($list as $row)
                             <tr>
-                                <td class="desk-cut">
+                                <td class="desk-cut uo-name-cell">
                                     <a href="{{ $href($row) }}" class="desk-link text-hover-primary d-block text-truncate fw-semibold" title="{{ $hint($row) }}"><span class="bullet bullet-dot bg-{{ $row['online'] ? 'success' : 'gray-400' }} me-2"></span>{{ $row['name'] }}</a>
                                 </td>
-                                <td class="desk-muted desk-cut desk-only-w-xl" title="{{ $row['position'] }}">{{ $row['position'] ?: '—' }}</td>
+                                <td class="desk-muted desk-cut desk-only-w-xl uo-position-cell" title="{{ $row['position'] }}">{{ $row['position'] ?: '—' }}</td>
                                 <td class="num desk-muted text-nowrap desk-only-w-lg">{{ $row['login'] ?: '—' }}</td>
                                 <td class="num desk-muted text-nowrap" title="{{ $row['hit'] ?: 'ни разу' }}">{{ $seen($row) }}</td>
                             </tr>

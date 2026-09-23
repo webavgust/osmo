@@ -62,7 +62,7 @@
                             <thead>
                             <tr>
                                 <th>Сделка</th>
-                                <th>Проблема</th>
+                                <th class="cmm-issue">Проблема</th>
                                 <th></th>
                                 <th class="desk-only-w-xl">Менеджер</th>
                             </tr>
@@ -74,7 +74,7 @@
                                         <a href="{{ $href($row) }}" target="_blank" class="desk-link text-hover-primary d-block text-truncate fw-semibold"
                                            title="{{ $title($row) }}">{{ $row['title'] }}</a>
                                     </td>
-                                    <td class="desk-cut desk-muted" title="{{ $reason($row) }}">{{ $row['issues'][0] }}</td>
+                                    <td class="desk-cut desk-muted cmm-issue" title="{{ $reason($row) }}">{{ $row['issues'][0] }}</td>
                                     <td class="num">
                                         @if(count($row['issues']) > 1)
                                             <span class="badge badge-light-warning" title="{{ $reason($row) }}">+{{ count($row['issues']) - 1 }}</span>

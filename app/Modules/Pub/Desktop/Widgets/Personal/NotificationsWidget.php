@@ -85,7 +85,8 @@ class NotificationsWidget extends Widget
                 // год — только у уведомлений не этого года
                 'time' => $created ? $created->format($created->isCurrentYear() ? 'd.m H:i' : 'd.m.y') : '',
                 'ago' => $created ? $created->diffForHumans() : '',
-                'url' => trim((string) $notify->link) !== '' ? (string) $notify->link : null,
+                // без своей ссылки — история уведомлений, а не мёртвая строка
+                'url' => trim((string) $notify->link) !== '' ? (string) $notify->link : route('notify.list'),
             ];
         }
 
@@ -148,13 +149,18 @@ class NotificationsWidget extends Widget
     }
 
     /**
-     * Текст уведомления одной строкой: в message бывает вёрстка
+     * Текст уведомления одной строкой: в title и message бывает вёрстка (шапка выводит их
+     * как HTML), поэтому теги снимаются, а сущности (&laquo;, &nbsp;) раскрываются —
+     * иначе Blade покажет их буквами
      *
      * @param string $text
      * @return string
      */
     protected static function plain(string $text): string
     {
-        return trim(preg_replace('/\s+/u', ' ', strip_tags(str_replace(['<br>', '<br/>', '<br />'], ' ', $text))) ?? '');
+        $text = strip_tags(str_replace(['<br>', '<br/>', '<br />'], ' ', $text));
+        $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        return trim(preg_replace('/\s+/u', ' ', $text) ?? '');
     }
 }

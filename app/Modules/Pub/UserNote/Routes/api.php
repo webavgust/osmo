@@ -6,6 +6,7 @@ Route::group(['prefix' => 'user-notes', 'middleware' => ['ajax.api']], function 
     Route::post('/edit/{note}', [\App\Modules\Pub\UserNote\Controllers\Api\ApiUserNoteController::class, 'edit'])->name('api.user-notes.edit');
     Route::post('/delete/{note?}', [\App\Modules\Pub\UserNote\Controllers\Api\ApiUserNoteController::class, 'delete'])->name('api.user-notes.delete');
     Route::post('/favorite/{note?}', [\App\Modules\Pub\UserNote\Controllers\Api\ApiUserNoteController::class, 'favorite'])->name('api.user-notes.favorite');
+    Route::post('/done/{note}', [\App\Modules\Pub\UserNote\Controllers\Api\ApiUserNoteController::class, 'done'])->name('api.user-notes.done');
 });
 
 //

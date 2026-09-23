@@ -18,6 +18,20 @@ class UserNote extends ModuleModel
 
     protected $fillable = ['title', 'text', 'favorite'];
 
+    protected $casts = [
+        'done_at' => 'datetime',
+    ];
+
+    /**
+     * Задача выполнена (отметка в виджете «Блокнот» или в сайдбаре правки)
+     *
+     * @return bool
+     */
+    public function isDone(): bool
+    {
+        return $this->done_at !== null;
+    }
+
     public function canEdit()
     {
         return is_admin() || $this->user_id == auth()->id();

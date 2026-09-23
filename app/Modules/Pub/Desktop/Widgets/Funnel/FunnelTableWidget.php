@@ -41,6 +41,23 @@ class FunnelTableWidget extends Widget
         'Invoice + Specification', 'Execution (PRE-PAYMENT)', 'Execution (POST-PAYMENT)', 'Acceptance tests',
     ];
 
+    /**
+     * Стадии, которые считает страница воронки (DashboardDataService::scopeStatuses), в порядке STAGES.
+     *
+     * В STAGES есть и стадии вне воронки (Execution (PRE-PAYMENT)): их сделки в показатели
+     * страницы не входят, поэтому в отборе стадий виджетов воронки их не предлагаем.
+     * Execution (PRE-PAYMENT) — оплата уже прошла, сделка по сути завершена (решение владельца
+     * 23.09.2026): на неё не рассчитывают, хотя в работе она ещё остаётся.
+     *
+     * @return string[]
+     */
+    public static function funnelStages(): array
+    {
+        $probe = collect(static::STAGES)->map(fn($stage) => (object) ['stage_name' => $stage, 'id' => 0]);
+
+        return DashboardDataService::scopeStatuses($probe)->pluck('stage_name')->values()->all();
+    }
+
     public static function id(): string { return 'funnel_table'; }
 
     public static function name(): string { return 'Таблица воронки'; }
@@ -79,10 +96,11 @@ class FunnelTableWidget extends Widget
 
     public function sample(array $settings, DesktopContext $ctx): array
     {
-        // 10 стадий из 11: высокому блоку есть чем заполниться, как на живой воронке
+        // все 10 стадий воронки (funnelStages()): высокому блоку есть чем заполниться;
+        // Execution (PRE-PAYMENT) страница воронки не считает — в образце её нет
         $rows = [['Lead', 18, 12.4], ['Research', 11, 9.6], ['Presentation', 7, 8.1], ['Pilot project', 4, 6.9],
             ['Competition/tender', 3, 6.2], ['TCP', 3, 5.8], ['Contracting', 2, 5.4], ['Invoice + Specification', 2, 4.1],
-            ['Execution (PRE-PAYMENT)', 1, 3.3], ['Acceptance tests', 1, 2.9]];
+            ['Execution (POST-PAYMENT)', 1, 3.3], ['Acceptance tests', 1, 2.9]];
         $rows = array_map(fn($row) => ['stage' => $row[0], 'count' => $row[1], 'amount' => $row[2] * 1e6], $rows);
 
         return static::summary(

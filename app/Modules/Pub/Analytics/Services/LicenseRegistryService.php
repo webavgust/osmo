@@ -70,6 +70,8 @@ class LicenseRegistryService
                 'k.id', 'k.key', 'k.active', 'k.active_from', 'k.active_to',
                 'cm.id as company_id', 'cm.name as company_name',
                 's.id as spec_id', 's.name as spec_name', 's.amount as spec_amount',
+                // сколько ключей выдано по спецификации: её сумма делится между ними
+                DB::raw('(select count(*) from license_keys k2 where k2.contract_specification_id = s.id) as spec_keys'),
                 's.status as spec_status', 's.currency_slug',
                 'c.id as contract_id', 'c.number as contract_number', 'c.type as contract_type',
                 'p.id as partner_id', 'p.name as partner_name', 'p.grade as partner_grade',
@@ -109,7 +111,12 @@ class LicenseRegistryService
     }
 
     /**
-     * Дни до истечения, корзина и суммы
+     * Дни до истечения, корзина и суммы.
+     *
+     * Сумма ключа — доля спецификации: обычно ключ один на спецификацию, но бывает, что по одной
+     * спецификации выдано несколько ключей (корабли РРПК, лидары ЦОДД) — тогда её сумма делится
+     * между ними поровну и в итогах считается один раз (решение владельца 23.09.2026; так же
+     * считает LicenseRenewalService). spec.amount — доля ключа, spec.total — вся спецификация
      *
      * @param mixed $row
      * @return array
@@ -117,6 +124,8 @@ class LicenseRegistryService
     public static function decorate($row): array
     {
         $to = $row->active_to ? Carbon::parse($row->active_to) : null;
+        $keys = max(1, (int) ($row->spec_keys ?? 1));
+        $share = (float) $row->spec_amount / $keys;
         $from = $row->active_from ? Carbon::parse($row->active_from) : null;
 
         $days = $to ? (int) now()->startOfDay()->diffInDays($to->startOfDay(), false) : null;
@@ -137,12 +146,14 @@ class LicenseRegistryService
             'spec' => [
                 'id' => $row->spec_id,
                 'name' => $row->spec_name,
-                'amount' => (float) $row->spec_amount,
+                'amount' => $share,
+                'total' => (float) $row->spec_amount,
+                'keys' => $keys,
                 'currency' => $row->currency_slug,
                 'canceled' => strtolower((string) $row->spec_status) === 'canceled',
             ],
             'contract' => ['id' => $row->contract_id, 'number' => $row->contract_number, 'type' => $row->contract_type],
-            'amount_rub' => (float) $row->spec_amount * PartnerScoringService::rate($row->currency_slug),
+            'amount_rub' => $share * PartnerScoringService::rate($row->currency_slug),
         ];
     }
 

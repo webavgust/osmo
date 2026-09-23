@@ -12,8 +12,9 @@ use Illuminate\Support\Carbon;
  * Обратный отсчёт (patch v30): сколько дней до даты — своей или до конца
  * месяца, квартала, года.
  *
- * В день события — «сегодня», после — «прошло N дней». Когда до события меньше
- * порога, число становится красным.
+ * Число — полные дни после сегодняшнего до последнего дня отрезка (23.09 → 30.09 — 7 дней
+ * до конца III квартала); в сам последний день — «сегодня» и «последний день квартала»,
+ * после своей даты — «N дней назад». Когда до события не больше порога, число красное.
  */
 class CountdownWidget extends Widget
 {
@@ -85,9 +86,17 @@ class CountdownWidget extends Widget
         ];
     }
 
+    /**
+     * Образец для превью: настоящий отсчёт до конца текущего квартала
+     * (застывшие «16 дней до 30.09.2026» врали бы уже через день)
+     *
+     * @param array $settings
+     * @param DesktopContext $ctx
+     * @return array
+     */
     public function sample(array $settings, DesktopContext $ctx): array
     {
-        return ['days' => 16, 'passed' => false, 'today' => false, 'caption' => 'дней до конца квартала', 'date' => '30.09.2026', 'warn' => false, 'progress' => 82, 'period' => 'квартала'];
+        return $this->data(['target' => 'quarter', 'caption' => ''] + $settings, $ctx);
     }
 
     /**
@@ -101,30 +110,43 @@ class CountdownWidget extends Widget
     {
         $today = now()->startOfDay();
 
-        // у месяца, квартала и года есть начало — по нему считается, какая доля отрезка прошла
-        [$target, $default_caption, $start, $period] = match ((string) $settings['target']) {
-            'month' => [now()->endOfMonth()->startOfDay(), 'до конца месяца', now()->startOfMonth(), 'месяца'],
-            'year' => [now()->endOfYear()->startOfDay(), 'до конца года', now()->startOfYear(), 'года'],
-            'date' => [static::parseDate((string) $settings['date']), 'до события', null, null],
-            default => [now()->endOfQuarter()->startOfDay(), 'до конца квартала', now()->startOfQuarter(), 'квартала'],
+        // у месяца, квартала и года есть начало — по нему считается, какая доля отрезка прошла;
+        // цель — последний день отрезка, в этот день вместо числа «сегодня» и своя подпись
+        [$target, $default_caption, $start, $period, $last_day] = match ((string) $settings['target']) {
+            'month' => [now()->endOfMonth()->startOfDay(), 'до конца месяца', now()->startOfMonth(), 'месяца', 'последний день месяца'],
+            'year' => [now()->endOfYear()->startOfDay(), 'до конца года', now()->startOfYear(), 'года', 'последний день года'],
+            'date' => [static::parseDate((string) $settings['date']), 'до события', null, null, 'день события'],
+            default => [now()->endOfQuarter()->startOfDay(), 'до конца квартала', now()->startOfQuarter(), 'квартала', 'последний день квартала'],
         };
 
         if (!$target) {
-            return ['days' => null, 'passed' => false, 'today' => false, 'caption' => 'дата не задана', 'date' => null, 'warn' => false, 'progress' => null, 'period' => null];
+            return ['days' => null, 'passed' => false, 'today' => false, 'caption' => 'дата не задана', 'date' => null, 'warn' => false, 'progress' => null, 'period' => null, 'hint' => null];
         }
 
         $progress = $start
             ? (int) min(100, round($start->diffInDays($today) / max(1, $start->diffInDays($target) + 1) * 100))
             : null;
 
+        // полные дни после сегодняшнего: 23.09 → 30.09 = 7, в сам последний день — 0 («сегодня»)
         $days = $today->diffInDays($target, false);
         $caption = trim((string) $settings['caption']);
+        $morph = fn(int $n) => $n . ' ' . Tools::morph($n, 'день', 'дня', 'дней');
 
         if ($caption === '') {
-            $caption = $days < 0
-                ? Tools::morph(abs($days), 'день', 'дня', 'дней') . ' назад'
-                : Tools::morph(max($days, 0), 'день', 'дня', 'дней') . ' ' . $default_caption;
+            $caption = match (true) {
+                $days < 0 => Tools::morph(abs($days), 'день', 'дня', 'дней') . ' назад',
+                // было «сегодня / дней до конца квартала»
+                $days === 0 => $last_day,
+                default => Tools::morph($days, 'день', 'дня', 'дней') . ' ' . $default_caption,
+            };
         }
+
+        // подсказка блока: какой день считается концом и считается ли сегодняшний
+        $hint = $target->format('d.m.Y') . ' — ' . $last_day . match (true) {
+            $days < 0 => ', прошло ' . $morph(abs($days)),
+            $days === 0 => ', сегодня',
+            default => '. Не считая сегодняшнего, осталось ' . $morph($days),
+        };
 
         return [
             'days' => abs($days),
@@ -135,11 +157,15 @@ class CountdownWidget extends Widget
             'warn' => $days >= 0 && $days <= (int) $settings['warn_days'],
             'progress' => $progress,
             'period' => $period,
+            'hint' => $hint,
         ];
     }
 
     /**
-     * Дата из настройки: ДД.ММ.ГГГГ или ГГГГ-ММ-ДД
+     * Дата из настройки: ДД.ММ.ГГГГ, ДД.ММ.ГГ или ГГГГ-ММ-ДД; остальное — null («Укажите дату»).
+     *
+     * Разбор строгий: Carbon::createFromFormat на чужом формате бросает исключение
+     * (виджет падал), а «31.12.26» по формату d.m.Y читал как 26-й год нашей эры
      *
      * @param string $value
      * @return Carbon|null
@@ -147,17 +173,20 @@ class CountdownWidget extends Widget
     protected static function parseDate(string $value): ?Carbon
     {
         $value = trim($value);
-        if ($value === '') {
+
+        if (preg_match('/^(\d{1,2})\.(\d{1,2})\.(\d{4}|\d{2})$/', $value, $m)) {
+            [, $day, $month, $year] = $m;
+            if (strlen($year) === 2) $year = '20' . $year;
+        } elseif (preg_match('/^(\d{4})-(\d{1,2})-(\d{1,2})$/', $value, $m)) {
+            [, $year, $month, $day] = $m;
+        } else {
             return null;
         }
 
-        foreach (['d.m.Y', 'Y-m-d', 'd.m.y'] as $format) {
-            $date = Carbon::createFromFormat($format, $value);
-            if ($date !== false) {
-                return $date->startOfDay();
-            }
+        if (!checkdate((int) $month, (int) $day, (int) $year)) {
+            return null;
         }
 
-        return null;
+        return Carbon::create((int) $year, (int) $month, (int) $day)->startOfDay();
     }
 }

@@ -15,10 +15,12 @@ use App\Modules\Pub\Desktop\Widgets\Widget;
  *
  * Данные — DashboardDataService::sales() (стадии воронки, пересчёт в валюту виджета)
  * либо весь реестр CrmDealRepository::getFiltered(false), смотря что выбрано в
- * настройке «Статусы»; фильтр страницы воронки не применяется никогда.
+ * настройке «Статусы»; фильтр страницы воронки не применяется никогда. Отменённые
+ * сделки (семантика стадии F — «Canceled») в план не идут ни в одном отборе.
  * Сделки, у которых квартал не выбран, в столбцы не
  * попадают — они считаются отдельно и показываются предупреждением под графиком:
- * года у такой сделки нет, и сравнивать её с прошлым годом не с чем.
+ * года у такой сделки нет, и сравнивать её с прошлым годом не с чем. Сделки без
+ * суммы в предупреждение не идут — терять в них нечего (лиды и ранние стадии).
  */
 class DealsQuarterWidget extends Widget
 {
@@ -37,16 +39,24 @@ class DealsQuarterWidget extends Widget
      *
      * «Стадии воронки» — открытые сделки, как на странице воронки; но у них плановый
      * квартал почти всегда будущий, и сравнивать с прошлым годом оказывается не с чем,
-     * поэтому есть и отбор по всем стадиям.
+     * поэтому есть и отбор по всем стадиям. Отменённые сделки — не план, их сумма
+     * раздувала год (аудит 23.09: 118 млн из 1 млрд в 2026-м), поэтому «все» — без них.
      */
     public const SCOPE = [
         'funnel' => 'Стадии воронки',
-        'all' => 'Все стадии',
+        'all' => 'Все, кроме отменённых',
         'closed' => 'Только завершённые',
     ];
 
-    /** Стадии завершённых сделок */
-    public const CLOSED = ['Completed', 'Closing documents'];
+    /**
+     * Стадии завершённых сделок. Execution (PRE-PAYMENT) — сделка попадает туда, когда оплата уже
+     * прошла: на неё уже не рассчитывают, всё случилось, хотя в работе она ещё остаётся
+     * (решение владельца 23.09.2026) — считается завершённой
+     */
+    public const CLOSED = ['Completed', 'Closing documents', 'Execution (PRE-PAYMENT)'];
+
+    /** Семантика стадии Битрикса «провал» (отменённые сделки) */
+    public const SEMANTIC_FAIL = 'F';
 
     public static function id(): string { return 'deals_quarter'; }
 
@@ -130,6 +140,7 @@ class DealsQuarterWidget extends Widget
 
             // в Битриксе плановый квартал хранится как «2026q3»; всё прочее («не выбрано») — мимо столбцов
             if (!preg_match('/^(\d{4})q([1-4])$/', $quarter, $match)) {
+                if ($amount == 0.0) continue;
                 $none_count++;
                 $none_amount += $amount;
                 continue;
@@ -178,6 +189,9 @@ class DealsQuarterWidget extends Widget
 
         $rates = CurrencyService::getConvertRates();
         $deals = CrmDealRepository::getFiltered(false);
+
+        // отменённые сделки — не план
+        $deals = $deals->where('stage_semantic_id', '!=', static::SEMANTIC_FAIL);
 
         if ($scope === 'closed') {
             $deals = $deals->whereIn('stage_name', static::CLOSED);

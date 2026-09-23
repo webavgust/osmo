@@ -24,6 +24,9 @@ use Illuminate\Support\Facades\Route;
  *     'label' — подпись, 'group' — группа («КП», «Партнёры»), 'hint' — пояснение,
  *     'unit' — money | count | percent,
  *     'period' — bool, зависит ли от периода,
+ *     'forecast' — bool, необязательно: прогнозный показатель (в идущем периоде есть будущие
+ *         даты) — «к прошлому» сравнивается с прошлым периодом целиком, а фактический —
+ *         по то же число (DesktopContext::previousRange(), $to_date),
  *     'value' — callable(DesktopContext $ctx, array $settings, Carbon $from, Carbon $to): ?float,
  *     'available' — callable(User): bool, необязательно,
  *     'url' — callable(): ?string, необязательно — страница-источник,
@@ -144,7 +147,7 @@ class MetricRegistry
         'day' => ['По дням', 'startOfDay', 'D MMM'],
         'week' => ['По неделям', 'startOfWeek', 'D MMM'],
         'month' => ['По месяцам', 'startOfMonth', 'MMM'],
-        'quarter' => ['По кварталам', 'startOfQuarter', '[Q]Q YY'],
+        'quarter' => ['По кварталам', 'startOfQuarter', 'Q [кв.] YY'],
     ];
 
     /**
@@ -270,12 +273,12 @@ class MetricRegistry
             ],
             'proposals.won_count' => [
                 'label' => 'Выиграно за период, шт.', 'group' => 'КП', 'unit' => 'count', 'period' => true, 'url' => $url,
-                'hint' => 'КП, переведённые в «Выиграно» в периоде (без даты смены — по дате отправки)',
+                'hint' => 'Выигранные КП, датированные периодом: первой оплатой по спецификации, без неё — сменой статуса',
                 'value' => fn(DesktopContext $ctx, array $settings, Carbon $from, Carbon $to) => static::wonBetween($from, $to)->count(),
             ],
             'proposals.won_sum' => [
                 'label' => 'Выиграно за период, сумма', 'group' => 'КП', 'unit' => 'money', 'period' => true, 'url' => $url,
-                'hint' => 'Основной вариант последней редакции выигранных в периоде КП, по курсу на сегодня',
+                'hint' => 'Основной вариант выигранных в периоде КП (дата — первая оплата по спецификации или смена статуса), по курсу на сегодня',
                 'value' => fn(DesktopContext $ctx, array $settings, Carbon $from, Carbon $to) => static::mainSum(
                     static::wonBetween($from, $to), $ctx->currencyFor($settings)
                 ),
@@ -479,8 +482,8 @@ class MetricRegistry
     }
 
     /**
-     * Выигранные КП (последние редакции), статус которых сменён в периоде;
-     * без даты смены — по дате отправки последней редакции
+     * Выигранные КП (последние редакции), выигрыш по которым датирован периодом —
+     * дата выигрыша из wonDates()
      *
      * @param Carbon $from
      * @param Carbon $to
@@ -491,13 +494,71 @@ class MetricRegistry
         $from = $from->copy()->startOfDay();
         $to = $to->copy()->endOfDay();
 
-        return static::latestWithStatus(ProposalStatus::WON)
-            ->filter(function ($row) use ($from, $to) {
-                $date = $row->status_changed_at ?? $row->sended_at;
+        $won = static::latestWithStatus(ProposalStatus::WON);
+        $dates = static::wonDates($won);
+
+        return $won
+            ->filter(function ($row) use ($dates, $from, $to) {
+                $date = $dates[(string) $row->group] ?? null;
 
                 return $date !== null && $date->between($from, $to);
             })
             ->values();
+    }
+
+    /**
+     * Даты выигрыша КП (решение владельца 23.09.2026). КП прикреплено к спецификации
+     * (contract_specification_proposals) и по ней есть фактическая оплата — выигрыш
+     * датируется первой оплатой по всем неотменённым спецификациям группы. Иначе —
+     * сменой статуса (status_changed_at), у старых записей — отправкой редакции.
+     * Статус не проверяется: передавать выигранные КП. Один запрос на все группы
+     *
+     * @param Collection $rows редакции КП (по одной на группу)
+     * @return array код группы => Carbon|null
+     */
+    public static function wonDates(Collection $rows): array
+    {
+        $dates = [];
+        foreach ($rows as $row) {
+            $dates[(string) $row->group] = $row->status_changed_at ?? $row->sended_at;
+        }
+
+        if ($dates === []) return [];
+
+        $paid = DB::table('contract_specification_proposals as l')
+            ->join('contract_specifications as s', 's.id', '=', 'l.contract_specification_id')
+            ->join('payments as p', 'p.contract_specification_id', '=', 's.id')
+            ->whereIn('l.proposal_group', array_keys($dates))
+            ->where(fn($query) => $query->whereNull('s.status')->orWhere('s.status', '!=', 'canceled'))
+            ->whereNotNull('p.date_fact')
+            ->groupBy('l.proposal_group')
+            ->selectRaw('l.proposal_group, MIN(p.date_fact) as first_paid')
+            ->pluck('first_paid', 'proposal_group');
+
+        foreach ($paid as $group => $date) {
+            $dates[(string) $group] = Carbon::parse($date);
+        }
+
+        return $dates;
+    }
+
+    /**
+     * Даты решения по КП: у выигранных — дата выигрыша (wonDates()), у остальных —
+     * смена статуса, у старых записей — отправка редакции
+     *
+     * @param Collection $rows редакции КП (по одной на группу)
+     * @return array код группы => Carbon|null
+     */
+    public static function decidedDates(Collection $rows): array
+    {
+        $dates = [];
+        foreach ($rows as $row) {
+            $dates[(string) $row->group] = $row->status_changed_at ?? $row->sended_at;
+        }
+
+        $won = $rows->filter(fn($row) => (string) $row->status === ProposalStatus::WON->value);
+
+        return array_replace($dates, static::wonDates($won));
     }
 
     /**

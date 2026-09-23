@@ -2,6 +2,7 @@
 
 namespace App\Modules\Pub\Desktop\Widgets\Proposal;
 
+use App\Modules\Pub\Currency\Services\CurrencyService;
 use App\Modules\Pub\Desktop\Services\DesktopContext;
 use App\Modules\Pub\Desktop\Widgets\Widget;
 use App\Modules\Pub\Proposal\Models\ProposalStatus;
@@ -14,7 +15,8 @@ use App\Modules\Pub\Proposal\Services\ProposalStatusService;
  * Ответственный за КП — manager_id (отдельного «автора» у proposals нет,
  * страница списка тоже раскладывает КП по вкладкам менеджеров по этому полю).
  * Отбор строк, сумма основного варианта и трактовка статусов — общие с виджетом
- * «Последние КП» (ProposalsRecentWidget::pack()).
+ * «Последние КП» (ProposalsRecentWidget::pack()). Второстепенные КП связки (patch v33)
+ * в отбор и счётчики не входят, а стоят ветками под своим главным (packTree()).
  */
 class ProposalsMineWidget extends Widget
 {
@@ -59,9 +61,15 @@ class ProposalsMineWidget extends Widget
     public function sample(array $settings, DesktopContext $ctx): array
     {
         $status = (string) $settings['status'];
+        $stale = (int) $settings['stale'];
         $rows = ProposalsRecentWidget::sampleRows($status === 'all' ? null : $status);
 
-        return ['rows' => $rows, 'total' => count($rows), 'stale' => (int) $settings['stale']];
+        return [
+            'rows' => ProposalsRecentWidget::sampleBranch($rows, 2),
+            'total' => count($rows),
+            'stale' => $stale,
+            'stale_count' => count(array_filter($rows, fn($row) => $row['days'] !== null && $row['days'] > $stale)),
+        ];
     }
 
     /**
@@ -69,7 +77,7 @@ class ProposalsMineWidget extends Widget
      *
      * @param array $settings
      * @param DesktopContext $ctx
-     * @return array ['rows' => [...], 'total', 'stale']
+     * @return array ['rows' => [...], 'total', 'stale', 'stale_count' — старше порога среди всех КП по отбору]
      */
     public function data(array $settings, DesktopContext $ctx): array
     {
@@ -77,7 +85,7 @@ class ProposalsMineWidget extends Widget
         $stale = (int) $settings['stale'];
 
         if ($user_id <= 0) {
-            return ['rows' => [], 'total' => 0, 'stale' => $stale];
+            return ['rows' => [], 'total' => 0, 'stale' => $stale, 'stale_count' => 0];
         }
 
         $rows = ProposalStatusService::latestIterations()
@@ -85,21 +93,37 @@ class ProposalsMineWidget extends Widget
         $rows = ProposalsRecentWidget::applyStatus($rows, (string) $settings['status']);
 
         $total = $rows->count();
+        // «старше N дн.» — по всем КП отбора, а не только по показанным: список ограничен настройкой.
+        // Давность — как у строк в ProposalsRecentWidget::pack(): дни от отправки последней редакции
+        $today = now()->startOfDay();
+        $stale_count = $rows->filter(
+            fn($row) => $row->sended_at && $row->sended_at->copy()->startOfDay()->diffInDays($today) > $stale
+        )->count();
 
         // сортировка по сумме читает основной вариант у каждой строки — подгружаем разом
         if ($settings['sort'] === 'cost') $rows->load('variants');
 
+        // по сумме — в одной валюте: КП бывают в рублях, долларах, юанях; курс на сегодня,
+        // без курса — сумма как есть. Показывается сумма в валюте КП, как в списке
+        $cost = function ($row) {
+            $amount = (float) ($row->variants->first()?->cost_total ?? 0);
+
+            return $amount > 0 ? (CurrencyService::convertAmount($amount, (string) $row->currency_slug) ?? $amount) : 0.0;
+        };
+
         // по давности — сначала самые старые: они и есть «зависшие»
         $take = ($settings['sort'] === 'cost'
-            ? $rows->sortByDesc(fn($row) => (float) ($row->variants->first()?->cost_total ?? 0))
+            ? $rows->sortByDesc($cost)
             : $rows->sortBy(fn($row) => $row->sended_at?->timestamp ?? 0))
             ->take((int) $settings['limit'])
             ->values();
 
         return [
-            'rows' => ProposalsRecentWidget::pack($take),
+            // второстепенные КП связки — ветками под своим главным, как в списке КП (patch v33)
+            'rows' => ProposalsRecentWidget::packTree($take),
             'total' => $total,
             'stale' => $stale,
+            'stale_count' => $stale_count,
         ];
     }
 }

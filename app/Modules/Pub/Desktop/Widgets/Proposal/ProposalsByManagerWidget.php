@@ -32,7 +32,7 @@ class ProposalsByManagerWidget extends Widget
         return 'Кто сколько ведёт КП: количество, сумма и выигранные по каждому менеджеру';
     }
 
-    public static function icon(): string { return 'fa-users-line'; }
+    public static function icon(): string { return 'fa-users'; }
 
     public static function sizes(): array { return ['8x4', '16x8', '8x8']; }
 

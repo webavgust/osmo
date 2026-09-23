@@ -9,41 +9,63 @@
     $roomy = $rows >= 2 * max(1, count($list));
 @endphp
 <div class="desk-stack">
-    @if(empty($data['rows']))
+    @if(empty($data['rows']) && !empty($data['hidden_done']))
+        {{-- заметки есть, но все выполнены и спрятаны настройкой; в узком блоке — только значок, текст в title --}}
+        <div class="desk-stack-grow desk-empty" title="Все задачи выполнены">
+            <i class="fa-light fa-circle-check text-success"></i><span class="desk-hide-narrow">Все задачи выполнены</span>
+        </div>
+    @elseif(empty($data['rows']))
         <div class="desk-stack-grow desk-empty">
             <i class="fa-light fa-note"></i> Заметок пока нет
         </div>
     @else
         <ul class="desk-list desk-stack-grow desk-fit">
             @foreach($list as $row)
-                @php $hint = trim($row['title'] . ($row['text'] !== '' ? ' — ' . $row['text'] : '')); @endphp
-                <li>
-                    <i @class([
-                            'fa-star flex-shrink-0 desk-hide-narrow',
-                            'fa-solid text-warning' => $row['favorite'],
-                            'fa-light desk-muted' => !$row['favorite'],
-                       ])
-                       @if($row['favorite']) title="Избранная заметка" @endif></i>
+                @php
+                    $hint = trim($row['title'] . ($row['text'] !== '' ? ' — ' . $row['text'] : ''));
+                    $done = !empty($row['done']);
+                    // флажок задачи: главный элемент строки, виден во всех размерах
+                    $check = $done ? 'fa-solid fa-square-check text-success' : 'fa-light fa-square';
+                    $check_title = $done ? 'Вернуть в работу' : 'Отметить выполненной';
+                    // выполненная — без жирного, зачёркнута и приглушена
+                    $title_class = $done ? 'text-decoration-line-through desk-muted' : 'fw-semibold';
+                @endphp
+                <li @if($done) class="nb-done" @endif>
+                    @if(!$preview && !empty($row['done_url']))
+                        <a href="javascript:void(0)" class="nb-check flex-shrink-0" data-desk-post="{{ $row['done_url'] }}"
+                           title="{{ $check_title }}"><i class="{{ $check }}"></i></a>
+                    @else
+                        <span class="nb-check flex-shrink-0"><i class="{{ $check }}"></i></span>
+                    @endif
                     @if($roomy)
                         <div class="desk-grow">
-                            <a href="javascript:void(0)"
-                               @if(!$preview && !empty($row['url'])) onclick="sidebar({href: '{{ $row['url'] }}'})" @endif
-                               class="desk-link d-block desk-nowrap fw-semibold text-hover-primary"
-                               title="{{ $hint }}">{{ $row['title'] }}</a>
+                            <div class="d-flex align-items-center gap-2">
+                                <a href="javascript:void(0)"
+                                   @if(!$preview && !empty($row['url'])) onclick="sidebar({href: '{{ $row['url'] }}'})" @endif
+                                   class="desk-link desk-grow nb-title {{ $title_class }} text-hover-primary"
+                                   title="{{ $hint }}">{{ $row['title'] }}</a>
+                                @if($row['favorite'])
+                                    <i class="fa-solid fa-star text-warning fs-8 flex-shrink-0 desk-hide-narrow" title="Избранная заметка"></i>
+                                @endif
+                            </div>
                             @if($row['text'] !== '')
                                 <div class="desk-muted desk-nowrap fs-7" title="{{ $hint }}">{{ $row['text'] }}</div>
                             @endif
                         </div>
                     @else
+                        {{-- название по содержимому, текст сразу за ним и до даты; дата прижата вправо --}}
                         <a href="javascript:void(0)"
                            @if(!$preview && !empty($row['url'])) onclick="sidebar({href: '{{ $row['url'] }}'})" @endif
-                           class="desk-link desk-grow fw-semibold text-hover-primary"
+                           @class(['desk-link desk-grow nb-title text-hover-primary', $title_class, 'nb-title-cut' => $row['text'] !== ''])
                            title="{{ $hint }}">{{ $row['title'] }}</a>
+                        @if($row['favorite'])
+                            <i class="fa-solid fa-star text-warning fs-8 flex-shrink-0 desk-hide-narrow" title="Избранная заметка"></i>
+                        @endif
                         @if($row['text'] !== '')
-                            <span class="desk-muted desk-grow desk-only-w-lg" title="{{ $hint }}">{{ $row['text'] }}</span>
+                            <span class="desk-muted desk-grow nb-text desk-only-w-lg" title="{{ $hint }}">{{ $row['text'] }}</span>
                         @endif
                     @endif
-                    <span class="desk-muted fs-8 text-nowrap flex-shrink-0 desk-only-w-md">{{ $row['date'] }}</span>
+                    <span class="desk-muted fs-8 text-nowrap flex-shrink-0 ms-auto desk-only-w-md">{{ $row['date'] }}</span>
                 </li>
             @endforeach
         </ul>

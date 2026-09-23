@@ -5,7 +5,8 @@
     - средняя ширина (dw md): матрица «страна × кварталы», статусы свёрнуты в страну;
     - широкий блок (dw lg|xl): матрица «страна → статус × кварталы» (если так выбрано в «Строки»);
     - колонки кварталов появляются по ширине блока (osmo-desktop-widgets/funnel-1.css), итог — всегда;
-    - строки режутся подгоном .desk-fit, итоговая строка и предупреждение «Не выбрано» остаются;
+    - строки режутся подгоном .desk-fit, итоговая строка и предупреждение «Вне таблицы» (квартал не выбран,
+      прошёл или позже последнего столбца; части — в подсказке) остаются;
     - высокий блок, а строк мало — под таблицей график сумм по кварталам.
 --}}
 @php
@@ -39,8 +40,21 @@
     // высокий блок, а строк мало — свободное место занимает график по кварталам
     $chart = !$narrow && in_array($dh, ['lg', 'xl'], true) && count($lines) * 2 <= $rows;
 
-    $none_title = 'Сделки, у которых плановый квартал не выбран или лежит вне показанных кварталов: '
-        . $widget::money($data['none_amount'], $symbol, false);
+    // сделки вне столбцов по частям: подпись «Без квартала», если у всех квартал не выбран, иначе «Вне таблицы»
+    $deals_word = fn($count) => $count . ' ' . \App\Facades\Tools::morph($count, 'сделка', 'сделки', 'сделок');
+    $part_names = [
+        'past' => 'квартал уже прошёл, сделка в воронке',
+        'later' => 'квартал позже, чем ' . (end($columns)['title'] ?? ''),
+        'empty' => 'квартал не выбран',
+    ];
+    $parts = array_filter($data['none_parts'] ?? [], fn($part) => $part['count'] > 0);
+    $none_label = array_keys($parts) === ['empty'] ? 'Без квартала' : 'Вне таблицы';
+    $none_title = 'Не попали в таблицу: ' . $widget::money($data['none_amount'], $symbol, false);
+    foreach ($part_names as $key => $name) {
+        if (isset($parts[$key])) {
+            $none_title .= "\n" . $name . ' — ' . $deals_word($parts[$key]['count']) . ' на ' . $widget::money($parts[$key]['amount'], $symbol, false);
+        }
+    }
 @endphp
 @if(empty($data['rows']))
     <div class="desk-empty">
@@ -121,7 +135,7 @@
                     </tfoot>
                 </table>
             </div>
-            <div class="desk-label desk-nowrap desk-hide-short" data-fit-more="ещё {n} строк в таблице"></div>
+            <div class="desk-label desk-nowrap desk-hide-short" data-fit-more="ещё строк: {n}"></div>
             @if($chart)
                 <div class="desk-stack-grow">
                     {!! $widget::chart([
@@ -139,7 +153,7 @@
             {{-- предупреждение переносится по словам: число сделок и сумма не уходят в многоточие --}}
             <div class="desk-label d-flex flex-wrap align-items-center gap-1 desk-hide-short" title="{{ $none_title }}">
                 <i class="fa-light fa-triangle-exclamation text-warning"></i>
-                <span>Не выбрано: {{ $data['none_count'] }} {{ \App\Facades\Tools::morph($data['none_count'], 'сделка', 'сделки', 'сделок') }}</span>
+                <span>{{ $none_label }}: {{ $deals_word($data['none_count']) }}</span>
                 <span class="text-nowrap desk-hide-narrow">на {{ $widget::money($data['none_amount'], $symbol) }}</span>
             </div>
         @endif

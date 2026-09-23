@@ -18,6 +18,19 @@
     .desk-widget[data-widget="progress"] .dp-fact { display: none; }
 }
 
+/* неширокий блок от 4 ячеек в высоту: подпись с периодом («План квартала · Текущий квартал»)
+   в две строки вместо многоточия; ниже вторая строка подписи вытесняла «осталось» (3×3) */
+@container dw (width < 420px) and (height >= 160px) {
+    .desk-widget[data-widget="progress"] .dp-caption {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        flex: none;
+    }
+}
+
 /* в высоком блоке шкала толще: растёт с высотой блока */
 .desk-widget[data-widget="progress"] .dp-bar { height: clamp(.55em, 2.4cqh, 1.1em); }
 
@@ -45,6 +58,11 @@
     .desk-widget[data-widget="rates"] .dr-col { min-width: 4.4rem; }
 }
 .desk-widget[data-widget="rates"] .dr-head > * { white-space: nowrap; }
+
+/* невысокий блок (8×3): строки плотнее, иначе третья валюта не влезает на 5 px и её прячет подгон */
+@container dw (height < 160px) {
+    .desk-widget[data-widget="rates"] .desk-list > li { padding: .2rem 0; }
+}
 
 /* список над графиком: отдаёт место графику, лишние строки прячет подгон */
 .desk-widget[data-widget="rates"] .dr-list { flex: 0 1 auto; min-height: 0; }

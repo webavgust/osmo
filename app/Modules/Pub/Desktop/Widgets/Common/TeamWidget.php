@@ -60,7 +60,7 @@ class TeamWidget extends Widget
      *
      * @param array $settings
      * @param DesktopContext $ctx
-     * @return array ['online', 'total', 'rows' => [['id', 'name', 'position', 'phone', 'avatar', 'online', 'when', 'ago', 'url']]]
+     * @return array ['online', 'total', 'rows' => [['id', 'name', 'short', 'position', 'phone', 'avatar', 'online', 'when', 'ago', 'url']]]
      */
     public function data(array $settings, DesktopContext $ctx): array
     {
@@ -83,6 +83,7 @@ class TeamWidget extends Widget
         $rows = $users->map(fn(User $user) => [
             'id' => (int) $user->id,
             'name' => trim((string) ($user->full_name ?: $user->name)),
+            'short' => static::shortName((string) $user->name, (string) $user->last_name),
             'position' => trim((string) $user->work_position),
             'phone' => trim((string) ($user->work_phone ?: $user->personal_mobile)),
             'avatar' => (string) asset($user->avatar()),
@@ -134,10 +135,12 @@ class TeamWidget extends Widget
 
         $rows = array_map(function ($row) {
             $when = now()->subMinutes($row[2]);
+            [$first, $last] = array_pad(explode(' ', $row[0], 2), 2, '');
 
             return [
                 'id' => 0,
                 'name' => $row[0],
+                'short' => static::shortName($first, $last),
                 'position' => $row[1],
                 'phone' => $row[3],
                 'avatar' => (string) asset(config('settings.user_avatar_default')),
@@ -153,5 +156,20 @@ class TeamWidget extends Widget
             'total' => count($rows),
             'rows' => $rows,
         ];
+    }
+
+    /**
+     * Короткое имя для ленты аватаров: «Анна С.»
+     *
+     * @param string $first имя
+     * @param string $last фамилия
+     * @return string
+     */
+    public static function shortName(string $first, string $last): string
+    {
+        $first = trim($first);
+        $last = trim($last);
+
+        return $last === '' ? $first : trim($first . ' ' . mb_substr($last, 0, 1) . '.');
     }
 }

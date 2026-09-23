@@ -47,8 +47,16 @@
     $href = fn($row) => $preview || empty($row['url']) ? 'javascript:void(0)' : $row['url'];
     $managers = count(array_unique(array_column($data['rows'], 'manager')));
 
-    $none_title = 'Сделки, у которых плановый квартал не выбран или лежит вне показанных кварталов: '
-        . $deals($data['none_count']) . ' · ' . $widget::money($data['none_amount'], $symbol, false);
+    // вне таблицы не только сделки без квартала: чаще квартал уже прошёл или лежит позже показанных
+    $parts = $data['none_parts'] ?? [];
+    $none_title = 'Сделки вне показанных кварталов: ' . $deals($data['none_count']) . ' · ' . $widget::money($data['none_amount'], $symbol, false)
+        . (!empty($parts['empty']) ? "\nплановый квартал не выбран: " . $parts['empty'] : '')
+        . (!empty($parts['past']) ? "\nплановый квартал уже прошёл: " . $parts['past'] : '')
+        . (!empty($parts['later']) ? "\nплановый квартал позже показанных: " . $parts['later'] : '');
+
+    // «Итого» считается по всем кварталам: пока часть колонок кварталов спрятана по ширине,
+    // шапка говорит «За N кв.» (переключение — стиль группы funnel-2, mq-q8 — порог 8 кварталов)
+    $q_count = count($data['columns']);
 @endphp
 @if(empty($data['rows']))
     <div class="desk-empty">
@@ -67,7 +75,7 @@
         @endif
 
         <div @class(['desk-fit', 'desk-stack-grow', 'mq-tall' => $summary]) data-fit-items="tbody > tr">
-            <table class="desk-table">
+            <table @class(['desk-table', 'mq-q8' => $q_count > 4])>
                 {{-- в низком блоке шапке, строке и итогу вместе не хватает места — шапка прячется --}}
                 <thead class="desk-hide-short">
                 <tr>
@@ -80,7 +88,13 @@
                             <th class="num {{ $col_class($i) }}" title="{{ $column['title'] }}">{{ $column['label'] }}</th>
                         @endforeach
                     @endif
-                    <th class="num" title="За {{ count($data['columns']) }} кв.">Итого, {{ $symbol }}</th>
+                    <th class="num text-nowrap" title="За {{ $q_count }} кв.">
+                        @if($quarters)
+                            <span class="mq-sum-all">Итого</span><span class="mq-sum-part">За {{ $q_count }} кв.</span>, {{ $symbol }}
+                        @else
+                            Итого, {{ $symbol }}
+                        @endif
+                    </th>
                 </tr>
                 </thead>
                 <tbody>
@@ -137,7 +151,7 @@
 
         @if($data['none_count'] > 0)
             <div class="desk-muted fs-8 text-nowrap overflow-hidden desk-hide-short" title="{{ $none_title }}">
-                <i class="fa-light fa-triangle-exclamation text-warning me-1"></i><span class="desk-hide-narrow">Не выбрано: </span>{{ $data['none_count'] }}<span class="desk-only-w-md"> {{ \App\Facades\Tools::morph($data['none_count'], 'сделка', 'сделки', 'сделок') }}</span><span class="desk-only-w-lg"> на {{ $widget::money($data['none_amount'], $symbol) }}</span>
+                <i class="fa-light fa-triangle-exclamation text-warning me-1"></i><span class="desk-hide-narrow">Вне кварталов: </span>{{ $data['none_count'] }}<span class="desk-only-w-md"> {{ \App\Facades\Tools::morph($data['none_count'], 'сделка', 'сделки', 'сделок') }}</span><span class="desk-only-w-lg"> на {{ $widget::money($data['none_amount'], $symbol) }}</span>
             </div>
         @endif
     </div>

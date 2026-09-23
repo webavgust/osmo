@@ -1,6 +1,6 @@
 /*
  * Рабочий стол (patch v30): поведение виджетов группы common-4 в блоке любого размера.
- * currency, embed, heading.
+ * currency, period, compare, team, embed, heading.
  *
  * Каждый селектор начинается с .desk-widget[data-widget="{id}"], кегль — только
  * контейнерными единицами (cqw, cqh) в clamp(). Прогон — patches/patch-v30/grid/common-4.md.
@@ -17,12 +17,22 @@
 /* узкий блок: в шапке только значок — название виджета не помещается */
 @container dw (max-width: 170px) {
     .desk-widget[data-widget="currency"] .desk-widget-title { visibility: hidden; }
+    /* у выбора меньше внутренние отступы: «$ USD» помещается и в ширине 2 */
+    .desk-widget[data-widget="currency"] .cur-pick .form-select {
+        padding-left: .45rem;
+        padding-right: 1.5rem;
+        background-position: right .35rem center;
+    }
 }
 
 .desk-widget[data-widget="currency"] .cur-body { justify-content: center; }
 /* широкий блок: выбор не растягивается на всю ширину */
 .desk-widget[data-widget="currency"] .cur-pick .form-select { max-width: 24rem; }
 
+/* блок в одну ячейку высотой: выбор и курс строго в одну строку — переноса по высоте нет места */
+@container dw (max-height: 60px) {
+    .desk-widget[data-widget="currency"] .cur-pick { flex-wrap: nowrap !important; }
+}
 @container dw (min-height: 110px) {
     .desk-widget[data-widget="currency"] .cur-rate-inline { display: none; }
     .desk-widget[data-widget="currency"] .cur-body { justify-content: flex-start; gap: clamp(.35rem, 2cqh, 1.25rem); }
@@ -87,3 +97,297 @@
         font-size: calc(clamp(13px, min(3.4cqw, 2cqh), 20px) * var(--desk-font-scale));
     }
 }
+
+/* ================= period — Период ================= */
+
+/*
+ * Устроен как «Выбор валюты». Низкий блок: выбор периода (и даты в строку, если шире 230 px)
+ * по центру высоты. С высоты 110 px под выбором карточка периода: даты крупно, сколько дней
+ * прошло, полоска. С высоты 230 px (ступень lg) — все периоды списком с датами.
+ */
+
+/* узкий блок: в шапке только значок — название виджета не помещается */
+@container dw (max-width: 170px) {
+    .desk-widget[data-widget="period"] .desk-widget-title { visibility: hidden; }
+    /* у выбора меньше внутренние отступы: короткая подпись периода помещается целиком */
+    .desk-widget[data-widget="period"] .per-pick .form-select {
+        padding-left: .45rem;
+        padding-right: 1.5rem;
+        background-position: right .35rem center;
+    }
+}
+
+.desk-widget[data-widget="period"] .per-body { justify-content: center; }
+/* широкий блок: выбор не растягивается на всю ширину */
+.desk-widget[data-widget="period"] .per-pick .form-select { max-width: 24rem; }
+
+/* даты в строку с выбором — только в низком блоке шире 340 px: уже выбор режет подпись периода */
+.desk-widget[data-widget="period"] .per-dates-inline { display: none; }
+@container dw (min-width: 340px) and (height < 110px) {
+    .desk-widget[data-widget="period"] .per-dates-inline { display: inline; }
+}
+@container dw (min-height: 110px) {
+    .desk-widget[data-widget="period"] .per-body { justify-content: flex-start; gap: clamp(.35rem, 2cqh, 1.25rem); }
+}
+
+/* карточка периода: даты переносятся по тире, число не режется */
+.desk-widget[data-widget="period"] .per-now { min-width: 0; }
+.desk-widget[data-widget="period"] .per-dates {
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+    font-size: calc(clamp(10.5px, min(11cqw, 10cqh), 34px) * var(--desk-font-scale));
+}
+.desk-widget[data-widget="period"] .per-meta {
+    margin-top: .2rem;
+    font-size: calc(clamp(11px, min(3.4cqw, 4cqh), 17px) * var(--desk-font-scale));
+}
+.desk-widget[data-widget="period"] .per-bar { margin-top: .45rem; }
+
+/* список периодов: переключатель спрятан, текущий период подсвечен */
+.desk-widget[data-widget="period"] .per-list { align-content: start; }
+.desk-widget[data-widget="period"] .per-list > li { padding: 0; }
+.desk-widget[data-widget="period"] .per-option {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding: clamp(.3rem, 1.1cqh, .8rem) .5rem;
+    border-radius: .425rem;
+    cursor: pointer;
+}
+.desk-widget[data-widget="period"] .per-option:hover { background: var(--bs-gray-100); }
+.desk-widget[data-widget="period"] .per-radio { position: absolute; opacity: 0; pointer-events: none; }
+.desk-widget[data-widget="period"] .per-item.is-current .per-option { background: var(--bs-primary-light); color: var(--bs-primary); }
+.desk-widget[data-widget="period"] .per-radio:focus-visible + span { outline: 2px solid var(--bs-primary); outline-offset: 2px; }
+.desk-widget[data-widget="period"] .per-radio:disabled ~ span { cursor: default; }
+/* очень высокий блок: строки растягиваются по высоте (не выше 4.5rem), кегль растёт с блоком */
+@container dw (min-height: 560px) {
+    .desk-widget[data-widget="period"] .per-list { display: flex; flex-direction: column; }
+    .desk-widget[data-widget="period"] .per-list > li { flex: 1 1 auto; max-height: 4.5rem; align-items: stretch; }
+    .desk-widget[data-widget="period"] .per-option {
+        font-size: calc(clamp(13px, min(3.4cqw, 2cqh), 20px) * var(--desk-font-scale));
+    }
+}
+/* узкий блок (после правила высокого — перебивает его кегль): подпись периода переносится
+   по словам, а не режется */
+@container dw (max-width: 170px) {
+    .desk-widget[data-widget="period"] .per-option {
+        padding-left: .2rem;
+        padding-right: .2rem;
+        font-size: calc(clamp(11px, 15cqw, 13px) * var(--desk-font-scale));
+    }
+    .desk-widget[data-widget="period"] .per-option .desk-grow { white-space: normal; line-height: 1.2; }
+}
+
+/* ================= heading — Заголовок ряда ================= */
+
+/*
+ * Линия-заголовок: типичные размеры 8×1, 16×1, 32×1. Текст стоит по центру высоты, кегль —
+ * общий .desk-heading (от высоты блока, 13…34 px). В высоком блоке заголовок не растёт
+ * сверх 34 px и остаётся по центру — пустота вокруг задумана.
+ */
+.desk-widget[data-widget="heading"] .hd-text {
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+/* узкий блок: без значка и с меньшим промежутком — остаётся место тексту */
+@container dw (max-width: 170px) {
+    .desk-widget[data-widget="heading"] .hd-icon { display: none; }
+    .desk-widget[data-widget="heading"] .desk-heading { gap: .5rem !important; }
+}
+/* блок от двух ячеек высотой: длинный текст переносится (до двух строк, в узком — до трёх),
+   а не режется многоточием в первой строке */
+@container dw (min-height: 70px) {
+    .desk-widget[data-widget="heading"] .hd-text {
+        white-space: normal;
+        overflow-wrap: break-word;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+    }
+}
+@container dw (max-width: 170px) and (min-height: 70px) {
+    .desk-widget[data-widget="heading"] .hd-text { -webkit-line-clamp: 3; }
+}
+
+/* ================= embed — Внешняя страница ================= */
+
+/*
+ * На столе — чужая страница во всю площадь тела (iframe). В превью библиотеки и на стенде —
+ * схема окна браузера: строка адреса с доменом и страница-отчёт (заголовок, плитки, график),
+ * растянутая на всё тело. Подсказки «укажите адрес» и «домен не разрешён» в узком блоке —
+ * только значок (текст в title).
+ */
+
+/* узкий блок: в шапке только значок — название виджета не помещается */
+@container dw (max-width: 170px) {
+    .desk-widget[data-widget="embed"] .desk-widget-title { visibility: hidden; }
+}
+
+.desk-widget[data-widget="embed"] .emb-mock { height: 100%; display: flex; flex-direction: column; min-height: 0; }
+.desk-widget[data-widget="embed"] .emb-bar {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    min-width: 0;
+    padding: .3rem .6rem;
+    background: var(--bs-gray-100);
+    border-top: 1px solid var(--bs-gray-200);
+    border-bottom: 1px solid var(--bs-gray-200);
+}
+.desk-widget[data-widget="embed"] .emb-dots { display: flex; gap: .25rem; flex: none; }
+.desk-widget[data-widget="embed"] .emb-dots > i { display: block; width: .5rem; height: .5rem; border-radius: 50%; background: var(--bs-gray-300); }
+.desk-widget[data-widget="embed"] .emb-address {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .1rem .55rem;
+    border-radius: 99px;
+    background: var(--bs-body-bg);
+    color: var(--bs-gray-600);
+    font-size: .92em;
+}
+.desk-widget[data-widget="embed"] .emb-page { flex: 1 1 auto; min-height: 0; width: 100%; display: block; }
+.desk-widget[data-widget="embed"] .emb-s1 { fill: var(--bs-gray-100); }
+.desk-widget[data-widget="embed"] .emb-s2 { fill: var(--bs-gray-200); }
+.desk-widget[data-widget="embed"] .emb-s3 { fill: var(--bs-gray-300); }
+.desk-widget[data-widget="embed"] .emb-bar-fill { fill: var(--bs-primary); fill-opacity: .35; }
+/* блок в одну ячейку высотой: только строка адреса */
+@container dw (max-height: 60px) {
+    .desk-widget[data-widget="embed"] .emb-page { display: none; }
+}
+
+/* подсказки: текст переносится и не вылезает за край */
+.desk-widget[data-widget="embed"] .emb-note { padding: 0 .25rem; }
+.desk-widget[data-widget="embed"] .emb-note-text { min-width: 0; overflow-wrap: anywhere; line-height: 1.3; }
+
+/* ================= team — Кто в сети ================= */
+
+/*
+ * Не реестр: прокрутки нет. Низкий блок (высота 1–2) — лента аватаров в одну строку, шире
+ * 230 px — с короткими именами и счётчиком «N в сети»; не влезшие прячет подгон по ширине
+ * (подпись «+N»). Высота от 3 ячеек — список, лишние строки прячет .desk-fit («ещё N»);
+ * в очень высоком блоке строки растягиваются, чтобы короткий список не жался к верху.
+ */
+
+/* узкий блок: в шапке только значок — название виджета не помещается */
+@container dw (max-width: 170px) {
+    .desk-widget[data-widget="team"] .desk-widget-title { visibility: hidden; }
+}
+
+/* лента: чип — аватар и имя, не сжимается */
+.desk-widget[data-widget="team"] .tm-strip { min-width: 0; }
+.desk-widget[data-widget="team"] .tm-chip {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    color: inherit;
+    text-decoration: none;
+}
+.desk-widget[data-widget="team"] .tm-chip:hover { color: var(--bs-primary); }
+/* блок в одну ячейку высотой: аватары мельче — тело там ниже 30 px */
+@container dw (max-height: 60px) {
+    .desk-widget[data-widget="team"] .tm-chip .symbol > img { width: 22px; height: 22px; }
+}
+
+/* список: уже 230 px — точка «в сети» вместо значка и короткое имя вместо полного */
+.desk-widget[data-widget="team"] .tm-dot,
+.desk-widget[data-widget="team"] .tm-short { display: none; }
+@container dw (width < 230px) {
+    .desk-widget[data-widget="team"] .tm-dot { display: inline-block; }
+    .desk-widget[data-widget="team"] .tm-short { display: block; }
+    .desk-widget[data-widget="team"] .tm-name { display: none; }
+}
+/* должность сжимается первой — имя остаётся целым */
+.desk-widget[data-widget="team"] .tm-pos { flex-shrink: 100; }
+/* очень высокий блок: строки делят высоту (не выше 3.5rem), кегль растёт с блоком */
+@container dw (min-height: 560px) {
+    .desk-widget[data-widget="team"] .tm-list { display: flex; flex-direction: column; }
+    .desk-widget[data-widget="team"] .tm-list > li { flex: 1 1 auto; max-height: 3.5rem; }
+    .desk-widget[data-widget="team"] .tm-list > li .fw-semibold {
+        font-size: calc(clamp(13px, min(2.6cqw, 1.6cqh), 17px) * var(--desk-font-scale));
+    }
+}
+
+/* ================= compare — Сравнение периодов ================= */
+
+/*
+ * Высота 1 — всё в строку; высота 2 — подпись и разница слева, значения отрезков справа
+ * (шире 230 px). Высота 3–5: узкий блок — колонка «подпись, разница, значения», широкий —
+ * две строки-полоски. Высота от 6 — разница крупно и два столбика во всю оставшуюся высоту:
+ * крупный блок не пустует, а сравнение видно глазом.
+ */
+
+/* узкий блок: в шапке только значок — название виджета не помещается */
+@container dw (max-width: 170px) {
+    .desk-widget[data-widget="compare"] .desk-widget-title { visibility: hidden; }
+}
+
+/* значения в узком блоке: кегль от ширины, чтобы «48,2 млн ₽» встало в 60 px без многоточия */
+.desk-widget[data-widget="compare"] .cmp-vals { line-height: 1.3; }
+@container dw (max-width: 170px) {
+    .desk-widget[data-widget="compare"] .cmp-vals { font-size: calc(clamp(10.5px, 14cqw, 13px) * var(--desk-font-scale)); }
+    /* разница с нулевой базы — сумма («+56,8 млн ₽»): в узком блоке переносится по пробелу, а не режется */
+    .desk-widget[data-widget="compare"] .desk-value.desk-delta { white-space: normal; text-overflow: clip; }
+}
+.desk-widget[data-widget="compare"] .cmp-narrow { justify-content: center; }
+/* узкий блок: название показателя переносится на вторую строку, а не режется сразу */
+@container dw (width < 230px) {
+    .desk-widget[data-widget="compare"] .cmp-caption {
+        white-space: normal;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+    }
+}
+.desk-widget[data-widget="compare"] .cmp-pair { line-height: 1.35; }
+
+/* строки-полоски: делят высоту поровну */
+.desk-widget[data-widget="compare"] .cmp-rows { display: flex; flex-direction: column; justify-content: space-evenly; gap: .4rem; }
+.desk-widget[data-widget="compare"] .cmp-rows .desk-bar { margin-top: .25rem; }
+
+/* высокий блок: разница — главная цифра, под ней столбики */
+.desk-widget[data-widget="compare"] .cmp-vals-narrow { display: none; }
+@container dw (max-width: 170px) {
+    .desk-widget[data-widget="compare"] .cmp-vals-narrow { display: block; }
+}
+.desk-widget[data-widget="compare"] .cmp-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(.4rem, 4cqw, 2.5rem);
+    padding-top: .25rem;
+}
+.desk-widget[data-widget="compare"] .cmp-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .3rem;
+    min-width: 0;
+    min-height: 0;
+    text-align: center;
+}
+.desk-widget[data-widget="compare"] .cmp-col-value {
+    font-variant-numeric: tabular-nums;
+    font-size: calc(clamp(11px, min(6.5cqw, 4cqh), 26px) * var(--desk-font-scale));
+}
+.desk-widget[data-widget="compare"] .cmp-col-track {
+    flex: 1 1 auto;
+    min-height: 12px;
+    width: min(100%, 7rem);
+    display: flex;
+    align-items: flex-end;
+    border-radius: .425rem;
+    background: var(--bs-gray-100);
+    overflow: hidden;
+}
+.desk-widget[data-widget="compare"] .cmp-col-track > i { display: block; width: 100%; border-radius: .425rem .425rem 0 0; }
+.desk-widget[data-widget="compare"] .cmp-col-label { line-height: 1.2; max-width: 100%; }

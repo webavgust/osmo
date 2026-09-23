@@ -18,8 +18,9 @@ use Illuminate\Support\Str;
  * scopeStatuses, пересчёт в валюту виджета), плановый квартал — поле сделки
  * DealProjectService::ufQuarter(). Колонки-кварталы общие с CountryQuarterWidget.
  *
- * Клик по менеджеру — реестр сделок с его отбором; сделки без планового квартала
- * в столбцы не попадают и показываются предупреждением под таблицей.
+ * Клик по менеджеру — реестр сделок с его отбором; сделки, чей плановый квартал не выбран,
+ * уже прошёл или лежит позже показанных, в столбцы не попадают и показываются
+ * предупреждением «Вне кварталов» под таблицей.
  */
 class ManagerQuarterWidget extends Widget
 {
@@ -60,7 +61,9 @@ class ManagerQuarterWidget extends Widget
 
     public static function sourceUrl(array $settings): ?string
     {
-        return route('crm-deal.index', ['has_proposal' => 'all']);
+        // та же матрица — на странице воронки, блок «Кварталы», вкладка «Менеджер → Статус»
+        // (как у CountryQuarterWidget); строки менеджеров ведут в реестр сделок
+        return route('dashboard.index');
     }
 
     /**
@@ -109,7 +112,9 @@ class ManagerQuarterWidget extends Widget
             }
         }
 
-        return static::table($matrix, $columns, $settings['rows'], '₽', 5, 21700000.0);
+        return static::table($matrix, $columns, $settings['rows'], '₽', 5, 21700000.0) + [
+            'none_parts' => ['empty' => 2, 'past' => 2, 'later' => 1],
+        ];
     }
 
     /**
@@ -117,7 +122,8 @@ class ManagerQuarterWidget extends Widget
      *
      * @param array $settings
      * @param DesktopContext $ctx
-     * @return array ['columns', 'rows', 'col_totals', 'grand_total', 'count_total', 'max_cell', 'symbol', 'none_count', 'none_amount']
+     * @return array ['columns', 'rows', 'col_totals', 'grand_total', 'count_total', 'max_cell', 'symbol', 'none_count', 'none_amount',
+     *                'none_parts' => ['empty', 'past', 'later']]
      */
     public function data(array $settings, DesktopContext $ctx): array
     {
@@ -132,6 +138,8 @@ class ManagerQuarterWidget extends Widget
         $matrix = [];
         $none_count = 0;
         $none_amount = 0.0;
+        // почему сделка вне таблицы: квартал не выбран, уже прошёл или позже показанных
+        $none_parts = ['empty' => 0, 'past' => 0, 'later' => 0];
 
         foreach ($result['deals'] as $deal) {
             // как на странице воронки: сделки без суммы в матрицу не идут
@@ -147,6 +155,12 @@ class ManagerQuarterWidget extends Widget
             if (!in_array($quarter, $keys, true)) {
                 $none_count++;
                 $none_amount += $amount;
+                // ключи вида «2026q3» сравниваются строкой в хронологическом порядке
+                $none_parts[match (true) {
+                    !preg_match('/^\d{4}q[1-4]$/', $quarter) => 'empty',
+                    $quarter < $keys[0] => 'past',
+                    default => 'later',
+                }]++;
                 continue;
             }
 
@@ -159,7 +173,9 @@ class ManagerQuarterWidget extends Widget
             $matrix[$name]['cells'][$status][$quarter]['count'] = ($matrix[$name]['cells'][$status][$quarter]['count'] ?? 0) + 1;
         }
 
-        return static::table($matrix, $columns, $settings['rows'], $ctx->symbol($currency), $none_count, $none_amount);
+        return static::table($matrix, $columns, $settings['rows'], $ctx->symbol($currency), $none_count, $none_amount) + [
+            'none_parts' => $none_parts,
+        ];
     }
 
     /**

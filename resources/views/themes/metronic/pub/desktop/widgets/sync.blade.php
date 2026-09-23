@@ -32,7 +32,7 @@
 @endphp
 @if(!$data['ok'])
     <div class="desk-empty">
-        <i class="fa-light fa-plug-circle-xmark"></i> Зеркало Битрикс24 недоступно
+        <i class="fa-light fa-link-slash"></i> Зеркало Битрикс24 недоступно
     </div>
 @elseif(!$data['tables'])
     <div class="desk-empty">
@@ -43,7 +43,8 @@
         <div>
             <div class="desk-label desk-nowrap">обновлено</div>
             <div class="desk-value text-{{ $last['color'] }}" title="{{ $hint }}">{{ $last['age'] }}
-                @if($last['date'])
+                {{-- «назад» — только к возрасту в часах и днях: «только что назад» не говорят --}}
+                @if($last['date'] && $last['hours'] >= 1)
                     <span class="desk-value-sm desk-muted desk-only-w-md">назад</span>
                 @endif
             </div>
@@ -55,7 +56,8 @@
                     @endif
                     <span class="desk-muted fs-8 text-nowrap desk-only-w-md"
                           title="Записей в зеркале Битрикс24, таблиц: {{ $data['tables'] }}">
-                        {{ $widget::compact($data['total']) }} записей
+                        {{-- склонение — по точному числу, пока оно выводится полностью (до 10 000) --}}
+                        {{ $widget::compact($data['total']) }} {{ $data['total'] < 10000 ? \App\Facades\Tools::morph($data['total'], 'запись', 'записи', 'записей') : 'записей' }}
                     </span>
                     @if($data['never'])
                         <span class="badge badge-light-secondary fs-8 text-nowrap desk-only-w-lg"

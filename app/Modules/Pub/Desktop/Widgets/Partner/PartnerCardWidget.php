@@ -182,6 +182,9 @@ class PartnerCardWidget extends Widget
             'total' => $ranked->count(),
             'companies' => (int) $partner->companies_count,
             'contracts' => (int) $partner->contracts_count,
+            // сопоставление с Битрикс24 не зависит от года: партнёр вне рейтинга года тоже может
+            // быть сопоставлен (раньше такой получал ложную плашку «без Битрикс24»)
+            'crm_linked' => !empty(PartnerScoringService::companyMap()[(int) $partner->id] ?? []),
         ];
 
         if ($row === null) {
@@ -206,7 +209,6 @@ class PartnerCardWidget extends Widget
             'deals' => (int) $row['deals'],
             'deals_sum' => $money($row['deals_sum']),
             'projects' => (int) $row['projects'],
-            'crm_linked' => (bool) $row['crm_linked'],
         ]);
     }
 }

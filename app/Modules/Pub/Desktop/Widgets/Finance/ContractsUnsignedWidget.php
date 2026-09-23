@@ -271,7 +271,7 @@ class ContractsUnsignedWidget extends Widget
     }
 
     /**
-     * Давность по-человечески: 418 → «1 г, 1 мес», 52 → «52 дн.»
+     * Давность по-человечески: 52 → «52 дня», 150 → «5 месяцев», 418 → «1 год»
      *
      * @param int|null $days
      * @return string

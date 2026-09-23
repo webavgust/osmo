@@ -2,6 +2,11 @@
 @php
     $number = fn($value) => rtrim(rtrim(number_format((float) $value, 1, ',', ' '), '0'), ',');
     $percent = fn($value) => $number($value) . ' %';
+    // решённых КП в периоде нет — конверсии нет: прочерк, а не «0 %»
+    $none = (int) $data['resolved'] === 0;
+    $value_title = $none
+        ? 'Решённых КП за ' . $data['dates'] . ' нет'
+        : 'Выиграно ' . $data['won'] . ' из ' . $data['resolved'] . ' решённых за ' . $data['dates'];
 
     // сравнивать не с чем, если в прошлом отрезке ни одного решённого КП
     $delta = $data['delta'];
@@ -13,9 +18,11 @@
     $delta_text = $delta === null
         ? ($dw === 'xs' ? '—' : '— к прошлому отрезку')
         : ($delta > 0 ? '+' : ($delta < 0 ? '−' : '')) . $number(abs($delta)) . ' п. п.';
+    // идущий период сравнивается с прошлым по то же число — даты отрезка в подсказке
+    $prev_dates = !empty($data['prev_dates']) ? ' ' . $data['prev_dates'] : '';
     $delta_title = $data['previous'] === null
-        ? 'В прошлом таком же отрезке решённых КП не было'
-        : 'Прошлый такой же отрезок: ' . $percent($data['previous']) . ' (' . $data['previous_resolved'] . ' решённых)';
+        ? 'В прошлом отрезке' . $prev_dates . ' решённых КП не было'
+        : 'Прошлый отрезок' . $prev_dates . ': ' . $percent($data['previous']) . ' (' . $data['previous_resolved'] . ' решённых)';
     $sum = $settings['show_sum'] && $data['amount'] !== null;
     $sum_title = $sum ? 'Сумма основных вариантов выигранных КП: ' . $widget::money($data['amount'], $data['symbol'], false) : '';
 
@@ -33,13 +40,14 @@
         <div class="desk-label desk-nowrap" title="Конверсия: {{ $data['label'] }}">
             конверсия@unless($side)<span class="desk-only-w-md">: {{ $data['label'] }}</span>@endunless
         </div>
-        <div class="{{ $value_class }}" title="Выиграно {{ $data['won'] }} из {{ $data['resolved'] }} решённых за {{ $data['dates'] }}">
-            {{ $percent($data['conversion']) }}
+        <div class="{{ $value_class }}" title="{{ $value_title }}">
+            {{ $none ? '—' : $percent($data['conversion']) }}
         </div>
 
         @unless($tall)
             <div class="d-flex column-gap-2 align-items-baseline flex-wrap desk-hide-short">
-                <span class="desk-delta {{ $direction }}" title="{{ $delta_title }}">{{ $delta_text }}</span>
+                {{-- сбоку от графика места мало: без сравнения — только прочерк, пояснение в подсказке --}}
+                <span class="desk-delta {{ $direction }}" title="{{ $delta_title }}">{{ $delta === null && $side ? '—' : $delta_text }}</span>
                 <span class="desk-muted text-nowrap" title="Выиграно и проиграно за период">{{ $data['won'] }} из {{ $data['resolved'] }}</span>
             </div>
 

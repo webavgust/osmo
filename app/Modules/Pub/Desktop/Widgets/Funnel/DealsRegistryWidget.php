@@ -23,7 +23,7 @@ class DealsRegistryWidget extends Widget
     /** Цвет стадии по семантике Битрикса — как в таблице реестра */
     public const SEMANTIC = ['S' => 'success', 'F' => 'danger', 'P' => 'primary'];
 
-    /** Символы валют реестра */
+    /** Символы валют образца (живые данные берут символ из справочника валют портала) */
     public const SYMBOLS = ['RUB' => '₽', 'USD' => '$', 'EUR' => '€', 'CNY' => '¥'];
 
     /** Вкладки реестра */
@@ -108,10 +108,10 @@ class DealsRegistryWidget extends Widget
     public function sample(array $settings, DesktopContext $ctx): array
     {
         $sample = [
-            [4821, 'Лицензии OSMO, ГК «Восток»', 'Contracting', 'P', 'ГК «Восток»', 'Роснефть', 'Россия', 4200000.0, 'RUB', '2026-114', true],
+            [4821, 'Лицензии OSMO, ГК «Восток»', 'Contracting', 'P', 'ГК «Восток»', 'Роснефть', 'Россия', 4200000.0, 'RUB', 'AA795', true],
             [4817, 'Пилот, Ташкент-Софт', 'Pilot project', 'P', 'Ташкент-Софт', 'UzGas', 'Узбекистан', 38000.0, 'USD', null, true],
-            [4802, 'Продление, ООО «Гранит»', 'Invoice + Specification', 'P', 'ООО «Гранит»', '', 'Россия', 1750000.0, 'RUB', '2026-097', false],
-            [4790, 'Внедрение, АО «Вектор»', 'Execution (PRE-PAYMENT)', 'S', 'АО «Вектор»', 'Вектор-Юг', 'Россия', 9300000.0, 'RUB', '2026-090', false],
+            [4802, 'Продление, ООО «Гранит»', 'Invoice + Specification', 'P', 'ООО «Гранит»', '', 'Россия', 1750000.0, 'RUB', 'OD781', false],
+            [4790, 'Внедрение, АО «Вектор»', 'Execution (PRE-PAYMENT)', 'S', 'АО «Вектор»', 'Вектор-Юг', 'Россия', 9300000.0, 'RUB', 'AK770', false],
             [4771, 'Тендер, «Алмаз»', 'Competition/tender', 'F', 'Алмаз', '', 'Казахстан', 12000000.0, 'RUB', null, false],
         ];
 
@@ -132,7 +132,7 @@ class DealsRegistryWidget extends Widget
                 'amount' => $row[7],
                 'symbol' => static::SYMBOLS[$row[8]] ?? $row[8],
                 'proposal' => $row[9],
-                'proposal_name' => $row[9] ? 'КП ' . $row[9] : null,
+                'proposal_name' => $row[9] ? $row[1] : null,
                 'proposal_url' => null,
                 'project' => $row[10],
                 'url' => null,
@@ -165,7 +165,7 @@ class DealsRegistryWidget extends Widget
 
         $rows = CrmDealRegistryService::rows($params, null, $mode);
 
-        $list = $rows->take((int) $settings['limit'])->map(function ($row) {
+        $list = $rows->take((int) $settings['limit'])->map(function ($row) use ($ctx) {
             $proposal = $row->proposal;
             $project = $row->project;
 
@@ -180,7 +180,8 @@ class DealsRegistryWidget extends Widget
                 'customer' => (string) ($row->customer_name ?: ''),
                 'country' => (string) $row->country,
                 'amount' => (float) $row->opportunity,
-                'symbol' => static::SYMBOLS[(string) $row->currency_id] ?? (string) $row->currency_id,
+                // символ из справочника валют портала: в реестре есть и рупии, и сумы, не только ₽ $ € ¥
+                'symbol' => $ctx->symbol((string) $row->currency_id),
                 'proposal' => $proposal ? (string) ($proposal->number ?: 'КП') : null,
                 'proposal_name' => $proposal?->name,
                 'proposal_url' => $proposal ? route('proposal.detail', [$proposal, $proposal->iteration]) : null,

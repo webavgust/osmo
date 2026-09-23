@@ -2,6 +2,7 @@
 
 namespace App\Modules\Pub\Desktop\Widgets\Analytics;
 
+use App\Modules\Pub\ContractSpecification\Models\ContractSpecificationStatus;
 use App\Modules\Pub\Desktop\Services\DesktopContext;
 use App\Modules\Pub\Desktop\Widgets\Widget;
 use App\Modules\Pub\Proposal\Models\ProposalLink;
@@ -13,14 +14,17 @@ use Illuminate\Support\Facades\DB;
  * в коммерческие предложения и в спецификации договоров.
  *
  * Считается так же, как это видно на отчётах портала:
- *  - «по КП» — строки сценариев основного варианта КП (proposal_variant_scenarios
- *    у варианта с is_main), период берётся по дате создания КП;
- *  - «по спецификациям» — строки сценариев спецификаций
- *    (contract_specification_scenarios), период — по дате спецификации.
+ *  - «по КП» — строки сценариев основного варианта последней редакции КП
+ *    (proposal_variant_scenarios у варианта с is_main), без второстепенных КП связки
+ *    (patch v33); период берётся по дате создания этой редакции. За всё время цифры
+ *    совпадают с рейтингом /report/popular_scenario (ReportService::scenario_popular);
+ *  - «по спецификациям» — строки сценариев спецификаций (contract_specification_scenarios)
+ *    без отменённых спецификаций, период — по дате спецификации.
  * Строки без привязки к справочнику сценариев (вписанные руками) в счёт не идут:
  * у них нет scenario_id, и назвать их «сценарием справочника» нельзя.
+ * Равные упоминания делят одно место, как в рейтинге отчёта.
  *
- * Клик по заголовку — отчёт «Список сценариев» (/report/scenarios).
+ * Клик по заголовку — «Список сценариев» (/report/scenarios): рейтинг в меню скрыт.
  */
 class ScenariosTopWidget extends Widget
 {
@@ -57,11 +61,11 @@ class ScenariosTopWidget extends Widget
     {
         return [
             ['key' => 'source', 'type' => 'select', 'label' => 'Считать по', 'default' => 'proposals',
-                'options' => ['proposals' => 'КП (основной вариант)', 'specs' => 'Спецификациям'],
+                'options' => ['proposals' => 'КП (основной вариант последней редакции)', 'specs' => 'Спецификациям (кроме отменённых)'],
                 'hint' => 'Сценарии, вписанные руками мимо справочника, не считаются'],
             ['key' => 'scope', 'type' => 'select', 'label' => 'Отбор', 'default' => 'all',
                 'options' => ['all' => 'За всё время', 'period' => 'За период'],
-                'hint' => 'Дата КП — дата создания, дата спецификации — её собственная'],
+                'hint' => 'Дата КП — дата его последней редакции, дата спецификации — её собственная'],
             ['key' => 'limit', 'type' => 'number', 'label' => 'Сколько сценариев', 'default' => 10, 'min' => 3, 'max' => 30],
             ['key' => 'show_units', 'type' => 'bool', 'label' => 'Показывать количество лицензий', 'default' => true,
                 'hint' => 'Только для КП: сумма поля «количество» в строках сценариев'],
@@ -101,19 +105,24 @@ class ScenariosTopWidget extends Widget
         $total = array_sum(array_column($sample, 2)) + 180;
         $rows = [];
 
+        $place = 0;
         foreach (array_slice($sample, 0, (int) ($settings['limit'] ?? 10)) as $i => [$name, $group, $uses, $units]) {
+            if ($i === 0 || $uses !== $rows[$i - 1]['uses']) $place = $i + 1;
             $rows[] = [
-                'place' => $i + 1, 'name' => $name, 'group' => $group,
+                'place' => $place, 'name' => $name, 'group' => $group,
                 'uses' => $uses, 'units' => $has_units ? $units : null,
                 'share' => round($uses * 100 / $total, 1),
             ];
         }
 
+        $period = $ctx->periodFor($settings);
+
         return [
             'rows' => $rows, 'total' => $total, 'scenarios' => 41,
             'units' => $has_units ? 121659 : null, 'has_units' => $has_units,
-            'source_label' => 'в КП', 'scope_label' => 'за всё время',
-            'dates' => $ctx->periodFor($settings)['dates'],
+            'source_label' => (string) ($settings['source'] ?? 'proposals') === 'specs' ? 'в спецификациях' : 'в КП',
+            'scope_label' => static::scopeLabel($settings, $period),
+            'dates' => (string) ($settings['scope'] ?? 'all') === 'period' ? $period['dates'] : '',
         ];
     }
 
@@ -147,10 +156,14 @@ class ScenariosTopWidget extends Widget
 
         $total = (int) $found->sum('uses');
         $rows = [];
+        $place = 0;
 
         foreach ($found->take((int) $settings['limit']) as $i => $row) {
+            // равные упоминания — одно место на всех, как в рейтинге отчёта (1, 2, 2, 4…)
+            if ($i === 0 || (int) $row->uses !== $rows[$i - 1]['uses']) $place = $i + 1;
+
             $rows[] = [
-                'place' => $i + 1,
+                'place' => $place,
                 'name' => (string) $row->name,
                 'group' => (string) ($row->group_name ?? ''),
                 'uses' => (int) $row->uses,
@@ -166,9 +179,23 @@ class ScenariosTopWidget extends Widget
             'units' => $has_units ? (int) $found->sum('units') : null,
             'has_units' => $has_units,
             'source_label' => $proposals ? 'в КП' : 'в спецификациях',
-            'scope_label' => $by_period ? mb_strtolower($period['label']) : 'за всё время',
-            'dates' => $period['dates'],
+            'scope_label' => static::scopeLabel($settings, $period),
+            'dates' => $by_period ? $period['dates'] : '',
         ];
+    }
+
+    /**
+     * Подпись отбора: «за всё время» или «за текущий квартал»
+     *
+     * @param array $settings
+     * @param array $period DesktopContext::periodFor()
+     * @return string
+     */
+    protected static function scopeLabel(array $settings, array $period): string
+    {
+        return (string) ($settings['scope'] ?? 'all') === 'period'
+            ? 'за ' . mb_strtolower($period['label'])
+            : 'за всё время';
     }
 
     /**
@@ -185,6 +212,8 @@ class ScenariosTopWidget extends Widget
             ->join('scenarios as s', 's.id', '=', 'pvs.scenario_id')
             ->leftJoin('scenario_groups as g', 'g.id', '=', 's.scenario_group_id')
             ->where('pv.is_main', 1)
+            // только последняя редакция КП, как в отчёте: иначе КП в пяти редакциях считался бы пять раз
+            ->whereIn('p.id', fn($query) => $query->selectRaw('MAX(id)')->from('proposals')->groupBy('group'))
             // patch v33: второстепенные КП в расчётах не участвуют
             ->whereRaw(ProposalLink::notSecondarySql('p.group'))
             ->select('s.id', 's.name', DB::raw('g.name as group_name'), DB::raw('count(*) as uses'),
@@ -202,6 +231,8 @@ class ScenariosTopWidget extends Widget
             ->join('contract_specifications as cs', 'cs.id', '=', 'css.contract_specification_id')
             ->join('scenarios as s', 's.id', '=', 'css.scenario_id')
             ->leftJoin('scenario_groups as g', 'g.id', '=', 's.scenario_group_id')
+            // отменённая спецификация — не закупка (отчёт «Конфигурации, сводная» её тоже не показывает)
+            ->where('cs.status', '!=', ContractSpecificationStatus::CANCELED)
             ->select('s.id', 's.name', DB::raw('g.name as group_name'), DB::raw('count(*) as uses'),
                 DB::raw('0 as units'));
     }

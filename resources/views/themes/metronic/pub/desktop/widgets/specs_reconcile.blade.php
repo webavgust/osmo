@@ -10,7 +10,9 @@
 
     $color = fn($row) => $row['hard'] ? 'danger' : 'warning';
     $href = fn($row) => $preview || empty($row['url']) ? 'javascript:void(0)' : $row['url'];
-    $diff = fn($row) => $row['diff'] === null ? '—' : ($row['diff'] > 0 ? '+' : '−') . $widget::money(abs($row['diff']), $data['symbol']);
+    $diff = fn($row) => $row['diff'] === null ? '—' : ($row['diff'] > 0 ? '+' : ($row['diff'] < 0 ? '−' : '')) . $widget::money(abs($row['diff']), $data['symbol']);
+    // расхождение с КП (платежи сходятся) помечаем, чтобы не путать с расхождением платежей
+    $kp = fn($row) => ($row['source'] ?? 'payments') === 'kp';
 
     // подсказка строки: все причины расхождения, как в поповере на карточке компании
     $hint = fn($row) => $row['company'] . ' · ' . $row['spec']
@@ -39,7 +41,7 @@
                 <span class="desk-value text-{{ $data['hard'] > 0 ? 'danger' : 'warning' }}" title="Проверено спецификаций: {{ $data['checked'] }}">
                     {{ $data['count'] }}
                 </span>
-                <span class="desk-muted" title="Сумма расхождений по модулю: {{ $widget::money($data['diff'], $data['symbol'], false) }}">
+                <span class="desk-muted" title="Расхождения платежей со спецификациями по модулю (расхождения с КП не суммируются): {{ $widget::money($data['diff'], $data['symbol'], false) }}">
                     на {{ $widget::money($data['diff'], $data['symbol']) }}
                 </span>
             </div>
@@ -103,13 +105,13 @@
                                 <td class="num desk-muted desk-only-w-xl" title="{{ $widget::money($row['payments'], $data['symbol'], false) }}">
                                     {{ $widget::money($row['payments'], $data['symbol']) }}
                                 </td>
-                                <td class="num fw-bold text-{{ $color($row) }}" title="{{ $row['reason'] }}">{{ $diff($row) }}</td>
+                                <td class="num fw-bold text-{{ $color($row) }}" title="{{ $row['reason'] }}">@if($kp($row))<span class="desk-muted fw-normal me-1">КП</span>@endif{{ $diff($row) }}</td>
                             </tr>
                         @endforeach
                     </tbody>
                 </table>
             </div>
-            <div class="desk-muted fs-8" data-fit-more="и ещё {n}"></div>
+            <div class="desk-muted fs-8" data-fit-more="и ещё {n}" data-fit-extra="{{ max(0, $data['count'] - count($list)) }}"></div>
         @elseif(!empty($list))
             <ul class="desk-list fin-list desk-stack-grow desk-fit" data-fit-min="0">
                 @foreach($list as $row)
@@ -119,11 +121,11 @@
                         <span class="badge badge-light-{{ $color($row) }} flex-shrink-0 desk-only-w-md">
                             {{ $row['hard'] ? 'жёсткое' : 'расхождение' }}
                         </span>
-                        <span class="fw-bold fin-amount text-{{ $color($row) }}" title="{{ $row['reason'] }}">{{ $diff($row) }}</span>
+                        <span class="fw-bold fin-amount text-{{ $color($row) }}" title="{{ $row['reason'] }}">@if($kp($row))<span class="desk-muted fw-normal me-1">КП</span>@endif{{ $diff($row) }}</span>
                     </li>
                 @endforeach
             </ul>
-            <div class="desk-muted fs-8" data-fit-more="и ещё {n}"></div>
+            <div class="desk-muted fs-8" data-fit-more="и ещё {n}" data-fit-extra="{{ max(0, $data['count'] - count($list)) }}"></div>
         @endif
     </div>
 @endif

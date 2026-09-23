@@ -119,7 +119,7 @@
                 </tfoot>
             </table>
         </div>
-        <div class="desk-label desk-nowrap desk-hide-short" data-fit-more="ещё {n} строк в таблице"></div>
+        <div class="desk-label desk-nowrap desk-hide-short" data-fit-more="ещё строк: {n}"></div>
         @if($chart)
             <div class="desk-stack-grow">
                 {!! $widget::chart([

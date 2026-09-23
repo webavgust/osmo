@@ -25,7 +25,8 @@
 @elseif($table)
     <div class="desk-stack">
         <div class="desk-stack-grow desk-fit" data-fit-items="tbody > tr">
-            <table class="desk-table">
+            {{-- у обрезаемых колонок свои доли ширины (.lr-*): иначе первая desk-cut забирает всё место --}}
+            <table @class(['desk-table', 'lr-with-spec' => $settings['show_spec']])>
                 <thead>
                     <tr>
                         <th class="desk-only-w-xl">Партнёр</th>
@@ -44,12 +45,12 @@
                     @foreach($list as $row)
                         <tr>
                             <td class="desk-cut desk-muted desk-only-w-xl lr-partner" title="{{ $row['partner'] }}">{{ $row['partner'] }}</td>
-                            <td class="desk-cut">
+                            <td class="desk-cut lr-company">
                                 <a href="{{ $href($row) }}" class="desk-link text-hover-primary d-block text-truncate fw-semibold"
                                    title="{{ $row['company'] }}{{ $row['code'] ? ' · ключ ' . $row['code'] : '' }}">{{ $row['company'] }}</a>
                             </td>
                             @if($settings['show_spec'])
-                                <td class="desk-cut desk-muted desk-only-w-lg" title="{{ $row['spec'] }}{{ $row['contract'] ? ' · договор ' . $row['contract'] : '' }}">{{ $row['spec'] }}</td>
+                                <td class="desk-cut desk-muted desk-only-w-lg lr-spec" title="{{ $row['spec'] }}{{ $row['contract'] ? ' · договор ' . $row['contract'] : '' }}">{{ $row['spec'] }}</td>
                             @endif
                             <td class="num desk-muted desk-only-w-md">{{ $row['to'] ?? '—' }}</td>
                             <td class="num">

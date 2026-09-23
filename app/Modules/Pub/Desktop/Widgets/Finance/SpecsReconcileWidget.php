@@ -19,6 +19,11 @@ use Illuminate\Support\Facades\DB;
  * spec_reconcile_hard_share). Отменённые спецификации не сверяются — у них
  * расхождение норма.
  *
+ * Расхождение строки — с графиком платежей, а если сходятся платежи и расходится только
+ * сумма прикреплённых КП — с КП (`source`). Итог «на N» — только расхождения с платежами:
+ * одно КП бывает прикреплено к нескольким спецификациям, его расхождение сложилось бы
+ * многократно.
+ *
  * Суммы расхождений пересчитываются в валюту виджета по текущему курсу
  * (расхождение ни к какой дате не привязано); спецификации, для которых курса нет,
  * в суммы не попадают и считаются в skipped.
@@ -118,17 +123,21 @@ class SpecsReconcileWidget extends Widget
         $rows = [];
         for ($i = 0; $i < static::MAX_ROWS; $i++) {
             $hard = $i < 12;
+            // среди мягких — расхождения только с КП, как в живых данных
+            $source = !$hard && $i % 3 === 2 ? 'kp' : 'payments';
             // жёсткие сверху и по убыванию расхождения — как сортирует data()
             $diff = ($i % 3 === 0 ? 1 : -1) * ($hard ? (40 - $i) * 52000.0 : (40 - $i) * 900.0);
             // сумма не меньше расхождения — платежи не уходят в минус
             $amount = (($i * 13) % 20 + 3) * 210000.0 + abs($diff);
-            $reason = $i % 5 === 1
-                ? 'График платежей пуст: спецификация не разложена по платежам'
-                : 'Платежи расходятся со спецификацией на ' . ($diff > 0 ? '+' : '−') . number_format(abs($diff), 0, ',', ' ') . ' ₽';
+            $reason = match (true) {
+                $source === 'kp' => 'Сумма прикреплённых КП расходится на ' . ($diff > 0 ? '+' : '−') . number_format(abs($diff), 0, ',', ' ') . ' ₽',
+                $i % 5 === 1 => 'График платежей пуст: спецификация не разложена по платежам',
+                default => 'Платежи расходятся со спецификацией на ' . ($diff > 0 ? '+' : '−') . number_format(abs($diff), 0, ',', ' ') . ' ₽',
+            };
 
             $rows[] = [
                 'company' => $companies[$i % count($companies)], 'spec' => $specs[$i % count($specs)], 'partner' => 'ГК Восток',
-                'amount' => $amount, 'payments' => $amount + $diff, 'diff' => $diff,
+                'amount' => $amount, 'payments' => $source === 'kp' ? $amount : $amount + $diff, 'diff' => $diff, 'source' => $source,
                 'hard' => $hard, 'reason' => $reason, 'reasons' => [$reason], 'url' => null,
             ];
         }
@@ -136,7 +145,8 @@ class SpecsReconcileWidget extends Widget
         return [
             'rows' => $rows,
             'count' => count($rows), 'hard' => 12, 'checked' => 184, 'skipped' => 0,
-            'diff' => array_sum(array_map(fn($row) => abs($row['diff']), $rows)), 'symbol' => '₽',
+            // как в data(): в итог идут только расхождения с платежами
+            'diff' => array_sum(array_map(fn($row) => $row['source'] === 'payments' ? abs($row['diff']) : 0.0, $rows)), 'symbol' => '₽',
         ];
     }
 
@@ -175,17 +185,26 @@ class SpecsReconcileWidget extends Widget
             if (!empty($check['ok'])) continue;
             if ($hard_only && empty($check['hard'])) continue;
 
+            // расхождение строки — с платежами; если платежи сходятся, а расходится только
+            // сумма прикреплённых КП, — с КП (иначе в строке стоял бы «0 ₽»)
+            $source = array_intersect_key($check['reasons'], array_flip(['no_amount', 'no_payments', 'payments'])) ? 'payments' : 'kp';
+
             // расхождение ни к какой дате не привязано — берём текущий курс
-            $diff = CurrencyService::convertAmount((float) $check['diff_payments'], $spec->currency_slug, $currency, now());
+            $diff = CurrencyService::convertAmount(
+                (float) ($source === 'kp' ? $check['diff_proposals'] : $check['diff_payments']),
+                $spec->currency_slug, $currency, now()
+            );
             $amount = CurrencyService::convertAmount((float) $check['amount'], $spec->currency_slug, $currency, now());
             $payments = CurrencyService::convertAmount((float) $check['payments'], $spec->currency_slug, $currency, now());
 
             $total['count']++;
             if (!empty($check['hard'])) $total['hard']++;
 
+            // в итог идут только расхождения с платежами: одно КП бывает прикреплено
+            // к нескольким спецификациям, и его расхождение сложилось бы многократно
             if ($diff === null) {
                 $total['skipped']++;
-            } else {
+            } elseif ($source === 'payments') {
                 $total['diff'] += abs($diff);
             }
 
@@ -196,6 +215,8 @@ class SpecsReconcileWidget extends Widget
                 'amount' => $amount === null ? null : round($amount, 2),
                 'payments' => $payments === null ? null : round($payments, 2),
                 'diff' => $diff === null ? null : round($diff, 2),
+                // с чем расхождение в строке: payments — платежи, kp — прикреплённые КП
+                'source' => $source,
                 'hard' => (bool) $check['hard'],
                 // первая причина — в строку, остальные в подсказку
                 'reason' => (string) (reset($check['reasons']) ?: ''),

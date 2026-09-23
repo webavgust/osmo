@@ -13,8 +13,13 @@
     $lines_row = $dh === 'sm' && !$head ? 2 : 1;
 @endphp
 @if(empty($data['found']))
+    {{-- объект выбран, но не найден (удалён) — так и говорим, а не «выберите» --}}
     <div class="desk-empty">
-        <i class="fa-light fa-link"></i> <span class="desk-hide-narrow">Выберите объект в настройках</span>
+        @if(!empty($data['missing']))
+            <i class="fa-light fa-link-slash"></i> <span class="desk-hide-narrow">Объект не найден — выберите другой</span>
+        @else
+            <i class="fa-light fa-link"></i> <span class="desk-hide-narrow">Выберите объект в настройках</span>
+        @endif
     </div>
 @elseif($card)
     <a href="{{ $href }}" class="desk-link text-reset lk-card" title="{{ $hint }}">

@@ -271,6 +271,12 @@
                                     @if($row['spec']['amount'] > 0)
                                         {{-- крупно всегда рубли; сумма в валюте — серым под ней, только у валютных спецификаций --}}
                                         <span class="fw-bold">{{ tools()->cost_normalize(round($row['amount_rub'])) }} ₽</span>
+                                        @if($row['spec']['keys'] > 1)
+                                            {{-- по спецификации несколько ключей: у ключа — его доля --}}
+                                            <div class="fs-8 text-muted" title="Спецификация на {{ $row['spec']['keys'] }} ключа(ей): {{ tools()->cost_normalize(round($row['spec']['total'])) }} {{ $row['spec']['currency'] }}, сумма поделена поровну">
+                                                1/{{ $row['spec']['keys'] }} спецификации
+                                            </div>
+                                        @endif
                                         @if(strtoupper((string) $row['spec']['currency']) !== 'RUB')
                                             <div class="fs-8 text-muted">
                                                 {{ tools()->cost_normalize(round($row['spec']['amount'])) }} {{ $row['spec']['currency'] }}

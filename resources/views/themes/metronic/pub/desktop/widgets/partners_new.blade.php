@@ -12,6 +12,9 @@
         default => 'down',
     };
     $delta_sign = ($delta > 0 ? '+' : ($delta < 0 ? '−' : '')) . abs((int) $delta);
+    // идущий период сравнивается с прошлым по то же число — так и подписано, даты в подсказке
+    $prev_caption = !empty($data['prev_until']) ? 'к прошлому по ' . $data['prev_until'] : 'к прошлому отрезку';
+    $prev_title = 'Прошлый отрезок' . (!empty($data['prev_dates']) ? ' ' . $data['prev_dates'] : '') . ': ' . $data['previous'];
 
     // список — от высоты 3 ячеек; ниже только число. Строк не больше настройки (до 100),
     // лишние спрячет .desk-fit, подпись «ещё N» считает спрятанные честно
@@ -43,8 +46,8 @@
             @endif
 
             @if($settings['compare'] && $delta !== null)
-                <span class="desk-delta {{ $direction }} desk-hide-short" title="Прошлый отрезок: {{ $data['previous'] }}">
-                    {{ $delta_sign }}<span class="desk-only-w-md"> к прошлому отрезку</span>
+                <span class="desk-delta {{ $direction }} desk-hide-short" title="{{ $prev_title }}">
+                    {{ $delta_sign }}<span class="desk-only-w-md"> {{ $prev_caption }}</span>
                 </span>
             @endif
         </div>
@@ -79,7 +82,7 @@
                     </li>
                 @endforeach
             </ul>
-            <div class="desk-muted fs-8 desk-hide-short desk-fit-out" data-fit-more="ещё {n}"></div>
+            <div class="desk-muted fs-8 desk-hide-short desk-fit-out" data-fit-more="ещё {n}" data-fit-extra="{{ max(0, $data['count'] - count($list)) }}"></div>
         @endif
     @endif
 </div>

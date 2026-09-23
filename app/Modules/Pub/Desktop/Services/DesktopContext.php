@@ -158,17 +158,25 @@ class DesktopContext
 
     /**
      * Предыдущий такой же период — для сравнения «к прошлому»:
-     * месяц/квартал/год сдвигаются на свою единицу, «последние N дней» — на N дней
+     * месяц/квартал/год сдвигаются на свою единицу, «последние N дней» — на N дней.
+     *
+     * $to_date — для фактических показателей (оплаты, выигрыши, отправленные КП):
+     * текущий месяц/квартал/год ещё идёт, поэтому прошлый берётся по то же число
+     * (23.09 → 23.06 у квартала), но не дальше своего конца (31.03 → 28/29.02).
+     * В последний день периода текущий уже полный — прошлый тоже целиком.
+     * Прогнозным показателям (продления, план оплат) флаг не нужен: у них в текущем
+     * периоде есть будущие даты, и сравнивать надо целиком
      *
      * @param string $key
      * @param Carbon|null $now
+     * @param bool $to_date прошлый отрезок идущего периода — по то же число
      * @return Carbon[] [from, to]
      */
-    public static function previousRange(string $key, ?Carbon $now = null): array
+    public static function previousRange(string $key, ?Carbon $now = null, bool $to_date = false): array
     {
         [$from, $to] = static::range($key, $now);
 
-        return match ($key) {
+        [$prev_from, $prev_to] = match ($key) {
             'month', 'prev_month' => [$from->copy()->subMonthNoOverflow()->startOfMonth(), $from->copy()->subMonthNoOverflow()->endOfMonth()],
             'quarter', 'prev_quarter' => [$from->copy()->subQuarterNoOverflow()->startOfQuarter(), $from->copy()->subQuarterNoOverflow()->endOfQuarter()],
             'year', 'prev_year' => [$from->copy()->subYear()->startOfYear(), $from->copy()->subYear()->endOfYear()],
@@ -178,6 +186,70 @@ class DesktopContext
                 return [$from->copy()->subDays($days), $to->copy()->subDays($days)];
             })(),
         };
+
+        $until = $to_date ? static::sameDayBefore($key, $now) : null;
+
+        return [$prev_from, $until !== null ? $until->min($prev_to) : $prev_to];
+    }
+
+    /**
+     * Прошлый отрезок для сравнения с подписями для вьюх
+     *
+     * @param string $key код периода
+     * @param bool $to_date фактический показатель — по то же число (см. previousRange())
+     * @param Carbon|null $now
+     * @return array ['from' => Carbon, 'to' => Carbon, 'dates' => '01.04.2026 – 23.06.2026',
+     *     'until' => '23.06' — прошлый отрезок обрезан по то же число, иначе null]
+     */
+    public static function previousPeriod(string $key, bool $to_date = false, ?Carbon $now = null): array
+    {
+        [$from, $to] = static::previousRange($key, $now, $to_date);
+        $until = $to_date ? static::sameDayBefore($key, $now) : null;
+
+        return [
+            'from' => $from,
+            'to' => $to,
+            'dates' => $from->format('d.m.Y') . ' – ' . $to->format('d.m.Y'),
+            'until' => $until !== null ? $to->format('d.m') : null,
+        ];
+    }
+
+    /**
+     * Период ещё идёт: текущие месяц, квартал, год
+     *
+     * @param string $key
+     * @return bool
+     */
+    public static function isRunning(string $key): bool
+    {
+        return in_array($key, ['month', 'quarter', 'year'], true);
+    }
+
+    /**
+     * То же число в прошлом периоде — конец прошлого отрезка «по то же число».
+     * null — период не идёт (закончился или «последние N дней») или сегодня его
+     * последний день: тогда прошлый сравнивается целиком
+     *
+     * @param string $key
+     * @param Carbon|null $now
+     * @return Carbon|null
+     */
+    protected static function sameDayBefore(string $key, ?Carbon $now = null): ?Carbon
+    {
+        if (!static::isRunning($key)) return null;
+
+        $now = ($now ?? now())->copy();
+        [, $to] = static::range($key, $now);
+        if ($now->isSameDay($to)) return null;
+
+        // без переполнения: 31.05 − квартал = 28/29.02, а не 03.03
+        $same = match ($key) {
+            'month' => $now->subMonthNoOverflow(),
+            'quarter' => $now->subQuarterNoOverflow(),
+            default => $now->subYearNoOverflow(),
+        };
+
+        return $same->endOfDay();
     }
 
     /**

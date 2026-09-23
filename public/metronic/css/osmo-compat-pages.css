@@ -100,3 +100,26 @@ tr.unactive td { background: var(--bs-gray-100); color: var(--bs-gray-500); }
 
 .jstree-default .jstree-clicked { background: var(--bs-primary-light); box-shadow: none; }
 .jstree-default .jstree-hovered { background: var(--bs-gray-100); box-shadow: none; }
+
+/* ------------------------------------------ Сайдбар события календаря */
+/* themes/metronic/pub/calendar/sidebars/_form.blade.php: цвет события — кружки, выбранный с галочкой и кольцом */
+
+.cal-form .cal-color {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    color: #fff;
+    font-size: 12px;
+    transition: box-shadow .15s ease;
+}
+.cal-form .cal-color > i { display: none; color: inherit; font-size: inherit; }
+.cal-form .cal-color:hover { box-shadow: 0 0 0 2px var(--bs-body-bg), 0 0 0 4px var(--bs-gray-300); }
+.cal-form .btn-check:checked + .cal-color { box-shadow: 0 0 0 2px var(--bs-body-bg), 0 0 0 4px var(--bs-gray-400); }
+.cal-form .btn-check:checked + .cal-color > i { display: inline; }
+.cal-form .btn-check:focus-visible + .cal-color { box-shadow: 0 0 0 2px var(--bs-body-bg), 0 0 0 4px var(--bs-primary); }
+/* время — уже даты, чтобы пара «дата + время» вставала в сайдбар */
+.cal-form .cal-form-time { flex: 0 0 7.5rem; }

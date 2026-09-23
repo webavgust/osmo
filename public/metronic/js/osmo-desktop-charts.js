@@ -16,8 +16,10 @@
         items: new WeakMap()
     };
 
-    /** Цвета Metronic по имени */
+    /** Цвета Metronic по имени; готовый цвет (#ffb604, rgb(…)) — как есть */
     function color(name) {
+        if (/^(#|rgb|hsl)/i.test(String(name || ''))) return String(name);
+
         var css = getComputedStyle(document.documentElement);
         var value = css.getPropertyValue('--bs-' + (name || 'primary')).trim();
 

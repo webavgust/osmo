@@ -68,6 +68,8 @@
     .desk-widget-body { padding: .25rem .6rem .35rem; font-size: calc(12px * var(--desk-font-scale)); }
     .desk-widget-body .form-select-sm { padding-top: .2rem; padding-bottom: .2rem; font-size: 12px; min-height: 0; }
 }
+/* блок в одну ячейку высотой: заголовка нет (Widget::html), тело почти без отступов сверху и снизу */
+.desk-widget.desk-h-xs .desk-widget-body { padding-top: .1rem; padding-bottom: .1rem; }
 /* узкий блок: отступы по бокам меньше */
 @container dw (max-width: 150px) {
     .desk-widget-head { padding-left: .5rem; padding-right: .5rem; }
@@ -107,11 +109,16 @@
 .desk-center { height: 100%; display: flex; flex-direction: column; justify-content: center; min-width: 0; overflow: hidden; }
 .desk-center .form-select { min-width: 0; }
 .desk-scroll { height: 100%; overflow: auto; }
+/* в бандле Metronic утилиты min-w-0 нет, а вьюхи виджетов на неё рассчитывают */
+.desk-widget .min-w-0 { min-width: 0 !important; }
 /* без веса селектора: text-primary, text-danger и другие утилиты Metronic перебивают приглушение */
 :where(.desk-muted) { color: var(--bs-gray-600); }
 .desk-grow { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .desk-link { color: inherit; text-decoration: none; }
 .desk-link:hover .fw-bold { color: var(--bs-primary); }
+/* действия внутри виджета: смена вида блока и POST без перехода (osmo-desktop.js) */
+[data-desk-view], [data-desk-post] { cursor: pointer; }
+.desk-posting { opacity: .45; pointer-events: none; }
 .desk-label { font-size: .88em; color: var(--bs-gray-600); line-height: 1.25; }
 .desk-nowrap { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
@@ -178,9 +185,23 @@
 }
 .desk-table td { padding: .28rem .4rem; border-bottom: 1px solid var(--bs-gray-100); white-space: nowrap; }
 .desk-table th:first-child, .desk-table td:first-child { padding-left: 0; }
+/* первая колонка спрятана по ширине — без левого отступа остаётся следующая */
+@container dw (width < 230px) {
+    .desk-table :is(th, td).desk-only-w-md:first-child + :is(th, td) { padding-left: 0; }
+}
+@container dw (width < 420px) {
+    .desk-table :is(th, td).desk-only-w-lg:first-child + :is(th, td) { padding-left: 0; }
+}
+@container dw (width < 620px) {
+    .desk-table :is(th, td).desk-only-w-xl:first-child + :is(th, td) { padding-left: 0; }
+}
 .desk-table th:last-child, .desk-table td:last-child { padding-right: 0; }
 .desk-table .num { text-align: right; }
 .desk-table .desk-cut { max-width: 0; width: 99%; overflow: hidden; text-overflow: ellipsis; }
+/* несколько всегда видимых .desk-cut в строке: по 99 % у каждой отдавали всё место первой —
+   делим поровну (свои доли виджета в его CSS весомее и перебивают это) */
+.desk-table tr:has(> .desk-cut:not([class*="desk-only-"]) ~ .desk-cut:not([class*="desk-only-"])) > .desk-cut { width: 49%; }
+.desk-table tr:has(> .desk-cut:not([class*="desk-only-"]) ~ .desk-cut:not([class*="desk-only-"]) ~ .desk-cut:not([class*="desk-only-"])) > .desk-cut { width: 33%; }
 @container dw (max-height: 96px) {
     .desk-table th, .desk-table td { padding-top: .12rem; padding-bottom: .12rem; }
 }

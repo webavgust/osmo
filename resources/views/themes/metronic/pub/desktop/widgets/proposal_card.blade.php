@@ -6,8 +6,17 @@
     $cost = $data['amount'] === null ? '—' : $widget::money($data['amount'], $data['symbol']);
     $cost_full = $data['amount'] === null ? 'Расчёта нет' : $widget::money($data['amount'], $data['symbol'], false);
     $status_title = trim($data['status_label'] . ($data['reason'] !== '' ? ' · ' . $data['reason'] : '') . ($data['comment'] !== '' ? ' · ' . $data['comment'] : ''));
+    // связка КП (patch v33): второстепенное в расчётах не участвует — помечаем и ведём на главное
+    $secondary = $data['link'] === 'secondary';
+    $link_href = $preview || empty($data['link_url']) ? 'javascript:void(0)' : $data['link_url'];
+    $link_title = match ($data['link']) {
+        'secondary' => 'Второстепенное КП: только просмотр и история, в расчётах, аналитике и на рабочем столе не участвует. Главное — ' . $data['link_ref'],
+        'main' => 'Главное КП связки. Второстепенные (в расчётах не участвуют): ' . $data['link_ref'],
+        default => '',
+    };
     $title = trim('КП № ' . $number . ' · ' . $data['name'] . ($client !== '' ? ' · ' . $client : '')
-        . ($data['iterations'] > 1 ? ' · редакция ' . $data['iteration'] . ' из ' . $data['iterations'] : ''));
+        . ($data['iterations'] > 1 ? ' · редакция ' . $data['iteration'] . ' из ' . $data['iterations'] : '')
+        . ($secondary ? ' · второстепенное к ' . $data['link_ref'] : ''));
     $days_text = $data['days'] === null ? '' : $data['days'] . ' ' . \App\Facades\Tools::morph($data['days'], 'день', 'дня', 'дней') . ' назад';
 
     // высота 1–2 ячейки — номер и сумма; ширина 2 или высота ≥6 — список свойств, сделок и спецификаций
@@ -26,6 +35,9 @@
     $facts = array_values(array_filter([
         $settings['show_amount'] ? ['сумма', $cost, 'Основной вариант последней редакции: ' . $cost_full, true] : null,
         $settings['show_amount'] && $data['variants'] > 1 ? ['вариантов', (string) $data['variants'], 'Вариантов расчёта в редакции', true] : null,
+        // «№ AA793» не режем; главное без номера подписано названием — его можно в многоточие
+        $secondary ? [$narrow ? 'главное' : 'главное КП', $data['link_ref'] !== '' ? $data['link_ref'] : '—', $link_title, str_starts_with($data['link_ref'], '№')] : null,
+        $data['link'] === 'main' ? [$narrow ? 'втор.' : 'второстепенных', (string) $data['link_count'], $link_title, true] : null,
         ['заказчик', $data['company'] !== '' ? $data['company'] : '—', 'Заказчик', false],
         $data['partner'] !== '' ? ['партнёр', $data['partner'], 'Партнёр', false] : null,
         $settings['show_manager'] ? ['менеджер', $data['manager'] !== '' ? $data['manager'] : '—', 'Менеджер', false] : null,
@@ -65,6 +77,9 @@
                 @if($settings['show_status'])
                     <span class="badge badge-light-{{ $data['status_color'] }} text-nowrap flex-shrink-0 desk-only-w-lg" title="{{ $status_title }}">{{ $data['status_label'] }}</span>
                 @endif
+                @if($secondary)
+                    <a href="{{ $link_href }}" class="badge badge-light-warning text-nowrap text-decoration-none flex-shrink-0 desk-only-w-lg" title="{{ $link_title }}">второстепенное</a>
+                @endif
                 <span class="desk-muted desk-nowrap desk-only-w-xl" title="{{ $title }}">{{ $data['name'] }}</span>
             </div>
         @endif
@@ -75,6 +90,9 @@
             <a href="{{ $href }}" class="desk-link fw-semibold text-hover-primary text-nowrap" title="{{ $title }}">{{ $narrow ? '' : '№ ' }}{{ $number }}</a>
             @if($settings['show_status'])
                 <span class="text-{{ $data['status_color'] }} fs-8 fw-semibold" title="{{ $status_title }}"><i class="fa-light {{ $data['status_icon'] }} me-1"></i>{{ $data['status_label'] }}</span>
+            @endif
+            @if($secondary)
+                <a href="{{ $link_href }}" class="badge badge-light-warning fs-8 text-nowrap text-decoration-none" title="{{ $link_title }}">{{ $narrow ? 'втор.' : 'второстепенное' }}</a>
             @endif
         </div>
         @unless($narrow)
@@ -131,6 +149,9 @@
             <a href="{{ $href }}" class="desk-link desk-grow text-hover-primary" title="{{ $title }}">{{ $data['name'] }}</a>
             @if($data['iterations'] > 1)
                 <span class="desk-muted fs-8 text-nowrap flex-shrink-0 desk-only-w-lg" title="Показана последняя редакция">ред. {{ $data['iteration'] }}</span>
+            @endif
+            @if($secondary)
+                <a href="{{ $link_href }}" class="badge badge-light-warning flex-shrink-0 text-nowrap text-decoration-none desk-only-w-md" title="{{ $link_title }}">второстепенное</a>
             @endif
             @if($settings['show_status'])
                 <span class="badge badge-light-{{ $data['status_color'] }} flex-shrink-0 text-nowrap" title="{{ $status_title }}">{{ $data['status_label'] }}</span>

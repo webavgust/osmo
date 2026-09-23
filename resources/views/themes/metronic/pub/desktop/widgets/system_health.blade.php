@@ -57,7 +57,7 @@
                     <div class="sh-tile border-{{ $row['color'] }}" title="{{ $hint($row) }}">
                         <div class="d-flex align-items-center gap-2 min-w-0">
                             <i class="fa-light {{ $row['icon'] }} text-{{ $row['color'] }} flex-shrink-0 desk-hide-narrow"></i>
-                            <span class="desk-nowrap fw-semibold">{{ $row['name'] }}</span>
+                            <span class="desk-nowrap fw-semibold sh-tile-name">{{ $row['name'] }}</span>
                         </div>
                         <div @class(['sh-value', $value_color($row)])>{{ $row['value'] }}</div>
                         @unless($narrow)

@@ -16,6 +16,12 @@
     // список ближайших ключей — когда блок выше двух ячеек; не влезшие строки спрячет .desk-fit
     $with_list = !in_array($dh, ['xs', 'sm'], true);
     $soonest = $with_list ? array_slice($data['soonest'] ?? [], 0, $rows_max) : [];
+
+    // из чего сложена сумма: при «Учитывать уже истёкшие» в ней и ключи, истёкшие за хвост дней
+    $amount_title = 'Оценка продления: ' . $widget::money($data['amount'], $data['symbol'], false)
+        . ' · ключей: ' . ($data['count'] + ($show_expired ? $data['expired'] : 0))
+        . ($show_expired ? ' (истекают: ' . $data['count'] . ', истекли за ' . $data['tail'] . ' дн.: ' . $data['expired'] . ')' : '')
+        . (!empty($data['skipped']) ? ' · без курса: ' . $data['skipped'] : '');
 @endphp
 <div class="desk-stack ke">
     <div class="desk-label desk-nowrap flex-shrink-0" title="Истекает за {{ $data['days'] }} {{ $days_word }}">
@@ -27,7 +33,7 @@
 
         <div @class(['ke-side', 'fs-8' => $narrow])>
             @if($settings['show_amount'])
-                <span class="desk-muted text-nowrap" title="Продление: {{ $widget::money($data['amount'], $data['symbol'], false) }}">{{ $narrow ? '' : 'продление ' }}{{ $widget::money($data['amount'], $data['symbol']) }}</span>
+                <span class="desk-muted text-nowrap" title="{{ $amount_title }}">{{ $narrow ? '' : 'продление ' }}{{ $widget::money($data['amount'], $data['symbol']) }}</span>
             @endif
             @if($show_expired)
                 <span class="text-danger fs-8 text-nowrap" title="Истекли за последние {{ $data['tail'] }} дн.">истекли: {{ $data['expired'] }}</span>

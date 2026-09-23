@@ -7,8 +7,11 @@
     $conversion = $percent($data['conversion'], $dw === 'xs' ? 0 : 1);
 
     $in_work = collect($data['statuses'])->firstWhere('key', 'in_work') ?? $data['statuses'][0];
+    // отбор (период, «только мои») в низком блоке не подписан — называем его в подсказках
+    $scope = ($data['period_label'] ? ' · отправленные: ' . $data['period_label'] : '')
+        . (!empty($settings['mine']) ? ' · только мои' : '');
     $summary = collect($data['statuses'])->map(fn($status) => $status['label'] . ': ' . $status['count'])->implode(' · ')
-        . ' · конверсия: ' . $percent($data['conversion']);
+        . ' · конверсия: ' . $percent($data['conversion']) . $scope;
 
     // низкий блок (1–2 ячейки) — одна строка; выше — плитки, их раскладку выбирает CSS по пропорции блока
     $line = in_array($dh, ['xs', 'sm'], true);
@@ -25,11 +28,11 @@
     <div class="desk-center">
         <div class="ps-line d-flex align-items-center gap-2 flex-nowrap min-w-0">
             @foreach($data['statuses'] as $status)
-                <span class="badge badge-light-{{ $status['color'] }} fs-4 fw-bold text-nowrap flex-shrink-0" title="{{ $status['label'] }}: {{ $status['count'] }}">
+                <span class="badge badge-light-{{ $status['color'] }} fs-4 fw-bold text-nowrap flex-shrink-0" title="{{ $status['label'] }}: {{ $status['count'] }}{{ $scope }}">
                     <i class="ps-line-icon fa-light {{ $status['icon'] }} fs-6 me-2"></i><span class="ps-line-label fw-semibold me-2">{{ $status['label'] }}</span>{{ $status['count'] }}
                 </span>
             @endforeach
-            <span class="ps-line-conv ms-auto text-nowrap flex-shrink-0" title="Выиграно среди решённых (выиграно и проиграно)">
+            <span class="ps-line-conv ms-auto text-nowrap flex-shrink-0" title="Выиграно среди решённых (выиграно и проиграно){{ $scope }}">
                 <span class="desk-label">конверсия</span>
                 <span class="fw-bold fs-4">{{ $conversion }}</span>
             </span>

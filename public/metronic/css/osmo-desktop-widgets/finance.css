@@ -10,6 +10,7 @@
 .desk-widget[data-widget="contracts_unsigned"] .fin-line,
 .desk-widget[data-widget="payment_calendar"] .fin-line,
 .desk-widget[data-widget="payment_summary"] .fin-line,
+.desk-widget[data-widget="payments_by_partner"] .fin-line,
 .desk-widget[data-widget="payments_fact"] .fin-line,
 .desk-widget[data-widget="payments_overdue"] .fin-line,
 .desk-widget[data-widget="payments_plan"] .fin-line,
@@ -18,6 +19,7 @@
 .desk-widget[data-widget="contracts_unsigned"] .fin-line > *,
 .desk-widget[data-widget="payment_calendar"] .fin-line > *,
 .desk-widget[data-widget="payment_summary"] .fin-line > *,
+.desk-widget[data-widget="payments_by_partner"] .fin-line > *,
 .desk-widget[data-widget="payments_fact"] .fin-line > *,
 .desk-widget[data-widget="payments_overdue"] .fin-line > *,
 .desk-widget[data-widget="payments_plan"] .fin-line > *,
@@ -43,6 +45,7 @@
 /* .fin-amount — сумма в строке списка: не сжимается и не переносится */
 .desk-widget[data-widget="contracts_unsigned"] .fin-amount,
 .desk-widget[data-widget="payment_calendar"] .fin-amount,
+.desk-widget[data-widget="payments_by_partner"] .fin-amount,
 .desk-widget[data-widget="payments_overdue"] .fin-amount,
 .desk-widget[data-widget="specs_reconcile"] .fin-amount { flex-shrink: 0; white-space: nowrap; }
 
@@ -50,14 +53,17 @@
 @container dw (max-width: 120px) {
     .desk-widget[data-widget="contracts_unsigned"] .fin-list > li,
     .desk-widget[data-widget="payment_calendar"] .fin-list > li,
+    .desk-widget[data-widget="payments_by_partner"] .fin-list > li,
     .desk-widget[data-widget="payments_overdue"] .fin-list > li,
     .desk-widget[data-widget="specs_reconcile"] .fin-list > li { flex-wrap: wrap; gap: 0 .4rem; }
     .desk-widget[data-widget="contracts_unsigned"] .fin-list > li > .desk-grow,
     .desk-widget[data-widget="payment_calendar"] .fin-list > li > .desk-grow,
+    .desk-widget[data-widget="payments_by_partner"] .fin-list > li > .desk-grow,
     .desk-widget[data-widget="payments_overdue"] .fin-list > li > .desk-grow,
     .desk-widget[data-widget="specs_reconcile"] .fin-list > li > .desk-grow { flex-basis: 100%; order: -1; }
     .desk-widget[data-widget="contracts_unsigned"] .fin-amount,
     .desk-widget[data-widget="payment_calendar"] .fin-amount,
+    .desk-widget[data-widget="payments_by_partner"] .fin-amount,
     .desk-widget[data-widget="payments_overdue"] .fin-amount,
     .desk-widget[data-widget="specs_reconcile"] .fin-amount { flex-shrink: 1; min-width: 0; white-space: normal; }
 }

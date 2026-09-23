@@ -3,6 +3,7 @@
 namespace App\Modules\Pub\Desktop\Widgets\Keys;
 
 use App\Modules\Pub\Analytics\Services\LicenseRegistryService;
+use App\Modules\Pub\Company\Models\Company;
 use App\Modules\Pub\Desktop\Services\DesktopContext;
 use App\Modules\Pub\Desktop\Widgets\Widget;
 use App\Modules\Pub\LicenseKey\Models\LicenseKey;
@@ -14,7 +15,8 @@ use App\Modules\Pub\LicenseKey\Models\LicenseKey;
  * Ключ выбирается компанией (поле-ссылка, поиск по названию) и, если у компании
  * их несколько, номером ключа. Без номера берётся ближайший к окончанию из ещё
  * действующих, а если действующих нет — последний истёкший. Цвет состояния —
- * LicenseRegistryService::state(), как в реестре лицензий.
+ * LicenseRegistryService::state(), как в реестре лицензий. Партнёр — из договора
+ * спецификации, у ключа без спецификации — партнёр компании (как в реестре).
  *
  * Поиска по самим ключам в полях-ссылках нет (ApiDesktopSettingsController знает
  * КП, партнёра, компанию и сделку), поэтому номер ключа вводится строкой.
@@ -77,10 +79,17 @@ class KeyCardWidget extends Widget
 
     public static function sourceUrl(array $settings): ?string
     {
-        // страница ключей — реестр лицензий; поиск в нём идёт по номеру ключа и компании
+        // страница ключей — реестр лицензий; поиск в нём идёт по номеру ключа и названию компании.
+        // Горизонт — «все лицензии» (пустой horizon): без него страница покажет только истекающие
+        // за 90 дней, и ключ с далёким сроком в ней не найдётся
         $code = trim((string) ($settings['code'] ?? ''));
+        $company_id = (string) ($settings['target']['type'] ?? '') === 'company' ? (int) ($settings['target']['id'] ?? 0) : 0;
+        $q = $code !== '' ? $code : ($company_id > 0 ? (string) Company::query()->whereKey($company_id)->value('name') : '');
 
-        return route('analytics.licenses', array_filter(['q' => $code !== '' ? $code : null]));
+        return route('analytics.licenses', ['horizon' => ''] + array_filter([
+            'q' => $q !== '' ? $q : null,
+            'only_active' => !empty($settings['only_active']) ? 1 : null,
+        ]));
     }
 
     public function sample(array $settings, DesktopContext $ctx): array
@@ -88,7 +97,7 @@ class KeyCardWidget extends Widget
         $state = LicenseRegistryService::state(LicenseRegistryService::bucket(21));
 
         return [
-            'found' => true, 'code' => 'AV-2026-0417', 'company' => 'ООО «Альфа»', 'company_url' => null,
+            'chosen' => true, 'found' => true, 'code' => 'AV-2026-0417', 'company' => 'ООО «Альфа»', 'company_url' => null,
             'spec' => 'Платформа, 50 рабочих мест', 'contract' => '№ 12/2025', 'partner' => 'ГК Восток',
             'from' => now()->subDays(344)->format('d.m.Y'), 'to' => now()->addDays(21)->format('d.m.Y'),
             'days' => 21, 'active' => true, 'state_label' => $state['label'], 'state_color' => $state['color'],
@@ -100,28 +109,30 @@ class KeyCardWidget extends Widget
      *
      * @param array $settings
      * @param DesktopContext $ctx
-     * @return array ['found', 'code', 'company', 'company_url', 'spec', 'contract', 'partner',
+     * @return array ['chosen', 'found', 'code', 'company', 'company_url', 'spec', 'contract', 'partner',
      *     'from', 'to', 'days', 'active', 'state_label', 'state_color']
+     *     chosen — в настройках указаны компания или ключ; found — ключ нашёлся
      */
     public function data(array $settings, DesktopContext $ctx): array
     {
-        $empty = [
-            'found' => false, 'code' => '', 'company' => '', 'company_url' => null, 'spec' => '',
-            'contract' => '', 'partner' => '', 'from' => null, 'to' => null, 'days' => null,
-            'active' => false, 'state_label' => '', 'state_color' => 'secondary',
-        ];
-
         $company_id = (string) ($settings['target']['type'] ?? '') === 'company'
             ? (int) ($settings['target']['id'] ?? 0)
             : 0;
         $code = trim((string) $settings['code']);
 
-        if ($company_id <= 0 && $code === '') {
+        $empty = [
+            'chosen' => $company_id > 0 || $code !== '',
+            'found' => false, 'code' => '', 'company' => '', 'company_url' => null, 'spec' => '',
+            'contract' => '', 'partner' => '', 'from' => null, 'to' => null, 'days' => null,
+            'active' => false, 'state_label' => '', 'state_color' => 'secondary',
+        ];
+
+        if (!$empty['chosen']) {
             return $empty;
         }
 
         $keys = LicenseKey::query()
-            ->with(['company', 'specification.contract.partner'])
+            ->with(['company.partner', 'specification.contract.partner'])
             ->when(!empty($settings['only_active']), fn($query) => $query->where('active', 1))
             ->when($company_id > 0, fn($query) => $query->where('company_id', $company_id))
             ->when($code !== '', fn($query) => $query->where('key', $code))
@@ -140,13 +151,15 @@ class KeyCardWidget extends Widget
         $state = LicenseRegistryService::state(LicenseRegistryService::bucket($days));
 
         return [
+            'chosen' => true,
             'found' => true,
             'code' => (string) $key->key,
             'company' => (string) ($key->company?->name ?? '—'),
             'company_url' => $key->company_id ? route('company.detail', $key->company_id) : null,
             'spec' => (string) ($key->specification?->name ?? ''),
             'contract' => (string) ($key->specification?->contract?->number ?? ''),
-            'partner' => (string) ($key->specification?->contract?->partner?->name ?? ''),
+            // партнёр договора, у ключа без спецификации — партнёр компании (как в реестре лицензий)
+            'partner' => (string) ($key->specification?->contract?->partner?->name ?? $key->company?->partner?->name ?? ''),
             'from' => $key->active_from?->format('d.m.Y'),
             'to' => $key->active_to?->format('d.m.Y'),
             'days' => $days,

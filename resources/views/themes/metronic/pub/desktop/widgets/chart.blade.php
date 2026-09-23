@@ -30,12 +30,19 @@
         $breakdown = array_slice(array_reverse($breakdown), 0, $rows_max);
     }
 
-    // последнее значение: крупнее в высоком блоке, крупно — в огромном и не узком
+    // последнее значение: крупнее в высоком блоке, крупно — в огромном и широком (от 12 колонок);
+    // в огромном средней ширины крупный кегль не помещается в строку с подписью и итогом
     $last_class = match (true) {
-        $dh === 'xl' && !in_array($dw, ['xs', 'sm'], true) => 'desk-value',
+        $dh === 'xl' && in_array($dw, ['lg', 'xl'], true) => 'desk-value',
         in_array($dh, ['lg', 'xl'], true) => 'desk-value-sm',
         default => '',
     };
+
+    // отрезок в разбивке: у месяца — с годом («сен 2026»: в ряду за 13 месяцев сентябрей два),
+    // у дня, недели и квартала подпись оси уже однозначна; точные даты — в подсказке
+    $segment = fn($row) => $settings['step'] === 'month' && preg_match('~^\d\d\.\d\d\.(\d{4})~', (string) ($row['title'] ?? ''), $m)
+        ? $row['label'] . ' ' . $m[1]
+        : $row['label'];
 @endphp
 @if(empty($data['rows']))
     <div class="desk-empty">
@@ -70,7 +77,7 @@
                     <tbody>
                         @foreach($breakdown as $row)
                             <tr>
-                                <td class="desk-cut" title="{{ $row['title'] ?? $row['label'] }}">{{ $row['title'] ?? $row['label'] }}</td>
+                                <td class="desk-cut" title="{{ $row['title'] ?? $row['label'] }}">{{ $segment($row) }}</td>
                                 <td class="num fw-semibold">{{ $format($row['value']) }}</td>
                                 <td class="num desk-only-w-lg">
                                     @if($row['delta'] === null)

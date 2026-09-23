@@ -22,9 +22,11 @@ class LogNotification implements Interfaces\NotificationInterface
 
     public function send(User $user)
     {
+        // заголовок и текст лежат в arParams (NotificationTrait); свойств title/message у класса нет —
+        // задание падало в воркере «Undefined property» (найдено при запуске воркера 23.09.2026)
         dispatch(function () {
-            Log::info('TELEGRAM TITLE ' . $this->title);
-            Log::info('TELEGRAM MESSAGE ' . $this->message);
+            Log::info('TELEGRAM TITLE ' . ($this->arParams['title'] ?? ''));
+            Log::info('TELEGRAM MESSAGE ' . ($this->arParams['message'] ?? ''));
         })->delay($this->seconds);
     }
 

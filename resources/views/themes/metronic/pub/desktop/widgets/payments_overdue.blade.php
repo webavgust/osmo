@@ -12,8 +12,9 @@
     $color = fn($days) => $days > 90 ? 'danger' : ($days > 30 ? 'warning' : 'secondary');
     $href = fn($row) => $preview || empty($row['url']) ? 'javascript:void(0)' : $row['url'];
 
-    // корзины давности: цвет по порядку — от свежей просрочки к застарелой
-    $tones = ['gray-400', 'warning', 'danger', 'dark'];
+    // корзины давности: цвет по коду корзины — от свежей просрочки к застарелой
+    // (по коду, а не по порядку: без свежей корзины «31–90 дней» не должна стать серой)
+    $tones = ['d30' => 'gray-400', 'd90' => 'warning', 'd365' => 'danger', 'older' => 'dark'];
 
     // в самом узком блоке сумма в две строки: число крупно, «млн ₽» подписью под ним
     preg_match('/^(.+?)(?: (млрд|млн|тыс\.))?$/u', $widget::compact($data['amount']), $parts);
@@ -51,16 +52,16 @@
             @if(!$compact && !empty($data['buckets']))
                 <div class="desk-only-h-lg mt-3">
                     <div class="desk-split">
-                        @foreach($data['buckets'] as $i => $bucket)
-                            <i class="bg-{{ $tones[min($i, count($tones) - 1)] }}"
+                        @foreach($data['buckets'] as $bucket)
+                            <i class="bg-{{ $tones[$bucket['code']] ?? 'secondary' }}"
                                style="width: {{ round($bucket['amount'] / max(1, $data['amount']) * 100, 2) }}%"
                                title="{{ $bucket['label'] }}: {{ $bucket['count'] }} · {{ $widget::money($bucket['amount'], $data['symbol'], false) }}"></i>
                         @endforeach
                     </div>
                     <div class="fin-line desk-fit mt-1" data-fit-axis="x" data-fit-min="0">
-                        @foreach($data['buckets'] as $i => $bucket)
+                        @foreach($data['buckets'] as $bucket)
                             <span class="fs-8 desk-muted" title="{{ $widget::money($bucket['amount'], $data['symbol'], false) }}">
-                                <span class="bullet bullet-dot bg-{{ $tones[min($i, count($tones) - 1)] }} me-1"></span>{{ $bucket['label'] }}: {{ $bucket['count'] }} · {{ $widget::money($bucket['amount'], $data['symbol']) }}
+                                <span class="bullet bullet-dot bg-{{ $tones[$bucket['code']] ?? 'secondary' }} me-1"></span>{{ $bucket['label'] }}: {{ $bucket['count'] }} · {{ $widget::money($bucket['amount'], $data['symbol']) }}
                             </span>
                         @endforeach
                     </div>

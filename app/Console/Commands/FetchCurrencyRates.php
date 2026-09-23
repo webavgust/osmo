@@ -16,13 +16,13 @@ class FetchCurrencyRates extends Command
 
     protected $description = 'Загружает курсы валют с сайта ЦБ РФ и вставляет напрямую в БД (таблица currency_rates)';
 
-    protected array $currencies = ['INR', 'SGD', 'SRD', 'UZS', 'CNY', 'EUR', 'USD'];
+    protected array $currencies = ['INR', 'SGD', 'SAR', 'UZS', 'CNY', 'EUR', 'USD'];
 
     /**
-     * Код ЦБ → код портала. Саудовский риял у ЦБ — SAR, а в портале он заведён под кодом SRD
-     * (на самом деле это суринамский доллар, который ЦБ не публикует)
+     * Код ЦБ → код портала, если они расходятся. Саудовский риял до 23.09.2026 был заведён под
+     * кодом SRD (суринамский доллар) и шёл через псевдоним SAR → SRD; теперь код портала — SAR
      */
-    protected array $aliases = ['SAR' => 'SRD'];
+    protected array $aliases = [];
 
     public function handle()
     {

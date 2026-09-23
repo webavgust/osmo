@@ -53,7 +53,8 @@ class LinkWidget extends Widget
     }
 
     /**
-     * Объект ссылки: ['found', 'type', 'title', 'second', 'icon', 'url']
+     * Объект ссылки: ['found', 'missing', 'type', 'title', 'second', 'icon', 'url'];
+     * missing — объект выбран, но не найден (удалён): пустое состояние говорит об этом, а не «выберите объект»
      *
      * @param array $settings
      * @param DesktopContext $ctx
@@ -63,7 +64,7 @@ class LinkWidget extends Widget
     {
         $type = (string) ($settings['target']['type'] ?? '');
         $id = trim((string) ($settings['target']['id'] ?? ''));
-        $out = ['found' => false, 'type' => $type, 'title' => '', 'second' => '', 'icon' => static::icon(), 'url' => null];
+        $out = ['found' => false, 'missing' => false, 'type' => $type, 'title' => '', 'second' => '', 'icon' => static::icon(), 'url' => null];
 
         if ($id === '') {
             return $out;
@@ -78,14 +79,14 @@ class LinkWidget extends Widget
         };
 
         if ($found === null) {
-            return $out;
+            return ['missing' => true] + $out;
         }
 
         if ($settings['second_line'] === 'none') {
             $found['second'] = '';
         }
 
-        return ['found' => true, 'type' => $type] + $found;
+        return ['found' => true, 'missing' => false, 'type' => $type] + $found;
     }
 
     /**
@@ -98,7 +99,7 @@ class LinkWidget extends Widget
     public function sample(array $settings, DesktopContext $ctx): array
     {
         return [
-            'found' => true, 'type' => 'proposal', 'title' => 'КП № AA-794 · Платформа Восток',
+            'found' => true, 'missing' => false, 'type' => 'proposal', 'title' => 'КП № AA-794 · Платформа Восток',
             'second' => 'Выиграно · 3,1 млн ₽', 'icon' => 'fa-file-invoice', 'url' => null,
         ];
     }

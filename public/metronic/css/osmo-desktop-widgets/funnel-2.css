@@ -25,6 +25,14 @@
 .desk-widget[data-widget="funnel_stages"] .funnel-stages-tall { display: flex; flex-direction: column; }
 .desk-widget[data-widget="funnel_stages"] .funnel-stages-tall > li { flex: 1 1 0; max-height: 4rem; }
 .desk-widget[data-widget="funnel_stages"] .funnel-stages-tall .desk-bar { height: clamp(.55em, 2.2cqh, 1.4em); }
+/*
+ * funnel_stages, funnel_table, industry: ненулевая доля видна хотя бы полоской в 3 px — заливка
+ * в 1–2 px у края полосы выглядела пустой (стенд считал её спрятанной обрезкой, код H)
+ */
+.desk-widget[data-widget="funnel_stages"] .desk-bar > i.f2-bar-nz,
+.desk-widget[data-widget="funnel_table"] .desk-bar > i.f2-bar-nz,
+.desk-widget[data-widget="industry"] .desk-bar > i.f2-bar-nz { min-width: 3px; }
+
 /* funnel_table: на высоком блоке (ступень lg/xl) строки выше и полоса доли толще — стадий не больше 11 */
 .desk-widget[data-widget="funnel_table"] .funnel-table-tall .desk-table td { padding-top: clamp(.28rem, 1.2cqh, 1rem); padding-bottom: clamp(.28rem, 1.2cqh, 1rem); }
 .desk-widget[data-widget="funnel_table"] .funnel-table-tall .desk-bar { height: clamp(.55em, 1.4cqh, 1.2em); }
@@ -57,6 +65,19 @@
 @container dw (max-width: 170px) {
     .desk-widget[data-widget="manager_quarter"] .desk-table th,
     .desk-widget[data-widget="manager_quarter"] .desk-table td { padding-left: 0; padding-right: 0; }
+}
+/*
+ * manager_quarter: «Итого» считается по всем кварталам — пока часть колонок кварталов спрятана
+ * (4 квартала — уже 420 px, 8 кварталов — уже 900 px), шапка итога говорит «За N кв.»
+ */
+.desk-widget[data-widget="manager_quarter"] .mq-sum-all { display: none; }
+@container dw (min-width: 420px) {
+    .desk-widget[data-widget="manager_quarter"] .desk-table:not(.mq-q8) .mq-sum-all { display: inline; }
+    .desk-widget[data-widget="manager_quarter"] .desk-table:not(.mq-q8) .mq-sum-part { display: none; }
+}
+@container dw (min-width: 900px) {
+    .desk-widget[data-widget="manager_quarter"] .mq-q8 .mq-sum-all { display: inline; }
+    .desk-widget[data-widget="manager_quarter"] .mq-q8 .mq-sum-part { display: none; }
 }
 /* manager_quarter: на высоком блоке строки выше */
 .desk-widget[data-widget="manager_quarter"] .mq-tall .desk-table td { padding-top: clamp(.28rem, 1cqh, .8rem); padding-bottom: clamp(.28rem, 1cqh, .8rem); }

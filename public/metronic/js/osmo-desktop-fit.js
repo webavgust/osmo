@@ -15,6 +15,8 @@
  *   [data-fit-more="ещё {n}"]    — подпись о спрятанных строках: внутри контейнера (строкой
  *                                  не считается) или сразу за ним; {n} — число; без спрятанных
  *                                  строк подпись скрыта
+ *   data-fit-extra="N"           — на подписи: сколько строк сервер не отдал сверх лимита
+ *                                  (прибавляется к {n}; подпись видна, даже если всё влезло)
  *
  * Пересчёт — по ResizeObserver на контейнере и после загрузки шрифтов.
  */
@@ -63,13 +65,18 @@
 
         var list = rows(box);
         var more = moreLabel(box);
+        // строки, которые сервер не отдал сверх лимита, — тоже «ещё»
+        var extra = more ? Math.max(0, parseInt(more.getAttribute('data-fit-extra'), 10) || 0) : 0;
 
         list.forEach(function (el) { el.classList.remove('desk-fit-out'); });
-        if (more) more.classList.add('desk-fit-out');
+        if (more) {
+            more.textContent = template(more, extra);
+            more.classList.toggle('desk-fit-out', extra === 0);
+        }
 
         if (!overflows(box, axis)) return;
         if (more) {
-            more.textContent = template(more, 99);
+            more.textContent = template(more, 99 + extra);
             more.classList.remove('desk-fit-out');
         }
 
@@ -88,8 +95,8 @@
         }
 
         if (more) {
-            if (hidden > 0) {
-                more.textContent = template(more, hidden);
+            if (hidden + extra > 0) {
+                more.textContent = template(more, hidden + extra);
             } else {
                 more.classList.add('desk-fit-out');
             }

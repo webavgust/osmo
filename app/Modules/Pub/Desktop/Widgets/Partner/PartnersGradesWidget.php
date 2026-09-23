@@ -68,12 +68,14 @@ class PartnersGradesWidget extends Widget
      */
     public function sample(array $settings, DesktopContext $ctx): array
     {
+        // все грейды перечисления, по убыванию числа партнёров — как сортирует data()
         $sample = [
-            [PartnerGrade::PLATINUM, 4, 38],
-            [PartnerGrade::GOLD, 9, 51],
-            [PartnerGrade::SILVER, 14, 47],
             [PartnerGrade::BRONZE, 18, 22],
+            [PartnerGrade::SILVER, 14, 47],
+            [PartnerGrade::GOLD, 9, 51],
+            [PartnerGrade::PLATINUM, 4, 38],
             [PartnerGrade::AGENT, 3, 5],
+            [PartnerGrade::VENDOR, 2, 3],
         ];
         $total = array_sum(array_column($sample, 1));
 
@@ -111,10 +113,13 @@ class PartnersGradesWidget extends Widget
             return ['total' => 0, 'won_total' => 0, 'rows' => []];
         }
 
-        // выигранные КП по партнёрам — из скоринга за всю историю
+        // выигранные КП по партнёрам — из скоринга за всю историю; отбор «только активные» —
+        // тот же, что у количества, иначе КП отключённых партнёров попадали бы в грейд
         $won_by_grade = [];
         if ((string) $settings['metric'] === 'won') {
             foreach (PartnerScoringService::ranked(null) as $row) {
+                if (!empty($settings['only_active']) && empty($row['partner']->active)) continue;
+
                 $key = (string) $row['grade_key'];
                 $won_by_grade[$key] = ($won_by_grade[$key] ?? 0) + (int) $row['won'];
             }
@@ -146,6 +151,9 @@ class PartnersGradesWidget extends Widget
         }
 
         usort($rows, fn($a, $b) => [$b['count'], $a['sort']] <=> [$a['count'], $b['sort']]);
+
+        // ключ сортировки нужен был только здесь — строки как у sample()
+        $rows = array_map(fn($row) => array_diff_key($row, ['sort' => true]), $rows);
 
         return [
             'total' => $total,

@@ -42,11 +42,15 @@ class CalendarController extends Controller
     /**
      * Саоздание события
      *
+     * @param Request $request date=Y-m-d — день, по которому кликнули в виджете «Календарь»
      * @return \Illuminate\Contracts\View\View
      */
-    public function sidebar_add()
+    public function sidebar_add(Request $request)
     {
-        $template = View::make('pub.calendar.sidebars.add', ['title' => 'Создание события']);
+        $date = (string) $request->query('date', '');
+        $date = preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) && strtotime($date) ? $date : null;
+
+        $template = View::make('pub.calendar.sidebars.add', ['title' => 'Создание события', 'date' => $date]);
 
         return $template;
     }

@@ -17,7 +17,7 @@
     </div>
 @else
     {{-- кегль считает personal.css от площади блока и числа часов (--clock-n) --}}
-    <div @class(['clock-grid', 'desk-fit', 'clock-n-' . count($list), 'clock-single' => count($list) === 1])
+    <div @class(['clock-grid', 'desk-fit', 'clock-n-' . count($list), 'clock-single' => count($list) === 1, 'clock-h12' => $settings['format'] === '12'])
          data-fit-axis="{{ $axis }}"
          style="--clock-n: {{ count($list) }}; --clock-em: {{ $em }}; --clock-lines: {{ $lines }}">
         @foreach($list as $row)

@@ -94,42 +94,55 @@ class PaymentsByPartnerWidget extends Widget
             ['key' => 'mode', 'type' => 'select', 'label' => 'Показатель', 'default' => 'fact',
                 'hint' => 'Факт — по дате поступления, план — по плановой дате платежа',
                 'options' => ['fact' => 'Фактические поступления', 'plan' => 'Плановые платежи']],
-            ['key' => 'limit', 'type' => 'number', 'label' => 'Сколько партнёров в списке', 'default' => 8, 'min' => 1, 'max' => self::MAX_ROWS],
+            // по умолчанию — сколько влезет по высоте блока (не больше MAX_ROWS)
+            ['key' => 'limit', 'type' => 'number', 'label' => 'Сколько партнёров в списке', 'default' => self::MAX_ROWS, 'min' => 1, 'max' => self::MAX_ROWS],
         ];
     }
 
     public static function sourceUrl(array $settings): ?string
     {
-        // период стола в отбор календаря не переносится — ведём на состояния за все годы
-        return route('payment_calendar.index', [
-            'state' => (string) ($settings['mode'] ?? 'fact') === 'fact' ? ['paid'] : ['overdue', 'soon', 'planned'],
+        // период стола в отбор календаря не переносится — ведём на выборку за все годы:
+        // факт — оплаченные; план — без отбора по состоянию (в плане и уже оплаченные платежи)
+        return route('payment_calendar.index', array_filter([
+            'state' => (string) ($settings['mode'] ?? 'fact') === 'fact' ? ['paid'] : null,
             'all_years' => 1,
-        ]);
+        ]));
     }
 
     public function sample(array $settings, DesktopContext $ctx): array
     {
-        $sample = [
-            ['ГК Восток', 4820000.0, 9],
-            ['МТ Интеграция', 2310000.0, 4],
-            ['Shanghai Hengde', 1460000.0, 3],
-            ['АО «Вектор»', 620000.0, 2],
-        ];
+        // образец на 24 партнёра — больше MAX_ROWS, чтобы было видно и высокий блок, и «остальных»
+        $names = ['ГК Восток', 'МТ Интеграция', 'Shanghai Hengde Science & Tech Co', 'АО «Вектор»', 'ООО «Телеком-Мастер»',
+            'Риверсистемс', 'СТК', 'Альфа-Проект', 'ИнфоТех Сервис', 'Северный ветер', 'Digital Wave Ltd', 'ООО «Гранит»',
+            'Нева-Интеграция', 'Уральские системы', 'ТрансЛинк', 'Сигма-Софт', 'Каскад', 'Oriental Vision Ltd',
+            'Полярная звезда', 'Техносфера', 'Меридиан', 'Вектор-Юг', 'Байкал Сервис', 'Баркас'];
 
-        $total = 9210000.0;
-        $rows = [];
-        foreach ($sample as [$name, $amount, $count]) {
-            $rows[] = [
-                'name' => $name, 'partner' => null, 'amount' => $amount, 'count' => $count,
-                'share' => round($amount / $total * 100, 1), 'url' => null,
+        $list = [];
+        foreach ($names as $i => $name) {
+            $list[] = [
+                'name' => $name, 'partner' => null, 'amount' => (float) ((24 - $i) ** 2 * 9000), 'count' => max(1, intdiv(24 - $i, 3)),
+                'url' => null,
             ];
         }
 
+        // как в data(): в списке — первые limit, остальные одной строкой итогов
+        $total = array_sum(array_column($list, 'amount'));
+        $limit = max(1, min((int) ($settings['limit'] ?? static::MAX_ROWS), static::MAX_ROWS));
+        $top = array_slice($list, 0, $limit);
+        $others = array_slice($list, $limit);
+        foreach ($top as &$row) {
+            $row['share'] = round($row['amount'] / $total * 100, 1);
+        }
+        unset($row);
+
+        $period = $ctx->periodFor($settings);
+
         return [
-            'rows' => $rows,
-            'total' => $total, 'count' => 18, 'partners' => 4,
-            'others' => 0.0, 'others_count' => 0,
-            'mode' => 'fact', 'label' => 'Текущий квартал', 'dates' => '01.07.2026 – 30.09.2026',
+            'rows' => $top,
+            'total' => $total, 'count' => array_sum(array_column($list, 'count')), 'partners' => count($list),
+            'others' => array_sum(array_column($others, 'amount')), 'others_count' => count($others),
+            'mode' => (string) ($settings['mode'] ?? 'fact') === 'fact' ? 'fact' : 'plan',
+            'label' => $period['label'], 'dates' => $period['dates'],
             'symbol' => '₽', 'skipped' => 0,
         ];
     }
@@ -188,7 +201,7 @@ class PaymentsByPartnerWidget extends Widget
         $list = array_values($partners);
         usort($list, fn($a, $b) => $b['amount'] <=> $a['amount']);
 
-        $limit = max(1, min((int) ($settings['limit'] ?? 8), static::MAX_ROWS));
+        $limit = max(1, min((int) ($settings['limit'] ?? static::MAX_ROWS), static::MAX_ROWS));
         $top = array_slice($list, 0, $limit);
         $others = array_slice($list, $limit);
 
@@ -202,7 +215,8 @@ class PaymentsByPartnerWidget extends Widget
             'rows' => $top,
             'total' => round($total['amount'], 2),
             'count' => $total['count'],
-            'partners' => count($list),
+            // строка «Без партнёра» — не партнёр, в счётчик не идёт
+            'partners' => count(array_filter($list, fn($row) => $row['partner'] !== null)),
             'others' => round(array_sum(array_column($others, 'amount')), 2),
             'others_count' => count($others),
             'mode' => $fact ? 'fact' : 'plan',

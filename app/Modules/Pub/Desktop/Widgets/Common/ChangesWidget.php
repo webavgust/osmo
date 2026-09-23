@@ -7,6 +7,7 @@ use App\Modules\Pub\Desktop\Widgets\Widget;
 use App\Modules\Pub\EntityLog\Models\EntityLog;
 use App\Modules\Pub\EntityLog\Services\EntityLogService;
 use App\Modules\Pub\User\Models\User;
+use Carbon\CarbonInterface;
 
 /**
  * Журнал изменений (patch v30): последние события журнала сущностей (patch v29) —
@@ -72,7 +73,8 @@ class ChangesWidget extends Widget
             ['key' => 'events', 'type' => 'list', 'label' => 'Типы событий', 'default' => [],
                 'hint' => 'Пусто — все события', 'options' => EntityLog::EVENTS],
             ['key' => 'mine', 'type' => 'bool', 'label' => 'Только мои изменения', 'default' => false],
-            ['key' => 'limit', 'type' => 'number', 'label' => 'Сколько событий', 'default' => 15, 'min' => 3, 'max' => 50],
+            ['key' => 'limit', 'type' => 'number', 'label' => 'Сколько событий', 'default' => 40, 'min' => 3, 'max' => 50,
+                'hint' => 'Верхняя граница: сколько строк влезет в блок — решает высота'],
         ];
     }
 
@@ -119,7 +121,7 @@ class ChangesWidget extends Widget
      *
      * @param array $settings
      * @param DesktopContext $ctx
-     * @return array ['rows' => [['id', 'type', 'type_label', 'title', 'event', 'event_label', 'color', 'icon', 'user', 'when', 'ago', 'changes', 'url']]]
+     * @return array ['rows' => [['id', 'type', 'type_label', 'title', 'event', 'event_label', 'color', 'icon', 'user', 'when', 'ago', 'ago_short', 'changes', 'url']]]
      */
     public function data(array $settings, DesktopContext $ctx): array
     {
@@ -145,7 +147,17 @@ class ChangesWidget extends Widget
             $query->where('user_id', (int) $ctx->user->id);
         }
 
-        $rows = $query->limit((int) $settings['limit'])->get()->map(fn(EntityLog $log) => [
+        $logs = $query->limit((int) $settings['limit'])->get();
+
+        // у удалённого объекта ленты нет (страница ленты отвечает 404) — его строки без ссылки;
+        // корень ищется так же, как на странице ленты, по одному запросу на объект
+        $alive = [];
+        foreach ($logs as $log) {
+            $key = $log->type . ':' . $log->group_key;
+            $alive[$key] ??= EntityLogService::rootByKey((string) $log->type, (string) $log->group_key) !== null;
+        }
+
+        $rows = $logs->map(fn(EntityLog $log) => [
             'id' => (int) $log->id,
             'type' => (string) $log->type,
             'type_label' => (string) ($labels[$log->type] ?? $log->type),
@@ -157,8 +169,10 @@ class ChangesWidget extends Widget
             'user' => (string) ($log->user?->full_name ?: ($log->user?->name ?: 'Система')),
             'when' => $log->created_at->format('d.m.Y H:i'),
             'ago' => $log->created_at->diffForHumans(),
+            // коротко («12 мин.») — для узкого списка, где полное «12 минут назад» съедает название
+            'ago_short' => $log->created_at->diffForHumans(null, CarbonInterface::DIFF_ABSOLUTE, true),
             'changes' => (int) $log->changes_count,
-            'url' => route('entity_log.index', [$log->type, $log->group_key]),
+            'url' => $alive[$log->type . ':' . $log->group_key] ? route('entity_log.index', [$log->type, $log->group_key]) : null,
         ])->all();
 
         return ['rows' => $rows];
@@ -201,6 +215,7 @@ class ChangesWidget extends Widget
                 'user' => $row[4],
                 'when' => $when->format('d.m.Y H:i'),
                 'ago' => $when->diffForHumans(),
+                'ago_short' => $when->diffForHumans(null, CarbonInterface::DIFF_ABSOLUTE, true),
                 'changes' => $row[5],
                 'url' => null,
             ];

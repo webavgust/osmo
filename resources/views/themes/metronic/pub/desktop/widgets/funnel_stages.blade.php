@@ -14,6 +14,8 @@
     $list = $data['rows'];
 
     $counts = (bool) $settings['counts'];
+    // доля — с запятой, как в таблице воронки: «9,4 %», от 10 % — без дробной части
+    $share = fn($value) => number_format($value, $value < 10 ? 1 : 0, ',', ' ') . ' %';
 @endphp
 @if(empty($data['rows']))
     <div class="desk-empty">
@@ -48,7 +50,7 @@
         {{-- узкая высокая колонка: название стадии строкой над суммой (стиль группы funnel-2) --}}
         <ul @class(['desk-list', 'desk-fit', 'desk-stack-grow', 'funnel-stages-tall' => $tall, 'funnel-stages-stacked' => $tall && $narrow])>
             @foreach($list as $row)
-                <li title="{{ $row['stage'] }}: {{ $widget::money($row['amount'], $symbol, false) }} · {{ $row['count'] }} шт. · {{ $row['share'] }}%">
+                <li title="{{ $row['stage'] }}: {{ $widget::money($row['amount'], $symbol, false) }} · {{ $row['count'] }} шт. · {{ $share($row['share']) }}">
                     @if($tall && $narrow)
                         <span class="desk-nowrap desk-label" title="{{ $row['stage'] }}">{{ $row['stage'] }}</span>
                     @else
@@ -56,14 +58,14 @@
                     @endif
 
                     <div class="desk-bar desk-only-w-md" style="flex: 0 1 38%;">
-                        <i style="width: {{ max(0, min(100, $row['bar'])) }}%;"></i>
+                        <i @class(['f2-bar-nz' => $row['bar'] > 0]) style="width: {{ max(0, min(100, $row['bar'])) }}%;"></i>
                     </div>
 
                     @if($counts)
                         <span class="desk-muted fs-8 text-nowrap text-end desk-hide-narrow" style="min-width: 2.4em;">{{ $row['count'] }} шт.</span>
                     @endif
 
-                    <span class="desk-muted fs-8 text-nowrap text-end desk-only-w-lg" style="min-width: 3em;">{{ $row['share'] }}%</span>
+                    <span class="desk-muted fs-8 text-nowrap text-end desk-only-w-lg" style="min-width: 3.2em;">{{ $share($row['share']) }}</span>
 
                     <span class="fw-semibold text-nowrap text-end ms-auto" style="min-width: 4.5em;">{{ $amount($row['amount']) }}</span>
                 </li>

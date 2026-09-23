@@ -38,6 +38,18 @@
 @container dw (max-width: 170px) and (max-height: 229px) {
     .desk-widget[data-widget="key_card"] .kc-company { display: none !important; }
 }
+/* высокий блок: спецификация, номер ключа и договор переносятся, а не уходят в многоточие —
+   места по высоте хватает, а номер ключа длинный (softline_rrpk_…) */
+@container dw (min-height: 300px) {
+    .desk-widget[data-widget="key_card"] .kc-foot .kc-wrap {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        overflow-wrap: anywhere;
+        line-height: 1.25;
+    }
+    .desk-widget[data-widget="key_card"] .kc-foot .d-flex:has(> .kc-wrap) { align-items: baseline; }
+}
 
 /* ---------- keys_by_company: ключи по компаниям ---------- */
 
@@ -106,6 +118,21 @@
 
 /* партнёр в строке списка не съедает название компании */
 .desk-widget[data-widget="license_registry"] li > .lr-partner { flex: 0 1 auto; max-width: 30%; min-width: 0; }
+
+/* таблица: у каждой обрезаемой колонки своя доля ширины. У .desk-cut ширина 99%, и первая такая
+   колонка (партнёр, компания) забирала всё место — компания и спецификация уходили в многоточие
+   даже на 16 колонках при коротких названиях */
+@container dw (min-width: 420px) {
+    .desk-widget[data-widget="license_registry"] .lr-with-spec td.lr-company { width: 55%; }
+    .desk-widget[data-widget="license_registry"] .lr-with-spec td.lr-spec { width: 45%; }
+}
+@container dw (min-width: 620px) {
+    .desk-widget[data-widget="license_registry"] td.lr-partner { width: 30%; }
+    .desk-widget[data-widget="license_registry"] td.lr-company { width: 70%; }
+    .desk-widget[data-widget="license_registry"] .lr-with-spec td.lr-partner { width: 24%; }
+    .desk-widget[data-widget="license_registry"] .lr-with-spec td.lr-company { width: 40%; }
+    .desk-widget[data-widget="license_registry"] .lr-with-spec td.lr-spec { width: 36%; }
+}
 .desk-widget[data-widget="license_registry"] .lr-total {
     flex: none;
     display: flex;
@@ -156,7 +183,18 @@
 /* длинное значение (JSON, адрес) и примечание не забирают у названия больше половины строки */
 .desk-widget[data-widget="consts_watch"] .cw-list .cw-value { flex: 0 1 auto; max-width: 50%; min-width: 0; }
 .desk-widget[data-widget="consts_watch"] .cw-list .cw-note { flex: 0 1 auto; max-width: 30%; min-width: 0; }
-.desk-widget[data-widget="consts_watch"] td.cw-value { width: 45%; }
+/* таблица: обрезаемые колонки (название, длинное значение, примечание) делят место долями —
+   иначе первая .desk-cut (ширина 99%) забирала всё: значение «uf_crm_1719404976291» и короткое
+   примечание уходили в многоточие даже на 16 колонках. Короткие значения не режутся (без доли) */
+.desk-widget[data-widget="consts_watch"] .cw-has-long td.cw-name-cell { width: 50%; }
+.desk-widget[data-widget="consts_watch"] .cw-has-long td.cw-value { width: 50%; }
+@container dw (min-width: 620px) {
+    .desk-widget[data-widget="consts_watch"] .cw-with-note td.cw-name-cell { width: 60%; }
+    .desk-widget[data-widget="consts_watch"] .cw-with-note td.cw-note-cell { width: 40%; }
+    .desk-widget[data-widget="consts_watch"] .cw-with-note.cw-has-long td.cw-name-cell { width: 38%; }
+    .desk-widget[data-widget="consts_watch"] .cw-with-note.cw-has-long td.cw-value { width: 34%; }
+    .desk-widget[data-widget="consts_watch"] .cw-with-note.cw-has-long td.cw-note-cell { width: 28%; }
+}
 
 /* узкий блок: название строкой сверху, значение под ним */
 @container dw (max-width: 170px) {
@@ -222,6 +260,11 @@
     font-size: calc(clamp(13px, 3cqw, 22px) * var(--desk-font-scale));
 }
 .desk-widget[data-widget="system_health"] .sh-note { line-height: 1.25; overflow-wrap: anywhere; }
+/* название подсистемы в плитке переносится по словам («Синхронизация / Битрикс24»), а не режется;
+   в узком блоке (одна колонка до 170 px) слово шире плитки — там остаётся многоточие */
+@container dw (min-width: 171px) {
+    .desk-widget[data-widget="system_health"] .sh-tile-name { white-space: normal; line-height: 1.2; }
+}
 /* узкий блок (плитки в одну колонку): плотнее, название мельче — иначе значение в две строки не влезает */
 @container dw (max-width: 170px) {
     .desk-widget[data-widget="system_health"] .sh-tiles { gap: .25rem; }
@@ -244,6 +287,13 @@
 .desk-widget[data-widget="users_online"] .uo-main > .desk-value { flex: 0 1 auto; min-width: 0; }
 .desk-widget[data-widget="users_online"] .uo-side { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: .5rem; min-width: 0; }
 .desk-widget[data-widget="users_online"] .uo-position { flex: 0 1 auto; max-width: 35%; min-width: 0; }
+
+/* таблица шире 620 px: имя и должность делят место — иначе первая .desk-cut (ширина 99%)
+   забирала всё, и должность «Менеджер» уходила в многоточие */
+@container dw (min-width: 620px) {
+    .desk-widget[data-widget="users_online"] td.uo-name-cell { width: 55%; }
+    .desk-widget[data-widget="users_online"] td.uo-position-cell { width: 45%; }
+}
 
 /* низкий и не широкий блок: только подпись и число */
 @container dw (max-height: 96px) and (max-width: 299px) {

@@ -20,8 +20,9 @@ use Illuminate\Support\Facades\DB;
  * DealProjectService::ufQuarter() («2026q3»), страна — поле компании, поэтому она
  * подтягивается одной картой company_id → страна, без запроса на каждую сделку.
  *
- * Квартал «не выбрано» в столбцы не попадает: такие сделки считаются отдельно и
- * показываются предупреждением под таблицей.
+ * Сделки, чей плановый квартал не попал в столбцы, считаются отдельно и показываются
+ * предупреждением под таблицей «Вне таблицы» — по частям: квартал не выбран, квартал
+ * уже прошёл (сделка всё ещё в воронке), квартал позже последнего столбца.
  */
 class CountryQuarterWidget extends Widget
 {
@@ -83,7 +84,11 @@ class CountryQuarterWidget extends Widget
             }
         }
 
-        return static::table($matrix, $columns, $settings['rows'], '₽', 6, 18400000.0);
+        return static::table($matrix, $columns, $settings['rows'], '₽', [
+            'empty' => ['count' => 2, 'amount' => 3100000.0],
+            'past' => ['count' => 1, 'amount' => 2800000.0],
+            'later' => ['count' => 3, 'amount' => 12500000.0],
+        ]);
     }
 
     /**
@@ -91,7 +96,7 @@ class CountryQuarterWidget extends Widget
      *
      * @param array $settings
      * @param DesktopContext $ctx
-     * @return array ['columns', 'rows', 'col_totals', 'grand_total', 'max_cell', 'symbol', 'none_count', 'none_amount']
+     * @return array ['columns', 'rows', 'col_totals', 'grand_total', 'max_cell', 'symbol', 'none_count', 'none_amount', 'none_parts']
      */
     public function data(array $settings, DesktopContext $ctx): array
     {
@@ -104,8 +109,8 @@ class CountryQuarterWidget extends Widget
         $countries = static::countries();
 
         $matrix = [];
-        $none_count = 0;
-        $none_amount = 0.0;
+        // сделки вне столбцов: квартал не выбран / уже прошёл / позже последнего столбца
+        $parts = array_fill_keys(['empty', 'past', 'later'], ['count' => 0, 'amount' => 0.0]);
 
         foreach ($result['deals'] as $deal) {
             // как на странице воронки: сделки без суммы в матрицу не идут
@@ -114,10 +119,11 @@ class CountryQuarterWidget extends Widget
 
             $quarter = trim((string) ($deal->{$field} ?? ''));
 
-            // квартал вне выбранного окна («не выбрано», прошлые и слишком далёкие) — в предупреждение
+            // квартал вне выбранного окна — в предупреждение; «2026q2» < «2026q3» сравнением строк
             if (!in_array($quarter, $keys, true)) {
-                $none_count++;
-                $none_amount += $amount;
+                $part = !preg_match('/^\d{4}q[1-4]$/', $quarter) ? 'empty' : ($quarter < $keys[0] ? 'past' : 'later');
+                $parts[$part]['count']++;
+                $parts[$part]['amount'] += $amount;
                 continue;
             }
 
@@ -127,7 +133,7 @@ class CountryQuarterWidget extends Widget
             $matrix[$country][$status][$quarter] = ($matrix[$country][$status][$quarter] ?? 0.0) + $amount;
         }
 
-        return static::table($matrix, $columns, $settings['rows'], $ctx->symbol($currency), $none_count, $none_amount);
+        return static::table($matrix, $columns, $settings['rows'], $ctx->symbol($currency), $parts);
     }
 
     /**
@@ -174,11 +180,10 @@ class CountryQuarterWidget extends Widget
      * @param array $columns
      * @param string $mode country_status | country
      * @param string $symbol
-     * @param int $none_count сделки без планового квартала
-     * @param float $none_amount
+     * @param array $parts сделки вне столбцов: ['empty' | 'past' | 'later' => ['count', 'amount']]
      * @return array
      */
-    protected static function table(array $matrix, array $columns, string $mode, string $symbol, int $none_count, float $none_amount): array
+    protected static function table(array $matrix, array $columns, string $mode, string $symbol, array $parts): array
     {
         $keys = array_column($columns, 'key');
         $order = array_flip(FunnelTableWidget::STAGES);
@@ -225,8 +230,10 @@ class CountryQuarterWidget extends Widget
             'grand_total' => array_sum($col_totals),
             'max_cell' => $cells ? max(array_map('abs', $cells)) : 0.0,
             'symbol' => $symbol,
-            'none_count' => $none_count,
-            'none_amount' => $none_amount,
+            // всего вне столбцов и по частям
+            'none_count' => (int) array_sum(array_column($parts, 'count')),
+            'none_amount' => (float) array_sum(array_column($parts, 'amount')),
+            'none_parts' => $parts,
         ];
     }
 }

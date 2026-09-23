@@ -76,7 +76,27 @@ class DealsTopWidget extends Widget
 
     public static function sourceUrl(array $settings): ?string
     {
-        return route('crm-deal.index');
+        // реестр с тем же отбором, что у виджета: по умолчанию он показывает только сделки
+        // без КП, а в топе сделки с КП тоже есть
+        return route('crm-deal.index', CrmDealRegistryService::query(static::registryParams($settings)));
+    }
+
+    /**
+     * Отбор реестра сделок по настройкам виджета: стадии, менеджеры, «КП не важно»
+     *
+     * @param array $settings
+     * @return array параметры CrmDealRegistryService::rows()
+     */
+    public static function registryParams(array $settings): array
+    {
+        $params = ['has_proposal' => 'all', 'manager' => array_map('strval', (array) ($settings['manager'] ?? []))];
+        // активные — стадии, которые считает воронка: Execution (PRE-PAYMENT) — оплата уже прошла,
+        // сделка по сути завершена (решение владельца 23.09.2026), в активные не входит
+        if (($settings['scope'] ?? 'active') !== 'all') {
+            $params['stage'] = FunnelTableWidget::funnelStages();
+        }
+
+        return $params;
     }
 
     /**
@@ -144,10 +164,7 @@ class DealsTopWidget extends Widget
         // курсы берём текущие — так же, как страница воронки (DashboardDataService)
         $rates = CurrencyService::getConvertRates();
 
-        $params = ['has_proposal' => 'all', 'manager' => array_map('strval', (array) $settings['manager'])];
-        if ($settings['scope'] !== 'all') {
-            $params['stage'] = FunnelTableWidget::STAGES;
-        }
+        $params = static::registryParams($settings);
 
         $field = $settings['date'] === 'close' ? 'closedate' : 'date_create';
         $rows = [];
@@ -176,7 +193,8 @@ class DealsTopWidget extends Widget
                 'manager' => trim(Str::afterLast((string) $deal->assigned_by, ']')),
                 'project' => $deal->project !== null,
                 'proposal' => $deal->proposal !== null,
-                'url' => route('crm-deal.index', ['q' => $deal->id]),
+                // has_proposal=all: без него реестр по умолчанию прячет сделки с КП — строка вела в пустой список
+                'url' => route('crm-deal.index', ['has_proposal' => 'all', 'q' => $deal->id]),
                 'deal_url' => CrmDealRegistryService::url($deal->id),
             ];
         }

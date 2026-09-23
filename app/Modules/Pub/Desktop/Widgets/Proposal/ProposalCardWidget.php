@@ -7,8 +7,10 @@ use App\Modules\Pub\ContractSpecification\Services\SpecProposalService;
 use App\Modules\Pub\Desktop\Services\DesktopContext;
 use App\Modules\Pub\Desktop\Widgets\Widget;
 use App\Modules\Pub\Proposal\Models\Proposal;
+use App\Modules\Pub\Proposal\Models\ProposalLink;
 use App\Modules\Pub\Proposal\Models\ProposalStatus;
 use App\Modules\Pub\Proposal\Services\ProposalDealService;
+use App\Modules\Pub\Proposal\Services\ProposalLinkService;
 
 /**
  * Карточка КП (patch v30): выбранное в настройках КП с живыми данными —
@@ -19,6 +21,9 @@ use App\Modules\Pub\Proposal\Services\ProposalDealService;
  * Сумма берётся у основного варианта (variants: is_main desc, id) и показывается
  * в валюте самого КП, без пересчёта курса — ровно как в колонке «Стоимость» списка КП
  * и в виджете «Последние КП». Статусы — три из v27.
+ *
+ * Связка КП (patch v33): у второстепенного КП карточка помечает, к какому главному оно
+ * относится, — его сумма в расчётах не участвует; у главного — сколько второстепенных.
  */
 class ProposalCardWidget extends Widget
 {
@@ -124,6 +129,11 @@ class ProposalCardWidget extends Widget
             'specs_sum' => 6650000.0,
             'external' => 'AK528',
             'url' => null,
+            // связки нет — как у большинства КП
+            'link' => '',
+            'link_ref' => '',
+            'link_url' => null,
+            'link_count' => 0,
         ];
     }
 
@@ -135,7 +145,7 @@ class ProposalCardWidget extends Widget
      * @return array ['found', 'number', 'name', 'company', 'partner', 'manager', 'status',
      *     'status_label', 'status_color', 'status_icon', 'reason', 'comment', 'amount', 'symbol',
      *     'variants', 'iteration', 'iterations', 'date', 'days', 'deals', 'deals_count',
-     *     'specs', 'specs_count', 'specs_sum', 'external', 'url']
+     *     'specs', 'specs_count', 'specs_sum', 'external', 'url', 'link', 'link_ref', 'link_url', 'link_count']
      */
     public function data(array $settings, DesktopContext $ctx): array
     {
@@ -146,6 +156,7 @@ class ProposalCardWidget extends Widget
             'iteration' => 0, 'iterations' => 0, 'date' => null, 'days' => null,
             'deals' => [], 'deals_count' => 0, 'specs' => [], 'specs_count' => 0, 'specs_sum' => 0.0,
             'external' => '', 'url' => null,
+            'link' => '', 'link_ref' => '', 'link_url' => null, 'link_count' => 0,
         ];
 
         $group = static::group($settings);
@@ -193,7 +204,37 @@ class ProposalCardWidget extends Widget
             'url' => route('proposal.detail', [$proposal, $proposal->iteration]),
         ];
 
-        return array_merge($empty, $card, $this->deals($settings, $group), $this->specs($settings, $proposal));
+        return array_merge($empty, $card, static::link($proposal), $this->deals($settings, $group), $this->specs($settings, $proposal));
+    }
+
+    /**
+     * Связка КП (patch v33): второстепенное — ссылка на главное, главное — сколько второстепенных
+     *
+     * @param Proposal $proposal
+     * @return array ['link' => ''|'secondary'|'main', 'link_ref', 'link_url', 'link_count']
+     */
+    protected static function link(Proposal $proposal): array
+    {
+        $main = ProposalLinkService::mainOf($proposal);
+
+        if ($main !== null) {
+            return [
+                'link' => 'secondary',
+                'link_ref' => ProposalLink::refOf($main),
+                'link_url' => route('proposal.detail', [$main, $main->iteration]),
+                'link_count' => 0,
+            ];
+        }
+
+        $secondaries = ProposalLinkService::secondariesOf($proposal);
+        if ($secondaries->isEmpty()) return [];
+
+        return [
+            'link' => 'main',
+            'link_ref' => $secondaries->map(fn($row) => ProposalLink::refOf($row))->implode(', '),
+            'link_url' => null,
+            'link_count' => $secondaries->count(),
+        ];
     }
 
     /**

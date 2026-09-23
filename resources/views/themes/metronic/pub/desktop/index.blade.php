@@ -79,7 +79,7 @@
                     @foreach($systems as $item)
                         <li>
                             <a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('desktop.index', $item) }}">
-                                <i class="fa-light fa-shield-halved w-15px text-gray-500"></i>
+                                <i class="fa-light fa-shield w-15px text-gray-500"></i>
                                 <span class="flex-grow-1 text-truncate">{{ $item->name }}</span>
                                 @if((int) $item->id === (int) $desktop->id)
                                     <i class="fa-light fa-check text-primary"></i>
@@ -123,7 +123,7 @@
                 @if(auth()->user()->isPanelAdmin())
                     <li>
                         <button type="button" class="dropdown-item d-flex align-items-center gap-2" onclick="Desk.desks.saveAsSystem();">
-                            <i class="fa-light fa-shield-halved w-15px"></i>
+                            <i class="fa-light fa-shield w-15px"></i>
                             <span>Сохранить как системный пресет</span>
                         </button>
                     </li>
@@ -169,7 +169,7 @@
     <div id="desk_root" class="desk-root">
         @if($summary['is_system'])
             <div class="notice d-flex align-items-center gap-3 bg-light-warning rounded border-warning border border-dashed px-5 py-3 mb-5 desk-notice">
-                <i class="fa-light fa-shield-halved fs-2 text-warning"></i>
+                <i class="fa-light fa-shield fs-2 text-warning"></i>
                 <div class="flex-grow-1 fs-6 text-gray-800">
                     @if($summary['can_edit'])
                         <span class="fw-bold">Системный пресет:</span> изменения увидят все, у кого стол не менялся

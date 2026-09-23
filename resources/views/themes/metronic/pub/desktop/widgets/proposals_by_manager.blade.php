@@ -25,10 +25,20 @@
     $title = fn($row) => $row['name'] . ' · КП: ' . $row['count']
         . ' · в работе: ' . $row['in_work'] . ' · выиграно: ' . $row['won'] . ' · проиграно: ' . $row['lost']
         . ($money ? ' · сумма: ' . $widget::money($row['amount'], $data['symbol'], false) : '');
+
+    // подпись отбора — по настройкам: период (или все КП), статус, показатель
+    $status_label = (string) $settings['status'] !== 'all'
+        ? (\App\Modules\Pub\Desktop\Widgets\Proposal\ProposalsRecentWidget::statusOptions()[(string) $settings['status']] ?? null)
+        : null;
+    $caption = ($data['period_label'] ?: 'все КП')
+        . ($status_label ? ' · ' . mb_strtolower($status_label) : '') . ' · ' . $unit;
+    $caption_full = ($data['period_label'] ? 'Отправленные: ' . $data['period_label'] : 'Все КП')
+        . ($status_label ? ' · статус: ' . $status_label : '') . ' · ' . $unit;
 @endphp
 @if(empty($data['rows']))
     <div class="desk-empty">
-        <i class="fa-light fa-users-line"></i> КП за период нет
+        <i class="fa-light fa-users"></i>
+        КП{{ $status_label ? ' со статусом «' . $status_label . '»' : '' }}{{ $data['period_label'] ? ' за период' : '' }} нет
     </div>
 @elseif($line && $dw === 'xs')
     {{-- две колонки: лидер и его число --}}
@@ -39,22 +49,24 @@
 @elseif($line)
     {{-- низкий блок: лидеры в строку, не влезшие по ширине прячет подгон --}}
     <div class="desk-center">
-        <div class="desk-fit d-flex align-items-baseline gap-4 min-w-0" data-fit-axis="x">
-            @foreach($leaders as $row)
-                <a href="{{ $href($row) }}" class="desk-link d-flex align-items-baseline gap-2 mw-100 min-w-0 flex-shrink-0" title="{{ $title($row) }}">
-                    <span class="desk-nowrap min-w-0">{{ $row['name'] }}</span>
-                    <span class="fw-bold fs-5 text-nowrap flex-shrink-0">{{ $value($row) }}</span>
-                </a>
-            @endforeach
+        <div class="d-flex align-items-baseline gap-4 min-w-0">
+            <div class="desk-fit d-flex align-items-baseline gap-4 min-w-0 flex-grow-1" data-fit-axis="x">
+                @foreach($leaders as $row)
+                    <a href="{{ $href($row) }}" class="desk-link d-flex align-items-baseline gap-2 mw-100 min-w-0 flex-shrink-0" title="{{ $title($row) }}">
+                        <span class="desk-nowrap min-w-0">{{ $row['name'] }}</span>
+                        <span class="fw-bold fs-5 text-nowrap flex-shrink-0">{{ $value($row) }}</span>
+                    </a>
+                @endforeach
+            </div>
+            {{-- широкий низкий блок: итог справа, чтобы при двух-трёх менеджерах строка не пустовала --}}
+            <span class="desk-muted text-nowrap flex-shrink-0 desk-only-w-lg" title="{{ $caption_full }} · менеджеров: {{ $data['managers'] }}">всего КП: {{ $data['total'] }}</span>
         </div>
     </div>
 @else
     <div class="desk-stack">
-        @if($data['period_label'])
-            <div class="desk-label desk-nowrap desk-only-h-md" title="Отправленные: {{ $data['period_label'] }} · {{ $unit }}">
-                <span class="desk-only-w-md">отправленные: </span>{{ $data['period_label'] }} · {{ $unit }}
-            </div>
-        @endif
+        <div class="desk-label desk-nowrap desk-only-h-md" title="{{ $caption_full }}">
+            @if($data['period_label'])<span class="desk-only-w-md">отправленные: </span>@endif{{ $caption }}
+        </div>
 
         @if($table)
             <div class="desk-stack-grow desk-fit" data-fit-items="tbody > tr">

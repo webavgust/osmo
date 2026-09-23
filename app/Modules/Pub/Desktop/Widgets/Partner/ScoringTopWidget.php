@@ -23,7 +23,7 @@ class ScoringTopWidget extends Widget
         return 'Лучшие партнёры рейтинга: место, балл и оценка';
     }
 
-    public static function icon(): string { return 'fa-ranking-star'; }
+    public static function icon(): string { return 'fa-trophy'; }
 
     public static function sizes(): array { return ['8x8', '8x4', '16x8']; }
 

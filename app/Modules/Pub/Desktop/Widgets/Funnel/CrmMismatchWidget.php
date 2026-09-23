@@ -83,7 +83,8 @@ class CrmMismatchWidget extends Widget
         $rows = [];
         for ($i = 0; $i < 30; $i++) {
             $row = $base[$i % count($base)];
-            array_splice($row, 1, 0, ['2026-' . (120 - $i * 3)]);
+            // номер КП — как на портале: инициалы менеджера и номер («OD588»)
+            array_splice($row, 1, 0, [['OD', 'AA', 'PG', 'AK', 'DS'][$i % 5] . (620 - $i * 3)]);
             $rows[] = $row;
         }
         $rows = array_slice($rows, 0, max(1, (int) $settings['limit']));

@@ -19,6 +19,14 @@
                             <label class="form-check-label " for="warning2-light-check">Добавить в избранное</label>
                         </div>
                     </div>
+                    <div class="mb-1">
+                        <div class="form-check form-check-inline">
+                            {{-- снятый флажок не отправляется — ноль шлёт скрытое поле --}}
+                            <input type="hidden" name="done" value="0">
+                            <input class="form-check-input" type="checkbox" id="note_done_check" value="1" name="done" @if($note->done_at) checked @endif>
+                            <label class="form-check-label" for="note_done_check">Задача выполнена</label>
+                        </div>
+                    </div>
                 </div>
 
 
@@ -63,6 +71,8 @@
                 success: function (html) {
                     $(block_elem).unblock();
                     $(".note-has-grid").html(html);
+                    // рабочий стол: перерисовать виджет «Блокнот»
+                    $(document).trigger("desk:refresh", ["notebook"]);
                     sidebar_close();
                 },
                 error: function () {

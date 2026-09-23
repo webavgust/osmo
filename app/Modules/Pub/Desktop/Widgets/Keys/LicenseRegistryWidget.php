@@ -15,7 +15,8 @@ use App\Modules\Pub\Partner\Models\Partner;
  * Отбор — LicenseRegistryService::rows() с теми же параметрами, что у страницы
  * (горизонт, партнёр, только активные, скрыть истёкшие), цвет состояния — state().
  * Сумма строки — сумма спецификации, переведённая в валюту виджета по курсу на сегодня;
- * строки без курса показываются с прочерком и считаются в skipped.
+ * строки без курса показываются с прочерком и считаются в skipped, строки без суммы
+ * (ключ без спецификации) — тоже с прочерком, как на странице.
  */
 class LicenseRegistryWidget extends Widget
 {
@@ -36,7 +37,7 @@ class LicenseRegistryWidget extends Widget
 
     public static function description(): string
     {
-        return 'Действующие лицензии списком: компания, спецификация, окончание и остаток дней';
+        return 'Лицензии списком, как на странице реестра: компания, спецификация, окончание, остаток дней и сумма';
     }
 
     public static function icon(): string
@@ -111,8 +112,9 @@ class LicenseRegistryWidget extends Widget
     {
         $params = static::params($settings);
 
-        return route('analytics.licenses', array_filter([
-            'horizon' => $params['horizon'],
+        // горизонт передаётся всегда: без него страница берёт 90 дней и только активные ключи,
+        // а «все лицензии» — это пустой horizon
+        return route('analytics.licenses', ['horizon' => $params['horizon'] ?? ''] + array_filter([
             'partner' => $params['partner'],
             'only_active' => $params['only_active'] ? 1 : null,
             'hide_expired' => $params['hide_expired'] ? 1 : null,
@@ -204,7 +206,8 @@ class LicenseRegistryWidget extends Widget
             'from' => $row['active_from']?->format('d.m.Y'),
             'to' => $row['active_to']?->format('d.m.Y'),
             'days' => $row['days'],
-            'amount' => $converted[$index] ?? null,
+            // без спецификации или с нулевой суммой — прочерк, как на странице реестра
+            'amount' => $row['spec']['amount'] > 0 ? ($converted[$index] ?? null) : null,
             'state_label' => $row['state']['label'],
             'state_color' => $row['state']['color'],
         ])->values()->all();

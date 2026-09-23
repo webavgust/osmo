@@ -78,10 +78,10 @@
                     <thead>
                     <tr>
                         <th class="num desk-only-w-xl">ID</th>
-                        <th>Сделка</th>
-                        <th>Стадия</th>
+                        <th class="dr-name">Сделка</th>
+                        <th class="dr-stage">Стадия</th>
                         <th class="dr-wide">Партнёр</th>
-                        <th class="desk-only-w-xl">Менеджер</th>
+                        <th class="desk-only-w-xl dr-man">Менеджер</th>
                         <th>Дата</th>
                         <th class="num">Сумма</th>
                         <th>КП</th>
@@ -91,16 +91,16 @@
                     @foreach($list as $row)
                         <tr>
                             <td class="num desk-muted desk-only-w-xl">{{ $row['id'] }}</td>
-                            <td class="desk-cut">
+                            <td class="desk-cut dr-name">
                                 <a href="{{ $href($row['url']) }}" target="{{ $blank($row['url']) }}"
                                    class="desk-link d-block text-truncate fw-semibold text-hover-primary"
                                    title="{{ $hint($row) }}">{{ $row['title'] }}</a>
                             </td>
-                            <td class="desk-cut" title="{{ $row['stage'] }}">
+                            <td class="desk-cut dr-stage" title="{{ $row['stage'] }}">
                                 <span class="bullet bullet-dot bg-{{ $row['color'] }} w-8px h-8px me-1"></span>{{ $row['stage'] }}
                             </td>
                             <td class="desk-cut desk-muted dr-wide" title="{{ $row['company'] ?: 'партнёр не указан' }}">{{ $row['company'] ?: '—' }}</td>
-                            <td class="desk-cut desk-muted desk-only-w-xl" title="{{ $row['manager'] }}">{{ $row['manager'] ?: '—' }}</td>
+                            <td class="desk-cut desk-muted desk-only-w-xl dr-man" title="{{ $row['manager'] }}">{{ $row['manager'] ?: '—' }}</td>
                             <td class="desk-muted text-nowrap">{{ $row['date'] }}</td>
                             <td class="num fw-semibold text-nowrap" title="{{ $full($row) }}">{{ $money($row) }}</td>
                             <td>

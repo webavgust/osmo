@@ -36,9 +36,9 @@ class SystemHealthWidget extends Widget
     /** Подсистемы: код => [название, иконка] */
     public const PARTS = [
         'queue' => ['Очередь задач', 'fa-list-check'],
-        'bitrix' => ['Синхронизация Битрикс24', 'fa-arrows-rotate'],
+        'bitrix' => ['Битрикс24', 'fa-arrows-rotate'], // коротко: полное «Синхронизация Битрикс24» не влезало в плитку и строку
         'osmoview' => ['OSMOVIEW CP', 'fa-cloud-arrow-down'],
-        'rates' => ['Курсы валют', 'fa-money-bill-transfer'],
+        'rates' => ['Курсы валют', 'fa-coins'],
         'changes' => ['Журнал изменений', 'fa-timeline'],
         'errors' => ['Журнал ошибок', 'fa-triangle-exclamation'],
     ];
@@ -128,13 +128,19 @@ class SystemHealthWidget extends Widget
 
     public function sample(array $settings, DesktopContext $ctx): array
     {
+        // даты — от сегодняшнего дня, подписи — те же, что пишет data()
+        $bitrix = now()->subDays(2)->setTime(10, 41);
+        $osmoview = now()->subHours(3);
+        $changes = now()->subMinutes(40);
+        $errors = now()->subHours(1);
+
         $rows = [
             ['queue', 'ok', '0 в очереди', 'упавших нет', null],
-            ['bitrix', 'warn', '2 дня назад', 'таблиц: 4', '12.09.2026 10:41'],
-            ['osmoview', 'ok', '3 часа назад', 'выгружено КП: 27', '14.09.2026 09:20'],
-            ['rates', 'ok', '14.09.2026', 'валют: 5', '14.09.2026'],
-            ['changes', 'ok', '18 за сутки', 'всего 663', null],
-            ['errors', 'warn', '4,9 МБ', 'последняя запись сегодня', '14.09.2026 18:52'],
+            ['bitrix', 'warn', $bitrix->diffForHumans(), 'синхронизация, таблиц: 4', $bitrix->format('d.m.Y H:i')],
+            ['osmoview', 'ok', $osmoview->diffForHumans(), 'выгружено КП: 27', $osmoview->format('d.m.Y H:i')],
+            ['rates', 'ok', now()->format('d.m.Y'), 'валют в последний день: 5', now()->format('d.m.Y')],
+            ['changes', 'ok', '18 за сутки', 'всего записей: 663', $changes->format('d.m.Y H:i')],
+            ['errors', 'warn', '4,9 МБ', 'есть записи за сутки', $errors->format('d.m.Y H:i')],
         ];
 
         return static::summary(array_map(fn($row) => static::row($row[0], $row[1], $row[2], $row[3], $row[4]), $rows));
@@ -261,7 +267,7 @@ class SystemHealthWidget extends Widget
         $stale = $last->diffInHours(now()) >= self::SYNC_STALE_HOURS;
 
         return static::row('bitrix', $stale ? 'warn' : 'ok', $last->diffForHumans(),
-            'таблиц: ' . $times->count(), $last->format('d.m.Y H:i'));
+            'синхронизация, таблиц: ' . $times->count(), $last->format('d.m.Y H:i'));
     }
 
     /**
@@ -343,7 +349,7 @@ class SystemHealthWidget extends Widget
         $today = $changed->diffInHours(now()) < 24;
 
         return static::row('errors', $today ? 'warn' : 'ok', static::bytes($size),
-            $today ? 'записи за последние сутки есть' : 'последняя запись ' . $changed->format('d.m.Y'),
+            $today ? 'есть записи за сутки' : 'последняя запись ' . $changed->format('d.m.Y'),
             $changed->format('d.m.Y H:i'));
     }
 

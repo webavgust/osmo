@@ -101,9 +101,15 @@ class PartnersNewWidget extends Widget
         $count = count($rows);
         $partners_count = count(array_filter($rows, fn($row) => $row['type'] === 'partner'));
 
+        // подпись и даты — периода виджета, как у живых данных (раньше всегда «текущий квартал»)
+        $period = $ctx->periodFor($settings);
+
+        $prev = DesktopContext::previousPeriod($period['key'], true);
+
         return [
             'count' => $count, 'partners' => $partners_count, 'companies' => $count - $partners_count,
-            'previous' => max(0, $count - 4), 'label' => DesktopContext::PERIODS['quarter'], 'dates' => '01.07.2026 – 30.09.2026',
+            'previous' => max(0, $count - 4), 'prev_dates' => $prev['dates'], 'prev_until' => $prev['until'],
+            'label' => $period['label'], 'dates' => $period['dates'],
             'rows' => array_slice($rows, 0, (int) $settings['limit']),
         ];
     }
@@ -113,7 +119,7 @@ class PartnersNewWidget extends Widget
      *
      * @param array $settings
      * @param DesktopContext $ctx
-     * @return array ['count', 'partners', 'companies', 'previous', 'label', 'dates',
+     * @return array ['count', 'partners', 'companies', 'previous', 'prev_dates', 'prev_until', 'label', 'dates',
      *     'rows' => [['type', 'id', 'name', 'note', 'date', 'author', 'url']]]
      */
     public function data(array $settings, DesktopContext $ctx): array
@@ -127,10 +133,11 @@ class PartnersNewWidget extends Widget
             $this->fillAuthors($rows);
         }
 
+        // новые записи — факт: идущий период сравнивается с прошлым по то же число
         $previous = null;
+        $prev = DesktopContext::previousPeriod($period['key'], true);
         if (!empty($settings['compare'])) {
-            [$prev_from, $prev_to] = DesktopContext::previousRange($period['key']);
-            $previous = $this->count($prev_from, $prev_to, $type);
+            $previous = $this->count($prev['from'], $prev['to'], $type);
         }
 
         // разбивка считается запросами, а не по списку: список обрезан настройкой
@@ -142,6 +149,8 @@ class PartnersNewWidget extends Widget
             'partners' => $partners,
             'companies' => $companies,
             'previous' => $previous,
+            'prev_dates' => $prev['dates'],
+            'prev_until' => $prev['until'],
             'label' => $period['label'],
             'dates' => $period['dates'],
             'rows' => $rows,
@@ -207,7 +216,8 @@ class PartnersNewWidget extends Widget
 
         usort($rows, fn($a, $b) => $b['sort'] <=> $a['sort']);
 
-        return array_slice($rows, 0, $limit);
+        // ключ сортировки в кэш и во вьюху не нужен — строки как у sample()
+        return array_map(fn($row) => array_diff_key($row, ['sort' => true]), array_slice($rows, 0, $limit));
     }
 
     /**

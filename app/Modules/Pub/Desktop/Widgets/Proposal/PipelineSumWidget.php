@@ -24,6 +24,7 @@ use Illuminate\Support\Facades\DB;
  *
  * Дельта — к такому же прошлому отрезку (DesktopContext::previousRange()) и имеет
  * смысл только при отборе «отправленные в периоде»: иначе сравнивать не с чем.
+ * Отправка — факт, поэтому идущий период сравнивается с прошлым по то же число.
  */
 class PipelineSumWidget extends Widget
 {
@@ -80,6 +81,7 @@ class PipelineSumWidget extends Widget
     public function sample(array $settings, DesktopContext $ctx): array
     {
         $period = $ctx->periodFor($settings);
+        $prev = DesktopContext::previousPeriod($period['key'], true);
         $split = (string) ($settings['split'] ?? 'manager');
         $total = 53800000.0;
         $items = [];
@@ -118,6 +120,8 @@ class PipelineSumWidget extends Widget
             'total' => $total,
             'previous' => 47200000.0,
             'delta_percent' => 14.0,
+            'prev_dates' => $prev['dates'],
+            'prev_until' => $prev['until'],
             'count' => empty($rows) ? 22 : array_sum(array_column($rows, 'count')),
             'symbol' => '₽',
             'label' => $period['label'],
@@ -135,7 +139,7 @@ class PipelineSumWidget extends Widget
      *
      * @param array $settings
      * @param DesktopContext $ctx
-     * @return array ['total', 'previous', 'delta_percent', 'count', 'symbol', 'label', 'dates',
+     * @return array ['total', 'previous', 'delta_percent', 'prev_dates', 'prev_until', 'count', 'symbol', 'label', 'dates',
      *     'status_label', 'scope_label', 'split', 'rows' => [['key', 'label', 'color', 'amount', 'count', 'share']], 'skipped']
      */
     public function data(array $settings, DesktopContext $ctx): array
@@ -157,9 +161,10 @@ class PipelineSumWidget extends Widget
 
         // сравнивать есть с чем только при отборе по периоду
         $previous = null;
+        // отправка КП — факт: идущий период сравнивается с прошлым по то же число
+        $prev = DesktopContext::previousPeriod($period['key'], true);
         if ($by_period && !empty($settings['compare'])) {
-            [$prev_from, $prev_to] = DesktopContext::previousRange($period['key']);
-            $previous = static::sum(static::sentBetween($all, $prev_from, $prev_to), $variant, $currency);
+            $previous = static::sum(static::sentBetween($all, $prev['from'], $prev['to']), $variant, $currency);
         }
 
         $total = static::sum($rows, $variant, $currency);
@@ -168,6 +173,8 @@ class PipelineSumWidget extends Widget
             'total' => round($total, 2),
             'previous' => $previous === null ? null : round($previous, 2),
             'delta_percent' => $previous === null || $previous <= 0 ? null : round(($total - $previous) / $previous * 100, 1),
+            'prev_dates' => $previous === null ? null : $prev['dates'],
+            'prev_until' => $previous === null ? null : $prev['until'],
             'count' => $rows->count(),
             'symbol' => $ctx->symbol($currency),
             'label' => $by_period ? $period['label'] : 'все',

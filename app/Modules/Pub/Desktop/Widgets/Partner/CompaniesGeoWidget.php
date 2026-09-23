@@ -56,7 +56,7 @@ class CompaniesGeoWidget extends Widget
                 'options' => ['country' => 'Страна', 'sector' => 'Сектор', 'partner' => 'Партнёр']],
             ['key' => 'metric', 'type' => 'select', 'label' => 'Показатель', 'default' => 'count',
                 'options' => ['count' => 'Количество компаний', 'amount' => 'Сумма спецификаций'],
-                'hint' => 'Сумма считается по спецификациям компаний разреза'],
+                'hint' => 'Сумма считается по спецификациям компаний разреза, без отменённых'],
             ['key' => 'only_active', 'type' => 'bool', 'label' => 'Только активные компании', 'default' => false],
             ['key' => 'limit', 'type' => 'number', 'label' => 'Сколько строк', 'default' => 30, 'min' => 3, 'max' => 30,
                 'hint' => 'Сколько строк влезет в блок — решает высота; остальное попадает в «ещё»'],
@@ -192,6 +192,8 @@ class CompaniesGeoWidget extends Widget
 
     /**
      * Сумма спецификаций каждой компании в валюте виджета: company_id => сумма.
+     * Отменённые спецификации не суммируются (как в суммах договора); спецификация без своей
+     * компании относится к компании договора — как в карточке компании и платёжном календаре.
      * Курс — на дату спецификации; спецификации без курса считаются в $skipped
      *
      * @param string $currency
@@ -202,9 +204,11 @@ class CompaniesGeoWidget extends Widget
     {
         $out = [];
 
-        $specs = DB::table('contract_specifications')
-            ->whereNotNull('company_id')
-            ->get(['company_id', 'amount', 'currency_slug', 'date_create']);
+        $specs = DB::table('contract_specifications as s')
+            ->leftJoin('contracts as c', 'c.id', '=', 's.contract_id')
+            ->where(fn($query) => $query->whereNull('s.status')->orWhere('s.status', '!=', 'canceled'))
+            ->whereRaw('COALESCE(s.company_id, c.company_id) IS NOT NULL')
+            ->get([DB::raw('COALESCE(s.company_id, c.company_id) as company_id'), 's.amount', 's.currency_slug', 's.date_create']);
 
         foreach ($specs as $spec) {
             $date = $spec->date_create ? Carbon::parse($spec->date_create) : now();

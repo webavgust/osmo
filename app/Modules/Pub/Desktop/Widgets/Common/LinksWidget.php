@@ -192,9 +192,11 @@ class LinksWidget extends Widget
      */
     protected static function page(array $parsed): array
     {
-        // маршрут может требовать параметров — тогда адрес не собирается, и ссылка мёртвая
+        // страница — только GET-маршрут (POST-маршрут по ссылке ответит 405); маршрут может
+        // требовать параметров — тогда адрес не собирается, и ссылка мёртвая
+        $route = Route::getRoutes()->getByName($parsed['id']);
         try {
-            $url = Route::has($parsed['id']) ? route($parsed['id']) : null;
+            $url = $route && in_array('GET', $route->methods(), true) ? route($parsed['id']) : null;
         } catch (\Throwable $e) {
             $url = null;
         }
@@ -203,7 +205,7 @@ class LinksWidget extends Widget
             'found' => $url !== null,
             'type' => 'page',
             'title' => $parsed['caption'] !== '' ? $parsed['caption'] : $parsed['id'],
-            'second' => $url !== null ? 'Страница портала' : 'Маршрут не найден',
+            'second' => $url !== null ? 'Страница портала' : ($route ? 'Маршрут не открывается ссылкой' : 'Маршрут не найден'),
             'icon' => 'fa-browser',
             'url' => $url,
         ];

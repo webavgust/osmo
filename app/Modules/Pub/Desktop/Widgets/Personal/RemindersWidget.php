@@ -56,17 +56,17 @@ class RemindersWidget extends Widget
     }
 
     /**
-     * Строки: ['time', 'text', 'object', 'overdue', 'url']
+     * Строки: ['time', 'text', 'object', 'overdue', 'url', 'sidebar'] и счётчики для сводки
      *
      * @param array $settings
      * @param DesktopContext $ctx
-     * @return array ['rows' => [...]]
+     * @return array ['rows' => [...], 'overdue' => int|null (null — просроченные выключены), 'ahead' => int]
      */
     public function data(array $settings, DesktopContext $ctx): array
     {
         $user = $ctx->user;
         if (!$user) {
-            return ['rows' => []];
+            return ['rows' => [], 'overdue' => null, 'ahead' => 0];
         }
 
         $now = now();
@@ -97,7 +97,7 @@ class RemindersWidget extends Widget
 
         $rows = [];
         foreach ($times as $time) {
-            [$object, $url] = $this->object($time->reminder);
+            [$object, $url, $sidebar] = $this->object($time->reminder);
             $rows[] = [
                 // год — только у времени не из текущего года (старая просрочка)
                 'time' => $time->notify_at->format($time->notify_at->isCurrentYear() ? 'd.m H:i' : 'd.m.y H:i'),
@@ -105,10 +105,30 @@ class RemindersWidget extends Widget
                 'object' => $object,
                 'overdue' => $time->notify_at->lt($now),
                 'url' => $url ?? route('reminder.index'),
+                // объект, который открывается сайдбаром (событие календаря), — как на странице напоминаний
+                'sidebar' => $sidebar,
             ];
         }
 
-        return ['rows' => $rows];
+        // сводка — полные числа, а не строки списка (их режет «Сколько показывать»)
+        $count = fn($filter) => (int) ReminderTime::query()
+            ->join('reminders', 'reminders.id', '=', 'reminder_times.reminder_id')
+            ->whereNull('reminders.deleted_at')
+            ->where('reminder_times.notified', false)
+            ->where(fn($query) => $query->where('reminders.user_id', $user->id)->orWhere('reminders.created_by', $user->id))
+            ->where($filter)
+            // одна строка на группу и время — как в списке
+            ->selectRaw('count(distinct reminders.`group`, reminder_times.notify_at) as aggregate')
+            ->value('aggregate');
+
+        return [
+            'rows' => $rows,
+            'overdue' => $settings['overdue'] ? $count(fn($query) => $query->where('reminder_times.notify_at', '<', $now)) : null,
+            'ahead' => $count(function ($query) use ($now, $to) {
+                $query->where('reminder_times.notify_at', '>=', $now);
+                if ($to) $query->where('reminder_times.notify_at', '<=', $to);
+            }),
+        ];
     }
 
     /**
@@ -136,37 +156,46 @@ class RemindersWidget extends Widget
         for ($i = 0, $n = min(40, max(1, (int) $settings['limit'])); $i < $n; $i++) {
             [$text, $object] = $pool[$i % count($pool)];
             $at = now()->startOfHour()->addHours(($i - 2) * 13 + 1);
-            $rows[] = ['time' => $at->format('d.m H:i'), 'text' => $text, 'object' => $object, 'overdue' => $at->lt(now()), 'url' => null];
+            $rows[] = ['time' => $at->format('d.m H:i'), 'text' => $text, 'object' => $object, 'overdue' => $at->lt(now()), 'url' => null, 'sidebar' => null];
         }
 
-        return ['rows' => $rows];
+        $overdue = count(array_filter($rows, fn($row) => $row['overdue']));
+
+        return [
+            'rows' => $settings['overdue'] ? $rows : array_values(array_filter($rows, fn($row) => !$row['overdue'])),
+            'overdue' => $settings['overdue'] ? $overdue : null,
+            'ahead' => count($rows) - $overdue,
+        ];
     }
 
     /**
-     * Подпись и ссылка привязанного объекта; окно-сайдбар и неизвестный маршрут — без ссылки
+     * Подпись и ссылка привязанного объекта: страница объекта или его сайдбар
+     * (detail_route вида «sidebar:маршрут», как у события календаря); неизвестный маршрут — без ссылки
      *
      * @param Reminder $reminder
-     * @return array [подпись|null, url|null]
+     * @return array [подпись|null, url страницы|null, url сайдбара|null]
      */
     protected function object(Reminder $reminder): array
     {
         $class = (string) $reminder->target_type;
         if ($class === '' || !class_exists($class)) {
-            return [null, null];
+            return [null, null, null];
         }
 
         $object = $reminder->target;
         $label = (string) ($class::$module_name ?? '');
         if (!$object) {
-            return [$label !== '' ? $label : null, null];
+            return [$label !== '' ? $label : null, null, null];
         }
 
         $name = trim((string) ($object->title ?? $object->name ?? ''));
         $label = $name !== '' ? Str::limit(($label !== '' ? $label . ': ' : '') . $name, 40) : $label;
 
         $route = (string) ($class::$detail_route ?? '');
-        $url = $route !== '' && !Str::startsWith($route, 'sidebar:') && Route::has($route) ? route($route, $object) : null;
+        $sidebar = Str::startsWith($route, 'sidebar:');
+        if ($sidebar) $route = Str::after($route, 'sidebar:');
+        $link = $route !== '' && Route::has($route) ? route($route, $object) : null;
 
-        return [$label !== '' ? $label : null, $url];
+        return [$label !== '' ? $label : null, $sidebar ? null : $link, $sidebar ? $link : null];
     }
 }

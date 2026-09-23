@@ -119,7 +119,7 @@ class ProposalsAgingWidget extends Widget
      * @param array $settings
      * @param DesktopContext $ctx
      * @return array ['buckets' => [['label', 'count', 'share', 'color', 'hint']], 'total',
-     *     'oldest', 'average', 'no_date', 'manager_label']
+     *     'in_work', 'oldest', 'average', 'no_date', 'manager_label', 'url']
      */
     public function data(array $settings, DesktopContext $ctx): array
     {
@@ -212,7 +212,10 @@ class ProposalsAgingWidget extends Widget
 
         return [
             'buckets' => $buckets,
+            // total — КП в корзинах (от них доли), in_work — все КП в работе, с датой и без:
+            // число «в работе» совпадает со счётчиком «КП по статусам» и списком КП
             'total' => $total,
+            'in_work' => $total + $no_date,
             'oldest' => $oldest,
             'average' => $average,
             'no_date' => $no_date,

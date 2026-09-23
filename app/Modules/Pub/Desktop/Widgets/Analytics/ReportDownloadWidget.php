@@ -14,8 +14,9 @@ use Illuminate\Support\Facades\Storage;
  *
  * Список закрыт: только те выгрузки, которые в портале действительно есть и берутся
  * обычной ссылкой (ReportDownloadService, PhpSpreadsheet). Файл собирается на сервере
- * в storage/app/temp, поэтому виджет заодно показывает, когда такую выгрузку делали
- * в последний раз — по времени последнего файла с тем же именем.
+ * в temp/ диска по умолчанию (storage/app/public/temp), поэтому виджет заодно показывает,
+ * когда такую выгрузку делали в последний раз — по времени последнего файла с тем же именем.
+ * «Договоры и оплаты» выгружаются с отбором, сохранённым на странице отчёта.
  *
  * Имя файла у отчётов «Конфигурации. Сводная» и «Договоры и оплаты» одно и то же
  * (report-ГГГГММДД-ЧЧММСС.xlsx), так что дата у них общая — это дата последней
@@ -28,10 +29,10 @@ use Illuminate\Support\Facades\Storage;
  */
 class ReportDownloadWidget extends Widget
 {
-    /** Белый список выгрузок: ключ => [подпись, маршрут, начало имени файла, значок, страница отчёта] */
+    /** Белый список выгрузок: ключ => [подпись, маршрут, начало имени файла, значок, страница отчёта (маршрут или путь)] */
     public const REPORTS = [
         'specs' => ['Конфигурации, сводная', 'report-download.specs', 'report-', 'fa-table-cells-large', 'report.specs'],
-        'payments' => ['Договоры и оплаты', 'report-download.payments', 'report-', 'fa-money-check-dollar', null],
+        'payments' => ['Договоры и оплаты', 'report-download.payments', 'report-', 'fa-money-check-dollar', '/report/payments'],
         'industry' => ['Воронка: сферы и менеджеры', 'report-download.tbl_industry_name', 'tbl-industry-name-', 'fa-industry', 'dashboard.index'],
         'country_quarter' => ['Страны и статусы поквартально', 'report-download.tbl_country_status__quarter', 'tbl-country-status-quarter-', 'fa-earth-europe', 'dashboard.index'],
         'manager_quarter' => ['Менеджеры и статусы поквартально', 'report-download.tbl_manager_status__quarter', 'tbl-manager-status-quarter-', 'fa-user-tie', 'dashboard.index'],
@@ -74,9 +75,9 @@ class ReportDownloadWidget extends Widget
         return [
             ['key' => 'reports', 'type' => 'list', 'label' => 'Отчёты (до ' . self::MAX . ')', 'default' => ['specs'],
                 'options' => fn() => collect(static::reports())->map(fn($report) => $report[0])->all(),
-                'hint' => 'Первый — главная кнопка, остальные встают рядом в широком блоке'],
+                'hint' => 'Плитки идут в порядке списка, не влезшие в блок прячутся; заголовок ведёт на страницу первого'],
             ['key' => 'date', 'type' => 'bool', 'label' => 'Показывать дату последней выгрузки', 'default' => true,
-                'hint' => 'Время последнего файла выгрузки на сервере'],
+                'hint' => 'Время последнего файла выгрузки на сервере; у «Конфигураций» и «Договоров и оплат» имя файла одно — и дата общая'],
             ['key' => 'color', 'type' => 'select', 'label' => 'Цвет кнопки', 'default' => 'light-success',
                 'options' => ['light-success' => 'Светло-зелёная', 'success' => 'Зелёная', 'light-primary' => 'Светло-синяя',
                     'primary' => 'Синяя', 'light' => 'Серая', 'dark' => 'Тёмная']],
@@ -87,6 +88,9 @@ class ReportDownloadWidget extends Widget
     {
         $keys = static::chosen($settings);
         $page = static::REPORTS[reset($keys) ?: ''][4] ?? null;
+
+        // у страницы «Договоры и оплаты» нет именованного маршрута — там путь
+        if ($page && str_starts_with($page, '/')) return url($page);
 
         return $page && Route::has($page) ? route($page) : null;
     }
@@ -174,7 +178,7 @@ class ReportDownloadWidget extends Widget
     /**
      * Когда выгрузку делали в последний раз: время самого свежего файла с таким именем
      *
-     * @param string $prefix начало имени файла в storage/app/temp
+     * @param string $prefix начало имени файла в temp/ диска по умолчанию
      * @return string|null d.m.Y H:i, null — таких файлов ещё нет
      */
     protected static function lastExport(string $prefix): ?string

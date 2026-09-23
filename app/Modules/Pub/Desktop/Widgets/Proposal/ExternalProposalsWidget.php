@@ -95,7 +95,8 @@ class ExternalProposalsWidget extends Widget
                 'cameras' => $cameras,
                 'date' => now()->subDays($days)->format('d.m.Y'),
                 'days' => $days,
-                'fresh' => $days <= (int) $settings['fresh_days'],
+                // как в data(): «за N дней» вместе с сегодняшним
+                'fresh' => $days < (int) $settings['fresh_days'],
                 'currency' => $currency,
                 'license' => (string) ($license_info['label'] ?? ''),
                 'license_color' => (string) ($license_info['color'] ?? 'secondary'),
@@ -135,7 +136,9 @@ class ExternalProposalsWidget extends Widget
     public function data(array $settings, DesktopContext $ctx): array
     {
         $fresh_days = max(1, (int) $settings['fresh_days']);
-        $edge = now()->subDays($fresh_days)->startOfDay();
+        // «за N дней» — вместе с сегодняшним, как «Последние 30 дней» стола (DesktopContext::range());
+        // subDays(N) давал N + 1 календарный день
+        $edge = now()->subDays($fresh_days - 1)->startOfDay();
 
         $all = ExternalProposal::source();
 

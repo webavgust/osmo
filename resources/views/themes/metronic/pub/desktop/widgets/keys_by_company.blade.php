@@ -21,7 +21,7 @@
 @endphp
 @if(empty($list))
     <div class="desk-empty">
-        <i class="fa-light fa-building-lock"></i> Ключей нет
+        <i class="fa-light fa-building"></i> Ключей нет
     </div>
 @else
     <div class="desk-stack">

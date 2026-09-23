@@ -13,11 +13,12 @@
     $top = max(1, (int) ($data['rows'][0]['uses'] ?? 1));
     $total_title = number_format($data['total'], 0, ',', ' ') . ' '
         . \App\Facades\Tools::morph($data['total'], 'упоминание', 'упоминания', 'упоминаний') . ' '
-        . $data['source_label'] . ' ' . $data['scope_label'];
+        . $data['source_label'] . ' ' . $data['scope_label']
+        . ($data['dates'] ? ' (' . $data['dates'] . ')' : '');
 @endphp
 @if(empty($data['rows']))
     <div class="desk-empty">
-        <i class="fa-light fa-list-ol"></i> Сценарии {{ $data['scope_label'] }} не встречаются
+        <i class="fa-light fa-list-ol"></i> Сценариев {{ $data['source_label'] }} {{ $data['scope_label'] }} нет
     </div>
 @elseif($narrow)
     <div class="desk-fit an-column h-100">
