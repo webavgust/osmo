@@ -73,6 +73,8 @@ class CrmDealRepository
 
                     // страна получения средств — поле компании, а не сделки
                     case "country":
+                        // ускорение 23.09: компании и их поля одним запросом, а не по запросу на сделку
+                        $rows->load('crm_company.companyUf');
                         $rows = $rows->filter(function ($deal) use ($value, $country_field) {
                             $country = $deal->crm_company?->companyUf?->{$country_field} ?? "Неизвестно";
                             return in_array($country, $value, true);
@@ -132,6 +134,10 @@ class CrmDealRepository
 
         $deals = CrmDeal::all();
         $deals = DashboardDataService::scopeStatuses($deals);
+
+        // ускорение 23.09: проверки читают dealUf и customer каждой сделки — грузим
+        // связи двумя запросами на все сделки, а не двумя запросами на каждую
+        $deals->load(['dealUf', 'customer']);
 
         $deals = $deals->map(function ($deal) use (&$dealIssues) {
             $issues = collect();

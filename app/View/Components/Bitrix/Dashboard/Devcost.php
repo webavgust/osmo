@@ -12,7 +12,8 @@ class Devcost extends Component
 {
     public function render(): View
     {
-        $service = new DashboardDataService();
+        // ускорение 23.09: один сервис на все компоненты страницы, а не свой у каждого
+        $service = DashboardDataService::shared();
         $currency_target = Cache::get('dashboard_currency') ?? "RUB";
         $currency = CurrencyRepository::get($currency_target);
 

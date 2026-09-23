@@ -22,6 +22,42 @@ class DashboardDataService
     /** Валюта пересчёта сумм (patch v30) */
     private string $currency;
 
+    /** Курсы пересчёта: один запрос на экземпляр, а не на каждый пересчёт (ускорение 23.09) */
+    private ?array $convert_rates = null;
+
+    /** Результат industry_name(): на странице его берут два компонента (ускорение 23.09) */
+    private ?array $industry_name = null;
+
+    /** Общие экземпляры компонентов страницы воронки на время запроса (ускорение 23.09) */
+    private static ?\WeakMap $shared = null;
+
+    /**
+     * Общий экземпляр для компонентов страницы воронки (ускорение 23.09).
+     *
+     * Каждый из двенадцати компонентов страницы создавал свой сервис, и каждый
+     * заново выбирал и пересчитывал все сделки. Здесь экземпляр один на запрос
+     * при той же валюте и том же фильтре страницы — данные те же, что дал бы
+     * `new DashboardDataService()`. Привязка к объекту запроса — чтобы
+     * долгоживущий процесс не отдал данные прошлого запроса.
+     *
+     * @return static
+     */
+    public static function shared(): static
+    {
+        $request = request();
+        $key = (Cache::get('dashboard_currency') ?? "RUB") . '|' . json_encode(DashboardFilterService::getFilter());
+
+        self::$shared ??= new \WeakMap();
+        $list = self::$shared[$request] ?? [];
+
+        if (!isset($list[$key])) {
+            $list[$key] = new static();
+            self::$shared[$request] = $list;
+        }
+
+        return $list[$key];
+    }
+
     /**
      * @param string|null $currency валюта пересчёта; null — выбранная на странице воронки (кэш dashboard_currency) или RUB
      * @param bool $filtered false — сделки без фильтра страницы воронки (patch v30: рабочий стол)
@@ -39,8 +75,16 @@ class DashboardDataService
 
     public function filter($deals)
     {
-        return $deals->filter(function($deal) {
-            return $this->deals->contains($deal);
+        // ускорение 23.09: contains() на Eloquent-коллекции сравнивал модель с каждой
+        // сделкой среза через is() — квадрат по числу сделок. is() сверяет ключ, таблицу
+        // и соединение; таблица и соединение у всех CrmDeal одни, поэтому хватает ключа
+        $keys = [];
+        foreach ($this->deals as $item) {
+            $keys[$item->getKey()] = true;
+        }
+
+        return $deals->filter(function($deal) use ($keys) {
+            return isset($keys[$deal->getKey()]);
         });
     }
 
@@ -48,7 +92,9 @@ class DashboardDataService
     {
         // patch v30: валюта из свойства (задаётся в конструкторе)
         $currency_target = $this->currency;
-        $convert_rates = CurrencyService::getConvertRates();
+        // ускорение 23.09: курсы читаются один раз на экземпляр (раньше — на каждый вызов,
+        // до полусотни полных выборок currency_rates на одну страницу)
+        $convert_rates = $this->convert_rates ??= CurrencyService::getConvertRates();
 
         $deals->map(function ($item) use ($currency_target, $convert_rates) {
             $item->opportunity_RUB = $item->opportunity * $convert_rates[$item->currency_id][$currency_target];
@@ -175,6 +221,10 @@ class DashboardDataService
         $deals = $this->scopeStatuses($deals);
         $deals = $this->deals_convert_currency($deals);
 
+        // ускорение 23.09: связи одним запросом на все сделки, а не запросом на каждую;
+        // грузим тем же сделкам, что читает цикл ниже, — с ненулевой суммой
+        $deals->filter(fn($deal) => $deal->opportunity_RUB)->load(['crm_company.companyUf', 'dealUf']);
+
         $matrix = [];
         $columns = static::quarterColumns();
         foreach ($deals as $deal) {
@@ -208,6 +258,9 @@ class DashboardDataService
 
     public function industry_name()
     {
+        // ускорение 23.09: на странице таблицу и график строят по одному и тому же результату
+        if ($this->industry_name !== null) return $this->industry_name;
+
         $arIndustries = CrmCompany::pluck('industry_name')->unique()->sort();
 
         $arData = collect();
@@ -259,7 +312,7 @@ class DashboardDataService
         }
 
 
-        return ['matrix' => $matrix, 'rows' => $rows, 'columns' => $columns->values()];
+        return $this->industry_name = ['matrix' => $matrix, 'rows' => $rows, 'columns' => $columns->values()];
     }
 
     public function manager_status_quarter()
@@ -268,6 +321,10 @@ class DashboardDataService
         $deals = CrmDeal::all();
         $deals = $this->scopeStatuses($deals);
         $deals = $this->deals_convert_currency($deals);
+
+        // ускорение 23.09: dealUf одним запросом на все сделки, а не запросом на каждую;
+        // грузим тем же сделкам, что читает цикл ниже, — с ненулевой суммой
+        $deals->filter(fn($deal) => $deal->opportunity_RUB)->load('dealUf');
 
         $matrix = [];
         $columns = static::quarterColumns();
@@ -316,6 +373,10 @@ class DashboardDataService
         $deals = CrmDeal::all();
         $deals = $this->scopeStatuses($deals);
         $deals = $this->deals_convert_currency($deals);
+
+        // ускорение 23.09: связи одним запросом на все сделки, а не запросом на каждую;
+        // грузим тем же сделкам, что читает цикл ниже, — с ненулевой суммой
+        $deals->filter(fn($deal) => $deal->opportunity_RUB)->load(['crm_company.companyUf', 'dealUf']);
 
         $matrix = [];
 
@@ -380,6 +441,10 @@ class DashboardDataService
         $deals = CrmDeal::all();
         $deals = $this->scopeStatuses($deals);
         $deals = $this->deals_convert_currency($deals);
+
+        // ускорение 23.09: связи одним запросом на все сделки, а не запросом на каждую;
+        // грузим тем же сделкам, что читает цикл ниже, — с ненулевой суммой
+        $deals->filter(fn($deal) => $deal->opportunity_RUB)->load(['crm_company.companyUf', 'dealUf']);
 
         $matrix = [];
 
