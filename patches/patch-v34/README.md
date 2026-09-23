@@ -159,6 +159,11 @@
 5. `php artisan optimize:clear` и `php artisan cache:clear` — у виджетов поменялся формат данных.
 6. `php artisan queue:restart` — воркер `osmo_queue` подхватит новый код (supervisor поднимет его сам).
 7. У пользователей CSS/JS стола может закэшироваться (JS подключается без версии) — Ctrl+F5.
+8. **Всё, что рендерит страницы или пишет кэш (проверки через ядро, `desktop:presets`, tinker), —
+   от `www-root`** (`su www-root -s /bin/sh -c "php …"`), в конце `chown -R www-root storage
+   bootstrap/cache` и `find storage bootstrap/cache -user root | wc -l` = 0. При выкатке 23.09
+   проверочный скрипт от root создал шаблоны в `storage/framework/views` с владельцем root —
+   сайт отвечал 500 с 15:33 до 15:36 (28 запросов), исправлено сменой владельца.
 
 ## Чек-лист
 
