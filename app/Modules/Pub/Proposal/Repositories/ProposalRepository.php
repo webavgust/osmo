@@ -797,13 +797,18 @@ class ProposalRepository
 
         # Filter
         $builder = $filterService->filter($builder);
+
+        // patch v33: второстепенные КП отдельными строками не выводятся — они ветками под главным
+        // (ProposalService::tableDefault); поиск связок идёт по выборке с ними
+        $builder_linked = clone $builder;
+        $builder->counted();
         $count = $count_filtered = $builder->count();
 
         # Search
         if (!empty($params['search'])) {
-            // patch v33: вместе с найденными — их связки «главное / второстепенное» целиком
-            // (по номеру главного видны и второстепенные, и наоборот); фильтры списка действуют
-            $linked = ProposalLinkService::clusterGroups((clone $builder)->search($params['search'])->pluck('proposals.group'));
+            // patch v33: вместе с найденными — их связки целиком: по номеру второстепенного
+            // находится главное (строкой, второстепенное — веткой под ним); фильтры списка действуют
+            $linked = ProposalLinkService::clusterGroups($builder_linked->search($params['search'])->pluck('proposals.group'));
 
             $builder->where(function ($builder) use ($params, $linked) {
                 $builder->search($params['search']);

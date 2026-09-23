@@ -27,6 +27,18 @@
         .table_data td { padding: 0!important; }
 
         th[data-field='date'] .th-inner { padding-left: 0!important }
+
+        /* patch v33: дерево «главное / второстепенное» — ветки строками сразу под главным КП */
+        tr.osmo-tree-parent > td { border-bottom-width: 0 !important; }
+        tr.osmo-tree-child:not(.osmo-tree-last) > td { border-bottom-width: 0 !important; }
+        tr.osmo-tree-child > td { background: var(--bs-gray-100); }
+        tr.osmo-tree-child > td > * { opacity: .6; }
+        .osmo-tree-branch {
+            flex: 0 0 auto; width: 14px; height: 10px; margin: 0 6px 0 4px;
+            border-left: 1px solid var(--bs-gray-500); border-bottom: 1px solid var(--bs-gray-500);
+            border-bottom-left-radius: 3px;
+        }
+        .osmo-tree-indent { padding-left: 24px; }
     </style>
 @endsection
 
@@ -525,9 +537,13 @@
 
         function rowStyle(row, index) {
             classes = [];
-            // patch v33: второстепенное КП — приглушённая строка (только просмотр)
-            if(row.is_secondary)
-                classes.push('opacity-50');
+            // patch v33: дерево — главное КП и его второстепенные ветками под ним (приглушены, только просмотр)
+            if(row.has_children)
+                classes.push('osmo-tree-parent');
+            if(row.is_child)
+                classes.push('osmo-tree-child');
+            if(row.is_last_child)
+                classes.push('osmo-tree-last');
             return Object.assign({}, {}, {
                 classes: classes.join(' ')
             });

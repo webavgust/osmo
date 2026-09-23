@@ -1,5 +1,10 @@
+{{-- patch v33: tree = 'child' — ветка дерева: второстепенное КП строкой под своим главным --}}
+@php($is_branch = ($tree ?? null) === 'child')
 <div class="cell">
     <div class="fw-bolder fs-7 align-center d-flex justify-content-start">
+        @if($is_branch)
+            <span class="osmo-tree-branch"></span>
+        @endif
         <span>
             @if(!empty($row->external))
                 {{-- перенесённое КП: только облачко справа от номера, подробности — в попапе --}}
@@ -26,13 +31,19 @@
             </x-ui.badge.light_rounded>
         @endif
     </div>
-    {{-- patch v33: второстепенное КП — плашка со ссылкой на главное --}}
+    {{-- patch v33: второстепенное КП — плашка; под главным (ветка) номер главного не повторяется --}}
     @if(!empty($link_main))
-        <a href="{{ route('proposal.detail', [$link_main, $link_main->iteration]) }}"
-           title="Только просмотр, в расчётах не участвует">
-            <x-ui.badge.light type="warning" class="fs-8">
-                второстепенное → {{ \App\Modules\Pub\Proposal\Models\ProposalLink::refOf($link_main) }}
-            </x-ui.badge.light>
-        </a>
+        <div @class(['osmo-tree-indent' => $is_branch])>
+            <a href="{{ route('proposal.detail', [$link_main, $link_main->iteration]) }}"
+               title="Второстепенное к {{ \App\Modules\Pub\Proposal\Models\ProposalLink::refOf($link_main) }}: только просмотр, в расчётах не участвует">
+                <x-ui.badge.light type="warning" class="fs-8">
+                    @if($is_branch)
+                        второстепенное
+                    @else
+                        второстепенное → {{ \App\Modules\Pub\Proposal\Models\ProposalLink::refOf($link_main) }}
+                    @endif
+                </x-ui.badge.light>
+            </a>
+        </div>
     @endif
 </div>

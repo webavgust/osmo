@@ -149,39 +149,77 @@ class ProposalService
             $params['manager'] = $manager->id;
         $data = $this->repo->getTable($params);
 
-        // patch v33: связки «главное / второстепенное» — только для строк страницы,
-        // номера связанных КП одним запросом (без N+1)
+        // patch v33: второстепенные КП — ветками дерева под своим главным. В выборке списка их нет
+        // (getTable() берёт только counted()), здесь они догружаются одним запросом на страницу
+        // и встают сразу после строки главного — сортировка и страницы их не разрывают
         $rows = $data['rows'] instanceof EloquentCollection ? $data['rows'] : new EloquentCollection($data['rows']);
-        $rows->load(['main_link', 'secondary_links']);
-        $linked = self::linkedLast($rows);
+        $rows->load('secondary_links');
+
+        $secondary_groups = $rows->flatMap->secondary_links->pluck('secondary_group')->unique()->values();
+        $children = $secondary_groups->isEmpty() ? collect() : Proposal::query()
+            ->whereIn('proposals.group', $secondary_groups->all())
+            ->latestIteration()
+            ->with(['company', 'partner', 'variants', 'external'])
+            ->withCount('variants')
+            ->get()
+            ->keyBy('group');
 
         $return = collect();
-        foreach($data['rows'] as $row) {
-            $return[] = [
-                // patch v33: второстепенное — строка приглушается в JS (rowStyle)
-                'is_secondary' => (bool) $row->is_secondary,
-                'number' => view('components.proposal.table.main.number', ['row' => $row])->render(),
-                'partner' => view('components.proposal.table.main.partner', ['row' => $row])->render(),
-                'company' => view('components.proposal.table.main.company', ['row' => $row])->render(),
-                'name' => view('components.proposal.table.main.name', [
-                    'row' => $row,
-                    // patch v33: главное (для второстепенного) и второстепенные (для главного) — последние редакции
-                    'link_main' => $row->main_link ? $linked->get($row->main_link->main_group) : null,
-                    'link_secondaries' => $row->secondary_links->map(fn($link) => $linked->get($link->secondary_group))->filter()->values(),
-                ])->render(),
-                'cost' => view('components.proposal.table.main.cost', ['row' => $row])->render(),
-                'date' => view('components.proposal.table.main.date', ['row' => $row])->render(),
-                'status' => view('components.proposal.table.main.status', ['row' => $row])->render(),
-                'deal' => view('components.proposal.table.main.deal', ['row' => $row])->render(),
-                'updated_at' => view('components.proposal.table.main.updated_at', ['row' => $row])->render(),
-                'summary' => view('components.proposal.table.main.summary', ['row' => $row])->render(),
-                'actions' => view('components.proposal.table.main.actions', ['row' => $row])->render(),
-            ];
-        };
+        foreach($rows as $row) {
+            $branches = $row->secondary_links->map(fn($link) => $children->get($link->secondary_group))->filter()->values();
+
+            $return[] = $this->tableRow($row, [
+                'has_children' => $branches->isNotEmpty(),
+                'name' => ['link_secondaries' => $branches],
+            ]);
+
+            foreach ($branches as $i => $child) {
+                $return[] = $this->tableRow($child, [
+                    'is_child' => true,
+                    'is_last_child' => $i === $branches->count() - 1,
+                    'parent' => $row->group,
+                    'name' => ['tree' => 'child', 'link_main' => $row],
+                ]);
+            }
+        }
 
         $data['rows'] = $return;
 
         return $data;
+    }
+
+    /**
+     * Строка списка КП: ячейки из компонентов components.proposal.table.main.* (patch v33 — вынесено
+     * из tableDefault(), чтобы главное и его ветки-второстепенные рисовались одинаково)
+     *
+     * @param Proposal $row КП (последняя редакция)
+     * @param array $tree признаки дерева: has_children, is_child, is_last_child, parent;
+     *                    'name' — доп. параметры ячейки «Название» (tree, link_main, link_secondaries)
+     * @return array
+     */
+    protected function tableRow(Proposal $row, array $tree = []): array
+    {
+        $name = $tree['name'] ?? [];
+        unset($tree['name']);
+
+        return array_merge([
+            'has_children' => false,
+            'is_child' => false,
+            'is_last_child' => false,
+            'parent' => null,
+        ], $tree, [
+            'number' => view('components.proposal.table.main.number', ['row' => $row])->render(),
+            'partner' => view('components.proposal.table.main.partner', ['row' => $row])->render(),
+            'company' => view('components.proposal.table.main.company', ['row' => $row])->render(),
+            'name' => view('components.proposal.table.main.name', array_merge(['row' => $row], $name))->render(),
+            'cost' => view('components.proposal.table.main.cost', ['row' => $row])->render(),
+            'date' => view('components.proposal.table.main.date', ['row' => $row])->render(),
+            'status' => view('components.proposal.table.main.status', ['row' => $row])->render(),
+            'deal' => view('components.proposal.table.main.deal', ['row' => $row])->render(),
+            'updated_at' => view('components.proposal.table.main.updated_at', ['row' => $row])->render(),
+            'summary' => view('components.proposal.table.main.summary', ['row' => $row])->render(),
+            'actions' => view('components.proposal.table.main.actions', ['row' => $row])->render(),
+        ]);
     }
 
     /**
