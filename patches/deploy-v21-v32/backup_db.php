@@ -7,7 +7,8 @@
  * INSERT пачками, потоком в gzip, в согласованном снимке транзакции (REPEATABLE READ). Пароль
  * нигде не используется напрямую и не печатается. Запускать из корня сайта (или по SSH в stdin):
  *
- *   php patches/deploy-v21-v32/backup_db.php [каталог]   — по умолчанию /root/backup
+ *   php patches/deploy-v21-v32/backup_db.php [каталог] [подключение]   — по умолчанию /root/backup и основная база;
+ *   подключение bitrix — зеркало Битрикса (avgbitrix)
  *
  * Восстановление: gunzip < файл.sql.gz | mysql <база>  (или через тот же PDO).
  */
@@ -18,7 +19,8 @@ $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
 use Illuminate\Support\Facades\DB;
 
-$database = (string) config('database.connections.' . config('database.default') . '.database');
+$connection = $argv[2] ?? config('database.default');
+$database = (string) config('database.connections.' . $connection . '.database');
 $dir = rtrim($argv[1] ?? '/root/backup', '/');
 
 if (!is_dir($dir) && !mkdir($dir, 0700, true)) {
@@ -31,7 +33,7 @@ if (!$gz) {
     exit("Не удалось открыть {$file} на запись\n");
 }
 
-$pdo = DB::connection()->getPdo();
+$pdo = DB::connection($connection)->getPdo();
 $pdo->exec('SET NAMES utf8mb4');
 $pdo->exec('SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ');
 $pdo->exec('START TRANSACTION WITH CONSISTENT SNAPSHOT');
