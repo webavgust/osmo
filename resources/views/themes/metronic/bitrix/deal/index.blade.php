@@ -120,15 +120,39 @@
     @endphp
 
     <script>
-        // Поиск из шапки карточки — серверный, как был в панели таблицы:
-        // Enter уводит на страницу с q в адресе, отбор и вкладка сохраняются
+        // Поиск из шапки карточки — серверный, как был в панели таблицы: страница
+        // открывается с q в адресе, отбор и вкладка сохраняются. Запускается сам
+        // через паузу после ввода (как в списке КП), по Enter — сразу, крестик сбрасывает
         $(document).ready(function () {
-            $('#deal_search').on('keydown', function (event) {
-                if (event.which !== 13) return;
+            var $search = $('#deal_search');
+            var applied = $.trim($search.val());
+            var timer;
 
+            function deal_search_go() {
+                clearTimeout(timer);
+                var value = $.trim($search.val());
+                if (value === applied) return;
+                location.href = @json($deal_search_base) + encodeURIComponent(value);
+            }
+
+            $search.on('keydown', function (event) {
+                if (event.which !== 13) return;
                 event.preventDefault();
-                location.href = @json($deal_search_base) + encodeURIComponent($.trim($(this).val()));
+                deal_search_go();
             });
+            $search.on('input', function () {
+                clearTimeout(timer);
+                timer = setTimeout(deal_search_go, 700);
+            });
+            // крестик в поле type=search
+            $search.on('search', deal_search_go);
+
+            // после перезагрузки с поиском — курсор снова в поле, в конце текста
+            if (applied !== '') {
+                var field = $search.get(0);
+                field.focus();
+                field.setSelectionRange(field.value.length, field.value.length);
+            }
         });
     </script>
 @endsection
