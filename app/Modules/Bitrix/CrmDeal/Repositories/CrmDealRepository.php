@@ -109,7 +109,9 @@ class CrmDealRepository
         $country_field = static::ufCountry();
 
         return [
-            'assigned_by' => $deals->pluck('assigned_by')->filter()->unique()->sort()->values(),
+            // patch v40: менеджеров, исключённых из воронки, в её фильтре нет
+            'assigned_by' => $deals->pluck('assigned_by')->filter()->unique()
+                ->reject(fn($item) => DashboardDataService::isExcluded($item))->sort()->values(),
             'stage_name' => $deals->pluck('stage_name')->filter()->unique()->sort()->values(),
 
             'probability' => $deals->pluck('probability')
@@ -128,11 +130,21 @@ class CrmDealRepository
         ];
     }
 
-    public static function getDealWithIssues()
+    /**
+     * Сделки активных стадий, не прошедшие проверки CrmDealIssues
+     *
+     * @param bool $exclude без сделок DashboardDataService::EXCLUDED_MANAGERS — для страницы воронки (patch v40);
+     *                      рабочий стол вызывает без него и видит всех
+     * @return \Illuminate\Support\Collection
+     */
+    public static function getDealWithIssues(bool $exclude = false)
     {
         $dealIssues = CrmDealIssues::cases();
 
         $deals = CrmDeal::all();
+        // patch v40: для страницы воронки — без сделок DashboardDataService::EXCLUDED_MANAGERS
+        if ($exclude)
+            $deals = $deals->reject(fn($deal) => DashboardDataService::isExcluded($deal->assigned_by));
         $deals = DashboardDataService::scopeStatuses($deals);
 
         // ускорение 23.09: проверки читают dealUf и customer каждой сделки — грузим

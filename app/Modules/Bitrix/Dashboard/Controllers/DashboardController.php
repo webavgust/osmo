@@ -29,7 +29,7 @@ class DashboardController extends Controller
         $currency_slug = Cache::get('dashboard_currency') ?? "RUB";
         $currency = CurrencyRepository::get($currency_slug);
         $filter = DashboardFilterService::getFilter();
-        $deals_issues = CrmDealRepository::getDealWithIssues();
+        $deals_issues = CrmDealRepository::getDealWithIssues(true); // patch v40
 
         return view('bitrix.dashboard.index', [
             'breadcrumbs' => $this->breadcrumb,

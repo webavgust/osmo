@@ -17,7 +17,19 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardDataService
 {
+    /**
+     * Менеджеры, чьи сделки не входят в воронку продаж (patch v40, решение владельца 25.09.2026).
+     * Ключ — id пользователя Битрикс24 из assigned_by («[191] Александр Суханов»): имя может смениться
+     */
+    public const EXCLUDED_MANAGERS = [
+        191 => 'Александр Суханов',
+        195 => 'Wei Wei',
+    ];
+
     private $deals;
+
+    /** Убирать ли сделки EXCLUDED_MANAGERS (patch v40): только для страницы воронки и её выгрузок */
+    private bool $exclude;
 
     /** Валюта пересчёта сумм (patch v30) */
     private string $currency;
@@ -61,16 +73,45 @@ class DashboardDataService
     /**
      * @param string|null $currency валюта пересчёта; null — выбранная на странице воронки (кэш dashboard_currency) или RUB
      * @param bool $filtered false — сделки без фильтра страницы воронки (patch v30: рабочий стол)
+     * @param bool|null $exclude убирать сделки EXCLUDED_MANAGERS; null — как $filtered: страница воронки
+     *                           убирает, рабочий стол (без фильтра страницы) — нет (patch v40)
      */
-    public function __construct(?string $currency = null, bool $filtered = true)
+    public function __construct(?string $currency = null, bool $filtered = true, ?bool $exclude = null)
     {
+        $this->exclude = $exclude ?? $filtered;
+
         // patch v30: валюта и фильтр задаются снаружи, по умолчанию — как раньше
         $this->currency = $currency ?? Cache::get('dashboard_currency') ?? "RUB";
 
         // получим срез конвертированных данных
-        $deals = CrmDealRepository::getFiltered($filtered);
+        $deals = $this->withoutExcluded(CrmDealRepository::getFiltered($filtered));
 
         $this->deals = $this->deals_convert_currency($deals);
+    }
+
+    /**
+     * Сделка менеджера из EXCLUDED_MANAGERS? (patch v40)
+     *
+     * @param string|null $assigned_by поле сделки вида «[191] Александр Суханов»
+     * @return bool
+     */
+    public static function isExcluded(?string $assigned_by): bool
+    {
+        return preg_match('/^\[(\d+)\]/', (string) $assigned_by, $m) === 1
+            && isset(static::EXCLUDED_MANAGERS[(int) $m[1]]);
+    }
+
+    /**
+     * Убрать сделки EXCLUDED_MANAGERS, если этот экземпляр — для страницы воронки (patch v40)
+     *
+     * @param Collection $deals
+     * @return Collection
+     */
+    public function withoutExcluded($deals)
+    {
+        if (!$this->exclude) return $deals;
+
+        return $deals->reject(fn($deal) => static::isExcluded($deal->assigned_by));
     }
 
     public function filter($deals)
@@ -217,7 +258,7 @@ class DashboardDataService
     public function country_status_quarter()
     {
         // получим все deals
-        $deals = CrmDeal::all();
+        $deals = $this->withoutExcluded(CrmDeal::all());
         $deals = $this->scopeStatuses($deals);
         $deals = $this->deals_convert_currency($deals);
 
@@ -318,7 +359,7 @@ class DashboardDataService
     public function manager_status_quarter()
     {
         // получим все deals
-        $deals = CrmDeal::all();
+        $deals = $this->withoutExcluded(CrmDeal::all());
         $deals = $this->scopeStatuses($deals);
         $deals = $this->deals_convert_currency($deals);
 
@@ -370,7 +411,7 @@ class DashboardDataService
     public function country_status_month(int $months = 6)
     {
         // получим все deals
-        $deals = CrmDeal::all();
+        $deals = $this->withoutExcluded(CrmDeal::all());
         $deals = $this->scopeStatuses($deals);
         $deals = $this->deals_convert_currency($deals);
 
@@ -438,7 +479,7 @@ class DashboardDataService
     public function status_country_month()
     {
         // получим все deals
-        $deals = CrmDeal::all();
+        $deals = $this->withoutExcluded(CrmDeal::all());
         $deals = $this->scopeStatuses($deals);
         $deals = $this->deals_convert_currency($deals);
 
@@ -577,7 +618,7 @@ class DashboardDataService
     public function anna_text()
     {
         // получим все deals
-        $deals = CrmDeal::all();
+        $deals = $this->withoutExcluded(CrmDeal::all());
         $deals = $this->scopeStatuses($deals);
         $deals = $this->deals_convert_currency($deals);
 

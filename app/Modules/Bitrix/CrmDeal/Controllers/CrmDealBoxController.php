@@ -23,7 +23,8 @@ class CrmDealBoxController extends Controller
 {
     public function issues()
     {
-        $deals = CrmDealRepository::getDealWithIssues();
+        // patch v40: попап открывается только со страницы воронки — без исключённых менеджеров
+        $deals = CrmDealRepository::getDealWithIssues(true);
         if($deals->isEmpty()) abort(404);
 
         return View::make('bitrix.deals.box.issues_sort', [

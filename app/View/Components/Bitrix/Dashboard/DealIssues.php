@@ -11,7 +11,7 @@ class DealIssues extends Component
     public function render(): View
     {
 
-        $deals_issues = CrmDealRepository::getDealWithIssues();
+        $deals_issues = CrmDealRepository::getDealWithIssues(true); // patch v40
 
         return view('components.bitrix.dashboard.deal_issues', [
             'deals' => $deals_issues,

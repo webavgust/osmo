@@ -120,7 +120,8 @@ class FunnelTableWidget extends Widget
         $currency = $ctx->currencyFor($settings);
         $metric = array_key_exists($settings['metric'], static::METHODS) ? $settings['metric'] : 'sales';
 
-        $result = (new DashboardDataService($currency, (bool) $settings['filtered']))->{static::METHODS[$metric]}();
+        // patch v40: исключение менеджеров — только на странице воронки, стол считает всех
+        $result = (new DashboardDataService($currency, (bool) $settings['filtered'], false))->{static::METHODS[$metric]}();
 
         // servicesRaw кладёт пересчитанное значение сразу в service_raw, остальные — в {field}_RUB
         $property = $metric === 'services_raw' ? 'service_raw' : $result['field'] . '_RUB';
