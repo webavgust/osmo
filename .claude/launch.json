@@ -3,9 +3,10 @@
   "configurations": [
     {
       "name": "osmo-local",
-      "runtimeExecutable": "W:\\Soft\\php\\8.2.5\\php.exe",
-      "runtimeArgs": ["artisan", "serve", "--host=127.0.0.1", "--port=8123"],
-      "port": 8123
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "W:\\Soft\\php\\8.2.5\\php.exe artisan serve --host=127.0.0.1 --port=%PORT%"],
+      "port": 8123,
+      "autoPort": true
     },
     {
       "name": "osmo-wiki",
