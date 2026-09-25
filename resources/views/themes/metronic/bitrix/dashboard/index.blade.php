@@ -61,10 +61,11 @@
                     </div>
                     <div class="card-body p-0">
                         <div class="tab-content">
-                            <div class="tab-pane active" id="quarter_country_status" role="tabpanel">
+                            {{-- patch v35: на 1440 таблицы шире карточки — прокрутка внутри вкладки --}}
+                            <div class="tab-pane active overflow-auto" id="quarter_country_status" role="tabpanel">
                                 <x-bitrix.dashboard.tbl_country_status__quarter/>
                             </div>
-                            <div class="tab-pane" id="quarter_status_country" role="tabpanel">
+                            <div class="tab-pane overflow-auto" id="quarter_status_country" role="tabpanel">
                                 <x-bitrix.dashboard.tbl_manager_status__quarter/>
                             </div>
                         </div>
@@ -95,10 +96,10 @@
                     </div>
                     <div class="card-body p-0">
                         <div class="tab-content">
-                            <div class="tab-pane active" id="month_country_status" role="tabpanel">
+                            <div class="tab-pane active overflow-auto" id="month_country_status" role="tabpanel">
                                 <x-bitrix.dashboard.tbl_country_status__month/>
                             </div>
-                            <div class="tab-pane" id="month_status_country" role="tabpanel">
+                            <div class="tab-pane overflow-auto" id="month_status_country" role="tabpanel">
                                 <x-bitrix.dashboard.tbl_status_country__month/>
                             </div>
                         </div>

@@ -35,7 +35,7 @@
 
     <div class="container-fluid">
         <div class="row">
-            <div class="col-4">
+            <div class="col-12 col-lg-4">{{-- patch v35: на телефоне — одна колонка --}}
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h3 class="m-0">Общая информация</h3>
@@ -107,6 +107,7 @@
                     </div>
 
                     @if($company->projects->isNotEmpty())
+                        <div class="table-responsive">{{-- на 1440 таблица шире карточки --}}
                         <table class="table table-bordered mb-0">
                             <tr>
                                 <th>Номер / Коммент</th>
@@ -166,6 +167,7 @@
                                 @endforelse
                             @endforeach
                         </table>
+                        </div>
                     @else
                         <div class="p-2">
                             Ни одного проекта пока не создано!
@@ -351,7 +353,7 @@
                 </div>
 
             </div>
-            <div class="col-8">
+            <div class="col-12 col-lg-8">
 
                 @if($company->specifications->isNotEmpty())
                     @php
@@ -382,6 +384,7 @@
                             </a>
                         </div>
 
+                        <div class="table-responsive">{{-- на 1440 таблица шире карточки --}}
                         <table class="table table-bordered mb-0">
                             <tr>
                                 <th>Тип</th>
@@ -577,6 +580,7 @@
                                 @endforeach
                             @endforeach
                         </table>
+                        </div>
                     </div>
                 @endif
 

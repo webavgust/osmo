@@ -27,7 +27,8 @@ class ReminderController extends Controller
     {
         $reminders = $this->repo->getReminders();
         return view('pub.reminder.index', [
-            'reminders' => $reminders
+            'reminders' => $reminders,
+            'breadcrumbs' => $this->breadcrumb, // без них у страницы не было заголовка
         ]);
     }
 

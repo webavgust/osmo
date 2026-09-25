@@ -95,7 +95,9 @@
     @endphp
     <div class="container-fluid" id="proposal" currency="RUB">
         <div class="row">
-            <div class="col-1 d-flex flex-column align-items-stretch mt-3">
+            {{-- patch v35: колонка вариантов — 150px от md, на телефоне над КП (col-1 на 1920 давал ≈ 130px,
+                 на 1440 сжимался до 87px, и суммы вариантов обрезались до «5 10…») --}}
+            <div class="col-12 col-md-auto w-md-150px d-flex flex-column align-items-stretch mt-3">
                 <h6>Варианты КП</h6>
                 @foreach($iterations as $iteration)
                     <div class="mb-2 d-flex flex-column align-items-end">
@@ -180,7 +182,7 @@
                     </div>
                 @endforeach
             </div>
-            <div class="col-11">
+            <div class="col-12 col-md" style="min-width: 0">
                     @if($proposal->variants->isEmpty())
                         <x-ui.notification.light type="danger" class="bg-white">
                             Тут почему-то нет вариантов расчёта

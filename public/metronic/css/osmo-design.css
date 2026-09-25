@@ -1,0 +1,229 @@
+/*
+ | Слой правок дизайна (patch v35): читаемость, тёмная тема, цифры, фокус.
+ |
+ | Подключается последним из общих стилей темы (layout_short), до стилей
+ | страницы. Ничего не сдвигает: меняет только цвет текста, начертание цифр
+ | и обводку фокуса (прокрутка широких таблиц — в шаблонах). Заливки кнопок и светлые
+ | подложки плашек не меняются — узнаваемость темы остаётся прежней.
+ |
+ | Сетку виджетов рабочего стола не трогает: табличные цифры включены
+ | везде, кроме #desk_grid, — у виджетов ширина подобрана под обычные.
+ */
+
+/* ------------------------------------------------------------ Чернила
+ | Оттенки для текста, читаемые на белой карточке и на кремовой подложке
+ | (не ниже 4.5:1). Базовые цвета темы (--bs-primary и т. д.) не меняются:
+ | ими по-прежнему залиты кнопки, значки и плашки. */
+
+:root:not([data-bs-theme="dark"]) {
+    --osmo-ink-muted: #636E8C;      /* было #99A1B7: 2.6:1 → 5.1:1 на белом, 4.5:1 на креме */
+    --osmo-ink-soft: #5B6580;       /* было #78829D: 3.8:1 → 5.8:1 */
+    --osmo-ink-primary: #0069E4;    /* синий текст и ссылки: 3.6:1 → 5.1:1 */
+    --osmo-ink-primary-hover: #0053B8;
+    --osmo-ink-success: #0F7F35;    /* 2.3:1 → 5.1:1 */
+    --osmo-ink-danger: #DC073A;     /* 3.9:1 → 5.1:1 */
+    --osmo-ink-warning: #9B6103;    /* 2.4:1 → 5.1:1 */
+    --osmo-ink-info: #6A2FE0;
+
+    --bs-text-muted: var(--osmo-ink-muted);
+    --bs-text-gray-500: var(--osmo-ink-muted);
+    --bs-text-gray-600: var(--osmo-ink-soft);
+    --bs-text-primary: var(--osmo-ink-primary);
+    --bs-text-success: var(--osmo-ink-success);
+    --bs-text-danger: var(--osmo-ink-danger);
+    --bs-text-warning: var(--osmo-ink-warning);
+    --bs-text-info: var(--osmo-ink-info);
+
+    --bs-link-color: var(--osmo-ink-primary);
+    --bs-link-color-rgb: 0, 105, 228;
+    --bs-link-hover-color: var(--osmo-ink-primary-hover);
+    --bs-link-hover-color-rgb: 0, 83, 184;
+
+    --osmo-sidebar-heading: #6B7591; /* подписи групп меню и e-mail: 2.6:1 → 4.6:1 */
+}
+
+/* В тёмной теме зелёный и жёлтый Metronic и так светлые — чернила равны им.
+   Синий, красный, фиолетовый и приглушённый текст темнее нужного (3.1–4.0:1
+   на карточке и на подложках плашек) — для них свои, светлее */
+[data-bs-theme="dark"] {
+    --bs-text-muted: #8C90A4;       /* было #636674: 3.1:1 → 5.7:1 */
+    --bs-text-gray-500: #8C90A4;
+    --bs-text-primary: #4DA3FF;     /* было #006AE6: 3.6:1 → 6.8:1, на плашке 3.2 → 6.0:1 */
+    --bs-text-danger: #FF6B8A;      /* было #E42855: 4.0:1 → 6.6:1, на плашке 3.5 → 5.7:1 */
+    --bs-text-info: #A97BFF;        /* было #883FFF: на плашке 3.1:1 → 5.2:1 */
+    --bs-code-color: #E88BD0;       /* код сценариев: было #B93993, 2.7:1 → 5.9:1 */
+    --bs-link-color: #4DA3FF;
+    --bs-link-color-rgb: 77, 163, 255;
+    --bs-link-hover-color: #7AB9FF;
+    --bs-link-hover-color-rgb: 122, 185, 255;
+    --osmo-sidebar-heading: #8C90A4;
+    /* text-dark у Metronic в тёмной теме остаётся тёмным (#272A34), а в шаблонах
+       проекта им набран обычный текст (128 мест) — цифры воронки и др. пропадали */
+    --bs-text-dark: var(--bs-gray-900);
+
+    --osmo-ink-muted: var(--bs-text-muted);
+    --osmo-ink-soft: var(--bs-text-gray-600);
+    --osmo-ink-primary: #4DA3FF;
+    --osmo-ink-primary-hover: #7AB9FF;
+    --osmo-ink-success: var(--bs-success);
+    --osmo-ink-danger: #FF6B8A;
+    --osmo-ink-warning: var(--bs-warning);
+    --osmo-ink-info: #A97BFF;
+}
+
+/* Значки остаются яркими: это сигнал, а не текст (им хватает 3:1) */
+:is(i, svg)[class*="fa-"]:is(.text-primary) { color: var(--bs-primary) !important; }
+:is(i, svg)[class*="fa-"]:is(.text-danger) { color: var(--bs-danger) !important; }
+:is(i, svg)[class*="fa-"]:is(.text-warning) { color: var(--bs-warning) !important; }
+:is(i, svg)[class*="fa-"]:is(.text-info) { color: var(--bs-info) !important; }
+
+/* Светлые плашки: подложка прежняя, текст — чернилами */
+.badge.badge-light-primary, .badge.bg-light-primary.text-primary { color: var(--osmo-ink-primary) !important; }
+.badge.badge-light-success, .badge.bg-light-success.text-success { color: var(--osmo-ink-success) !important; }
+.badge.badge-light-danger, .badge.bg-light-danger.text-danger { color: var(--osmo-ink-danger) !important; }
+.badge.badge-light-warning, .badge.bg-light-warning.text-warning { color: var(--osmo-ink-warning) !important; }
+.badge.badge-light-info, .badge.bg-light-info.text-info { color: var(--osmo-ink-info) !important; }
+
+/* Прозрачные ступени palette.css (text-*-700 и т. п.) на плашке теряют
+   контраст — на плашках текст всегда в полную силу */
+.badge:is(.text-primary-500, .text-primary-600, .text-primary-700, .text-primary-800) { color: var(--osmo-ink-primary) !important; }
+.badge:is(.text-success-500, .text-success-600, .text-success-700, .text-success-800) { color: var(--osmo-ink-success) !important; }
+.badge:is(.text-danger-500, .text-danger-600, .text-danger-700, .text-danger-800) { color: var(--osmo-ink-danger) !important; }
+.badge:is(.text-warning-500, .text-warning-600, .text-warning-700, .text-warning-800) { color: var(--osmo-ink-warning) !important; }
+.badge:is(.text-info-500, .text-info-600, .text-info-700, .text-info-800) { color: var(--osmo-ink-info) !important; }
+
+/* Светлые кнопки в покое: текст чернилами (наведение — как было, заливкой) */
+.btn.btn-light-primary:not(:hover):not(:active):not(.active):not(.show) { color: var(--osmo-ink-primary); }
+.btn.btn-light-success:not(:hover):not(:active):not(.active):not(.show) { color: var(--osmo-ink-success); }
+.btn.btn-light-danger:not(:hover):not(:active):not(.active):not(.show) { color: var(--osmo-ink-danger); }
+.btn.btn-light-warning:not(:hover):not(:active):not(.active):not(.show) { color: var(--osmo-ink-warning); }
+.btn.btn-light-info:not(:hover):not(:active):not(.active):not(.show) { color: var(--osmo-ink-info); }
+
+/* Предупреждения (alert-*): у Metronic текст базовым цветом по светлой подложке, 2.4–3.5:1 */
+.alert.alert-primary, .alert.alert-primary .alert-link { color: var(--osmo-ink-primary); }
+.alert.alert-success, .alert.alert-success .alert-link { color: var(--osmo-ink-success); }
+.alert.alert-danger, .alert.alert-danger .alert-link { color: var(--osmo-ink-danger); }
+.alert.alert-warning, .alert.alert-warning .alert-link { color: var(--osmo-ink-warning); }
+.alert.alert-info, .alert.alert-info .alert-link { color: var(--osmo-ink-info); }
+
+/* Рост и падение на рабочем столе — только цвет, размеры не меняются */
+.desk-delta.up { color: var(--osmo-ink-success); }
+.desk-delta.down { color: var(--osmo-ink-danger); }
+
+/* Подписи виджетов стола (только цвет; у тёмных виджетов — свои, сильнее) */
+.desk-label { color: var(--osmo-ink-soft); }
+
+/* text-secondary (osmo-compat: gray-600, 3.8:1) */
+.text-secondary { color: var(--osmo-ink-soft) !important; }
+
+/* Вкладки-линии: неактивные были gray-500 (2.6:1), активная — ярко-синей */
+.nav-line-tabs .nav-item .nav-link { color: var(--osmo-ink-muted); }
+.nav-line-tabs .nav-item .nav-link.active,
+.nav-line-tabs .nav-item .nav-link:hover:not(.disabled),
+.nav-line-tabs .nav-item.show .nav-link { color: var(--osmo-ink-primary) !important; }
+
+/* Активный пункт меню: подпись чернилами на голубой подложке (3.2 → 4.5:1), значок — ярким */
+.app-sidebar .menu-item .menu-link.active .menu-title,
+.app-sidebar .menu-item .menu-link.active:hover .menu-title { color: var(--osmo-ink-primary) !important; }
+
+/* «Погашенные» нули в списках: были #F9F9F9 на белом — не видны совсем */
+.text-light-secondary { color: var(--bs-gray-500) !important; }
+
+/* ------------------------------------------------------------ Цифры
+ | Табличные цифры: суммы и количества в столбце встают разряд под разряд. */
+
+.app-content :is(table, .card-table):not(#desk_grid *) {
+    font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------ Фокус
+ | С клавиатуры видно, где фокус; мышью — как раньше, без обводки.
+ | !important — у Metronic .btn и .menu-link { outline: 0 !important }. */
+
+:is(a, button, .btn, [role="button"], .nav-link, .page-link, .form-check-input):focus-visible {
+    outline: 2px solid var(--bs-primary) !important;
+    outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------ Движение
+ | Кто попросил систему не анимировать — не анимируем (кроме индикаторов
+ | загрузки: без вращения их не отличить от застывшей страницы). */
+
+@media (prefers-reduced-motion: reduce) {
+    *:not(.spinner-border):not(.spinner-grow),
+    *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* ------------------------------------------------------------ Тёмная тема
+ | Жёстко заданные светлые фоны (osmo-fix, app.css, стили страниц) в тёмной
+ | теме давали белые пятна со светлым текстом. Светлая тема не меняется. */
+
+[data-bs-theme="dark"] .card-table .th,
+[data-bs-theme="dark"] .card-table .td,
+[data-bs-theme="dark"] .card-table .tr .th,
+[data-bs-theme="dark"] .card-table .tr .td { background: var(--bs-body-bg) !important; }
+
+[data-bs-theme="dark"] .form-control.form-control-solid,
+[data-bs-theme="dark"] .form-select.form-select-solid { background-color: var(--bs-gray-100); border-color: var(--bs-gray-300); }
+[data-bs-theme="dark"] .form-check.form-check-solid .form-check-input:not(:checked) { background-color: var(--bs-gray-100); }
+
+[data-bs-theme="dark"] :is(table, .tab-content, .table-responsive, .accordion-button, .list-group-item).bg-white { background-color: var(--bs-body-bg) !important; }
+[data-bs-theme="dark"] .list-group-item { background-color: transparent; }
+
+/* Строки-разделители и выключенные записи */
+[data-bs-theme="dark"] tr.hl td,
+[data-bs-theme="dark"] tr.unactive td,
+[data-bs-theme="dark"] table#table-summary tr.subcaption { background: var(--bs-gray-100) !important; color: var(--bs-gray-700) !important; }
+
+/* Цветные подложки строк: тот же смысл, но полупрозрачным тоном */
+[data-bs-theme="dark"] td.expired { background: rgba(var(--bs-danger-rgb), .14) !important; }
+[data-bs-theme="dark"] td.warning { background: rgba(var(--bs-warning-rgb), .14) !important; }
+[data-bs-theme="dark"] #table_data tr.transferred td { background: rgba(var(--bs-success-rgb), .12) !important; }
+
+/* Строки, помеченные цветом в стилях страниц: договор и группа по компании
+   в карточке партнёра, отменённая спецификация, ручная правка в отчётах,
+   первая группа месяцев в таблицах воронки */
+[data-bs-theme="dark"] .table tr:is([style*="#e5eeff"], [style*="#E5EEFF"]) { background: rgba(var(--bs-primary-rgb), .14) !important; }
+[data-bs-theme="dark"] .table tr:is([style*="#f1f1f1"], [style*="#F1F1F1"]) { background: var(--bs-gray-100) !important; }
+[data-bs-theme="dark"] tr[status="canceled"],
+[data-bs-theme="dark"] tr[status="canceled"] .card-table .tr span { background: rgba(var(--bs-danger-rgb), .12) !important; color: #D9899A; } /* приглушённый, как в светлой */
+[data-bs-theme="dark"] td.manual { background: rgba(var(--bs-danger-rgb), .14) !important; }
+[data-bs-theme="dark"] div[report^="tbl_"] td[group="1"] { background: rgba(var(--bs-primary-rgb), .1) !important; }
+
+/* Итоги в таблицах воронки (серый фон задан прямо в разметке) */
+[data-bs-theme="dark"] .table :is(td, th):is([style*="#F0F0F0"], [style*="#f0f0f0"], [style*="#f5f5f5"], [style*="#F5F5F5"], [style*="#E5E5E5"], [style*="#e5e5e5"]) {
+    background: var(--bs-gray-100) !important;
+}
+
+/* Чёрный текст, заданный прямо в разметке (цвет грейда «Agent», «Vendor») */
+[data-bs-theme="dark"] .app-content :is([style*="color: #000"], [style*="color:#000"]) { color: var(--bs-gray-800) !important; }
+
+/* …кроме тёмного текста на жёлтой заливке — она и в тёмной теме светлая */
+[data-bs-theme="dark"] .bg-warning.text-dark { color: #1E2129 !important; }
+
+/* Плашки «dark» и «secondary» в тёмной теме сливались с фоном */
+[data-bs-theme="dark"] .badge:is(.badge-light-dark, .badge-light-secondary) { color: var(--bs-gray-800) !important; }
+[data-bs-theme="dark"] .badge.badge-light:not(.text-white) { color: var(--bs-gray-700) !important; } /* было 4.4:1 */
+
+/* Светлая кнопка «dark» (статус КП «В работе»): в тёмной теме текст тёмный по тёмному, 1.1:1 */
+[data-bs-theme="dark"] .btn.btn-light-dark:not(:hover):not(:active):not(.active):not(.show) { color: var(--bs-gray-800); }
+
+/* Белая кнопка-переключатель валюты (отчёт по платежам): в тёмной теме — белое пятно */
+[data-bs-theme="dark"] .btn.bg-white:not(:hover) { background-color: var(--bs-gray-100) !important; color: var(--osmo-ink-primary) !important; }
+
+/* Номер варианта в колонке КП — белый кружок, а текст в тёмной теме светлый */
+[data-bs-theme="dark"] a[proposal-id] > .bg-white { background-color: var(--bs-gray-300) !important; }
+
+/* Ступени «тёмного» из palette.css (стрелка перехода статуса и подписи):
+   в тёмной теме это тёмно-серый по тёмному, 1.2:1 */
+[data-bs-theme="dark"] .text-dark-500 { color: var(--bs-gray-600) !important; }
+[data-bs-theme="dark"] .text-dark-800 { color: var(--bs-gray-700) !important; }
+
+/* Подписи графиков ApexCharts: по умолчанию тёмно-серые (#373d3f) */
+[data-bs-theme="dark"] .apexcharts-legend-text { color: var(--bs-gray-700) !important; }
+[data-bs-theme="dark"] :is(.apexcharts-xaxis-label, .apexcharts-yaxis-label, .apexcharts-title-text) { fill: var(--bs-gray-600); }

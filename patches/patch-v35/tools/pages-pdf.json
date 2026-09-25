@@ -1,0 +1,5 @@
+[
+  {"name": "41-pdf-ru", "pdf": {"box": "/proposals/box/generate_pdf/43428550-5403-45e5-8d5f-aa9da1c6cd54/2", "language": "ru", "template": "default"}, "wait": 1500},
+  {"name": "42-pdf-en", "pdf": {"box": "/proposals/box/generate_pdf/43428550-5403-45e5-8d5f-aa9da1c6cd54/2", "language": "en", "template": "default"}, "wait": 1500},
+  {"name": "43-pdf-client-discount", "pdf": {"box": "/proposals/box/generate_pdf/43428550-5403-45e5-8d5f-aa9da1c6cd54/2", "language": "ru", "template": "client_discount"}, "wait": 1500}
+]

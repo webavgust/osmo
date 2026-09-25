@@ -49,7 +49,7 @@
 
     <div class="container-fluid">
         <div class="row">
-            <div class="col-3">
+            <div class="col-12 col-lg-4 col-xxl-3">{{-- patch v35: на телефоне колонки налезали друг на друга --}}
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h3 class="m-0">Общая информация</h3>
@@ -188,7 +188,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-9" id="payments" mode="summary">
+            <div class="col-12 col-lg-8 col-xxl-9" id="payments" mode="summary">
 
                 {{-- Вкладки карточки партнёра (patch v23). Активная запоминается
                      в адресе (#deals), чтобы ссылка открывала нужную.

@@ -339,9 +339,9 @@
                                 </td>
 
                                 <td>
-                                    <a href="{{ route('partner.detail', $partner) }}" class="fw-bold fs-3"
-                                       style="color: {{ $row['grade']['color']['medal'] ?? '#7e8299' }}">
-                                        <x-ui.icon.solid icon="fa-medal" class="me-1"/>{{ $partner->name }}
+                                    {{-- цвет статуса — только у медали: серебряное имя на белом не читалось --}}
+                                    <a href="{{ route('partner.detail', $partner) }}" class="fw-bold fs-3 text-gray-900 text-hover-primary">
+                                        <span style="color: {{ $row['grade']['color']['medal'] ?? '#7e8299' }}"><x-ui.icon.solid icon="fa-medal" class="me-1"/></span>{{ $partner->name }}
                                     </a>
                                     <div class="fs-9 text-muted">{{ $row['grade']['label'] ?? '—' }}</div>
                                 </td>

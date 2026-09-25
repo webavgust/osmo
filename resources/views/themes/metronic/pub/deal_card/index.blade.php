@@ -117,7 +117,8 @@
                                 <span class="badge badge-circle bg-{{ $color }} text-white fw-bold badge-light fs-6">{{ $index + 1 }}</span>
                             </div>
 
-                            <div class="fs-7 fw-bold text-{{ $color }} text-uppercase mb-1">{{ $step['title'] }}</div>
+                            {{-- patch v35: у не пройденного шага бледный только значок, подпись — приглушённым текстом (gray-400 не читался) --}}
+                            <div class="fs-7 fw-bold text-{{ $color == 'gray-400' ? 'muted' : $color }} text-uppercase mb-1">{{ $step['title'] }}</div>
 
                             <div class="fw-bold text-gray-900 mb-2 fs-6" style="word-break: break-word;">
                                 @if($step['url'])

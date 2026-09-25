@@ -95,6 +95,23 @@ tr.unactive td { background: var(--bs-gray-100); color: var(--bs-gray-500); }
     border-color: var(--bs-primary);
     color: #fff;
 }
+/* patch v35: панель в колонке 3/4 шире места — переносим группами,
+   а не по кнопке; месяц с годом в одну строку */
+.fc .fc-header-toolbar { flex-wrap: wrap; gap: .5rem 1rem; }
+.fc .fc-toolbar-chunk { display: flex; flex-wrap: nowrap; align-items: center; gap: .25rem; }
+.fc .fc-toolbar-title { white-space: nowrap; }
+/* кнопка «+» задана как icon: 'fc-fa-light fa-plus-square' — FullCalendar
+   ставит значкам свой шрифт (с !important), и кнопка была пустой */
+.fc .fc-icon.fc-icon-fc-fa-light {
+    font-family: "Font Awesome 6 Pro" !important;
+    font-weight: 300;
+    font-style: normal;
+}
+/* пока панель не помещается в строку (меню 300px + колонка 3/4), месяц —
+   отдельной строкой сверху, под ним виды слева и листание справа */
+@media (max-width: 1799.98px) {
+    .fc .fc-header-toolbar > .fc-toolbar-chunk:nth-child(2) { order: -1; flex: 1 0 100%; }
+}
 
 /* ------------------------------------------------------------ jsTree (меню) */
 
@@ -123,3 +140,38 @@ tr.unactive td { background: var(--bs-gray-100); color: var(--bs-gray-500); }
 .cal-form .btn-check:focus-visible + .cal-color { box-shadow: 0 0 0 2px var(--bs-body-bg), 0 0 0 4px var(--bs-primary); }
 /* время — уже даты, чтобы пара «дата + время» вставала в сайдбар */
 .cal-form .cal-form-time { flex: 0 0 7.5rem; }
+
+/* ------------------------------------------------ Лента напоминаний
+ | pub/reminder: разметка MaterialPro (.timeline.timeline-left, общие
+ | компоненты x-reminder.row). У Metronic свой .timeline на flex и точка
+ | .timeline-badge размером 1rem — ленту собираем заново сеткой. */
+
+.timeline.timeline-left { position: relative; list-style: none; margin: 0; padding: .25rem 0; }
+.timeline.timeline-left::before {
+    content: ""; position: absolute; top: 0; bottom: 0; left: 21px;
+    width: 2px; background: var(--bs-gray-200);
+}
+.timeline.timeline-left > .timeline-item {
+    position: relative; display: grid; grid-template-columns: 44px minmax(0, 1fr);
+    column-gap: 1rem; align-items: start; margin: 0 0 1rem; padding: 0;
+}
+.timeline.timeline-left > .timeline-item > .timeline-badge {
+    position: relative; z-index: 1; width: 44px; height: 44px; margin: 0;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; background: var(--bs-gray-100); color: var(--bs-gray-600);
+    box-shadow: 0 0 0 4px var(--bs-body-bg);
+}
+.timeline.timeline-left > .timeline-item > .timeline-badge.primary { background: var(--bs-primary); color: #fff; }
+.timeline.timeline-left > .timeline-item > .timeline-badge a { color: inherit; }
+.timeline.timeline-left > .timeline-item > .timeline-panel {
+    float: none; width: auto; min-width: 0; padding: 1rem 1.25rem;
+    border: 1px solid var(--bs-gray-200); border-radius: .75rem; background: var(--bs-body-bg);
+}
+.timeline.timeline-left > .timeline-item > .timeline-panel.invisible { border: 0; padding: 0; }
+.timeline.timeline-left .timeline-heading .container { max-width: none; }
+.timeline.timeline-left .timeline-title { margin: 0; font-size: 1.1rem; font-weight: 600; color: var(--bs-gray-900); }
+.timeline.timeline-left .timeline-body p { margin: .5rem 0 0; color: var(--bs-gray-700); }
+/* кегли MaterialPro (fs-2/fs-3) в Metronic крупнее — мета-строки ленты
+   возвращаем к размеру текста */
+body.theme-metronic .timeline.timeline-left .fs-2 { font-size: 1rem !important; }
+body.theme-metronic .timeline.timeline-left .fs-3 { font-size: .9rem !important; }

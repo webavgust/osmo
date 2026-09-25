@@ -13,7 +13,7 @@
             </div>
         </div>
     </div>
-    <div class="card-body p-0 text-center text-dark fw-bolder py-4 pt-0 pb-0 fs-6">
+    <div class="card-body p-0 text-center text-dark fw-bolder py-4 pt-0 pb-0 fs-6 overflow-auto">
         <table class="table table-bordered mb-0">
         <thead>
         <tr>

@@ -8,7 +8,8 @@
     <meta name="description" content="AVG" />
     <meta name="robots" content="noindex,nofollow" />
     @php $sidebar_mode = auth()->id() ? (auth()->user()?->setting?->read('sidebar_mode') ?? 'full') : 'full'; @endphp
-    <meta name="sidebar_mode" content="{{ $sidebar_mode }}" />
+    {{-- Гостю не выводим: app.js сохранил бы режим меню без токена и получил 500 --}}
+    @if(auth()->check())<meta name="sidebar_mode" content="{{ $sidebar_mode }}" />@endif
     @if(auth()->check())<meta name="_token" content="{{ auth()->user()->ajax_token }}" />@endif
     <title>
         @section('title') {{ $title_force ?? "OSMO AVG: " . ($title ?? '') }} @show
@@ -46,6 +47,9 @@
     {{-- Слой совместимости: MaterialPro-классы поверх Metronic --}}
     <link href="/metronic/css/osmo-compat.css" rel="stylesheet" />
     <link href="/metronic/css/osmo-compat-pages.css" rel="stylesheet" />
+
+    {{-- Правки дизайна: читаемость, тёмная тема, цифры, фокус (patch v35) --}}
+    <link href="/metronic/css/osmo-design.css" rel="stylesheet" />
 
     @yield('styles')
 </head>

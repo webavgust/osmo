@@ -39,10 +39,10 @@
         }
 
         .text-danger, .text-danger * {
-            color: #fc4b6c !important;
+            color: #C8062F !important; /* было #fc4b6c: 3.3:1 */
         }
         .text-warning, .text-warning * {
-            color: #ffb22b !important;
+            color: #7A4D00 !important; /* было #ffb22b: 1.7:1 на жёлтом */
         }
 
         :#print span, #print div {
@@ -218,7 +218,37 @@
         .ql-editor li {
             margin-bottom: 10px;
         }
+        /* patch v35: у Metronic крайние ячейки без внутреннего отступа —
+           суммы в последней колонке упирались в рамку */
+        .table:not(.table-bordered) th:last-child,
+        .table:not(.table-bordered) td:last-child {
+            padding-right: .75rem;
+        }
+        /* цифры разряд под разряд; пометки о скидке не мельче 11px */
+        #print table { font-variant-numeric: tabular-nums; }
+        #print .fs-9 { font-size: 11px !important; }
+        /* фон шапок и подсветку строк печатаем так же, как на экране */
+        @media print {
+            #print, #print * {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
     </style>
+
+    {{-- Бумага всегда светлая: тёмная тема кабинета на КП не распространяется.
+         KTThemeMode.init() записывает текущую тему в localStorage — после загрузки
+         возвращаем выбор пользователя, иначе КП сбрасывал бы ему тёмную тему. --}}
+    <script>
+        (function () {
+            var saved = localStorage.getItem('data-bs-theme');
+            document.documentElement.setAttribute('data-bs-theme', 'light');
+            window.addEventListener('load', function () {
+                if (saved === null) localStorage.removeItem('data-bs-theme');
+                else localStorage.setItem('data-bs-theme', saved);
+            });
+        })();
+    </script>
 
     <div style="width: 297mm; margin: 0 auto; padding: 10mm 10mm 10mm; box-sizing: border-box;" id="print" contentEditable="true">
         <div class="text-center">
