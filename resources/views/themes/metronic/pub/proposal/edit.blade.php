@@ -1655,23 +1655,8 @@
             scenario_count++;
             row = $("#table_data tr.scenario.once.d-none:first");
             row.removeClass("d-none");
-            row.find("select").select2().on('change', function () {
-                // Получаем значение выбранного пункта
-                var selectedValue = $(this).val();
-
-                // обойдём все колонки
-                $(this).parents('.scenario.once').find('td[column]').each(function(column_index, column) {
-                    let cell = row.find(`td[column='${column_index + 1}']`);
-                    updateNeuroCostFromRule(cell);
-                });
-
-
-                $(this).parents('.scenario.once').find('td[column].d-none').each(function () {
-                    // определим тип колонки
-                    $(this).find('.inp_cost_cell').val(costs['year'][selectedValue]);
-                });
-                table_data_recalc();
-            });
+            // цену при смене сценария ставит общий обработчик #scenarios select[select2]
+            row.find("select").select2();
 
             ta = row.find("textarea.neuro_comment");
             CKEDITOR.replace(ta.attr("id"), {
@@ -2775,6 +2760,7 @@
                     } else {
                         parentTr.removeClass('scenario_selected'); // Убираем класс
                     }
+                    scenario_cost_update(parentTr);
                     table_data_recalc();
                 }
             });
@@ -2948,12 +2934,27 @@
 
 
 
+        /**
+         * Цены строки сценария по прайсу выбранного сценария: видимые варианты — по правилам
+         * (с учётом ручных и сохранённых цен), скрытые — годовая цена.
+         */
+        function scenario_cost_update(tr) {
+            const scenario_id = tr.find('.scenario_selector select').val();
+            tr.find('td[column]').each(function() {
+                updateNeuroCostFromRule($(this));
+            });
+            tr.find('td[column].d-none').each(function() {
+                $(this).find('.inp_cost_cell').val(costs['year'][scenario_id] ?? 0);
+            });
+        }
+
         function updateNeuroCostFromRule(cell) {
             // 1. Получаем необходимые данные с проверками
             const row_num = parseInt(cell.closest('tr').attr("num")) || 0;
             const column_num = parseInt(cell.attr('column')) || 0;
 
-            const scenarioSelect = cell.closest('tr').find('.select2');
+            // сам <select>: класс .select2 у обёртки select2, её val() пустой — цена бралась от платформы (id 0)
+            const scenarioSelect = cell.closest('tr').find('.scenario_selector select');
             const scenario_id = parseInt(scenarioSelect.val()) || 0;
 
             const columnHeader = $(`th[column='${column_num}']`);
@@ -2973,6 +2974,7 @@
 
             // 3. Получим нужное правило
             let bestRuleCount = -1;
+            let bestRule = null;
             if (cost_rules && cost_rules[scenario_id]) {
                 $.each(cost_rules[scenario_id], (rule_count_str, rule) => {
                     const rule_count = parseFloat(rule_count_str);
@@ -2994,7 +2996,7 @@
                 neuroForceCost[row_num][column_num][scenario_id][bestRuleCount][modeKey]) {
                 finalCost = neuroForceCost[row_num][column_num][scenario_id][bestRuleCount][modeKey] ?? null;
             } else {
-                finalCost = bestRule[modeKey];
+                finalCost = bestRule ? bestRule[modeKey] : 0;
             }
 
             // 5. Обновляем поле ввода
@@ -3022,7 +3024,7 @@
                 const row_num = parseInt(cell.parents('tr').attr("num")) || 0;
                 const column_num = parseInt(cell.attr('column')) || 0;
 
-                const scenarioSelect = cell.closest('tr').find('.select2');
+                const scenarioSelect = cell.closest('tr').find('.scenario_selector select');
                 const scenario_id = parseInt(scenarioSelect.val()) || 0;
 
                 const columnHeader = $(`th[column='${column_num}']`);
