@@ -1,10 +1,12 @@
 @extends('components.box.box-static-large')
 
 @section('body')
+    {{-- id формы не deal_export: так зовётся пункт меню «Выгрузить в Excel» на странице, и
+         getElementById находил ссылку вместо формы — кнопка «Выгрузить» не срабатывала --}}
     {{-- без target="_blank": при отправке POST-формы в новое окно браузер
          повторяет запрос методом GET и маршрут отвечает 405. Ответ приходит
          вложением, поэтому страница под попапом остаётся на месте --}}
-    <form method="POST" id="deal_export" action="{{ route('crm-deal.export') }}">
+    <form method="POST" id="deal_export_form" action="{{ route('crm-deal.export') }}">
         @csrf
 
         {{-- текущий отбор страницы уходит в выгрузку как есть --}}
@@ -52,11 +54,11 @@
 
     <script>
         function columns_all(state) {
-            $('#deal_export input[name="columns[]"]').prop('checked', !!state);
+            $('#deal_export_form input[name="columns[]"]').prop('checked', !!state);
         }
 
         function save() {
-            document.getElementById('deal_export').submit();
+            document.getElementById('deal_export_form').submit();
 
             toastr.success("Файл готовится, скоро начнётся загрузка", "Это успех!", {
                 progressBar: true,
