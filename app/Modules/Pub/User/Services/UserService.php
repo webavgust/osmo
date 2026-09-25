@@ -4,7 +4,6 @@
 namespace App\Modules\Pub\User\Services;
 
 
-use App\Modules\Pub\LabObject\Models\LabObject;
 use App\Modules\Pub\User\Models\User;
 use App\Modules\Pub\User\Repositories\UserRepository;
 use Illuminate\Http\Request;
@@ -79,17 +78,6 @@ class UserService
         $group->users = $users;
 
         return collect([$group]);
-    }
-
-
-
-
-    public function analytic_bind(User $user, Request $request)
-    {
-        $set = $request->input('set');
-        $user->lab_objects()->sync($set);
-
-        return true;
     }
 
 }

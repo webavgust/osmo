@@ -11,7 +11,6 @@ use App\Modules\Pub\Partner\Models\Partner;
 use App\Modules\Pub\Partner\Repositories\ContractorRepository;
 use App\Modules\Pub\Partner\Repositories\PartnerRepository;
 use App\Modules\Pub\User\Models\User;
-use App\Modules\Pub\UserWorkCalendar\Models\UserWorkCalendar;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 

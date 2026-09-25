@@ -7,18 +7,11 @@ use App\Modules\Pub\Access\Services\AccessUserService;
 use App\Modules\Pub\AuthAttempt\Services\AuthAttemptService;
 use App\Modules\Pub\Breadcrumbs\Traits\HasBreadcrumb;
 use App\Modules\Pub\EducationTaskCourse\Models\EducationTaskCourse;
-use App\Modules\Pub\LabMeasure\Models\LabMeasure;
-use App\Modules\Pub\LabMeasure\Repository\LabMeasureRepository;
-use App\Modules\Pub\LabObject\Models\LabObject;
-use App\Modules\Pub\LabObject\Repository\LabObjectRepository;
 use App\Modules\Pub\User\Models\User;
 use App\Modules\Pub\User\Repositories\UserRepository;
 use App\Modules\Pub\User\Request\AuthRequest;
 use App\Modules\Pub\User\Services\UserService;
-use App\Modules\Pub\UserWorkCalendar\Models\UserWorkCalendar;
-use App\Modules\Pub\WorkCalendar\Models\WorkCalendar;
 use App\Services\AjaxToken\AjaxToken;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
@@ -144,28 +137,6 @@ class UserController extends Controller
         ]);
     }
 
-
-    public function lab_object_bind(User $user = null)
-    {
-        $this->breadcrumb_add('', 'Привязка аналитика к объектам');
-
-        $users = UserRepository::getAnalytics();
-        $objects = LabObjectRepository::getFirst();
-        $measure_cats = LabMeasureRepository::getCategories();
-
-
-
-        return view('pub.user.analytics_bind', [
-            'user' => $user,
-            'objects' => $objects,
-            'users' => $users,
-            'measure_cats' => $measure_cats,
-        ]);
-    }
-
-
-
-
     /**
      * Смена пользователя
      *
@@ -208,50 +179,6 @@ class UserController extends Controller
         $template = View::make('pub.user.sidebars.sub_users_parent', ['title' => 'Управление руководителями', 'user' => $user, 'users' => $repo->getAll()]);
 
         return $template;
-    }
-
-    /**
-     * Рабочий календарь
-     *
-     * @param User $user
-     * @param $year
-     * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Contracts\View\Factory|\Illuminate\Contracts\View\View
-     */
-    public function work_calendar_show(User $user, $year = null)
-    {
-        if (empty($year)) $year = date("Y");
-        $dates = $user->work_calendar()->where('year', $year)->where('type', UserWorkCalendar::STATUS_HOLIDAY)->get()->pluck('date')->toArray();
-        $times = $user->work_calendar()->where('year', $year)->where('type', UserWorkCalendar::STATUS_CUSTOM)->get()->keyBy('date');
-
-        $this->breadcrumb_add(route('users.view', $user), $user->fullName);
-        $this->breadcrumb_add('', 'Рабочий график');
-
-        $user_working_time = $user->setting->get('user_work_times') ?? config('settings.working_time');
-
-        return view('pub::user.work_calendar', [
-            'user' => $user,
-            'year' => $year,
-            'dates' => $dates,
-            'user_working_time' => $user_working_time,
-            'user_custom_time' => $times,
-            'breadcrumbs' => $this->breadcrumb
-        ]);
-    }
-
-    /**
-     * Установка записей для рабочего календаря
-     *
-     * @param User $user
-     * @param $date
-     * @return \Illuminate\Contracts\View\View
-     */
-    public function work_calendar_set_time(User $user, $date = null)
-    {
-        if (empty($date)) abort(404);
-        $has = $user->work_calendar()->where('date', $date)->where('type', UserWorkCalendar::STATUS_CUSTOM)->first();
-
-        return View::make('pub.user.sidebars.work_calendar_set_time', ['title' => Carbon::createFromFormat('Y-m-d', $date)->format('d.m.Y'), 'user' => $user, 'date' => $date, 'has' => $has]);
-
     }
 
     /**

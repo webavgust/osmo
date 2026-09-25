@@ -11,7 +11,6 @@ use App\Modules\Pub\Company\Models\Company;
 use App\Modules\Pub\Course\Models\Work;
 use App\Modules\Pub\EducationApplicationAgreement\Models\EvaluationDiscountAgreement;
 use App\Modules\Pub\EducationTask\Models\EducationTask;
-use App\Modules\Pub\LabObject\Models\LabObject;
 use App\Modules\Pub\OrderTaskAgreement\Models\OrderTaskAgreement;
 use App\Modules\Pub\Payment\Models\Payment;
 use App\Modules\Pub\PlanVisit\Models\PlanVisit;
@@ -22,7 +21,6 @@ use App\Modules\Pub\Sampler\Models\Sampler;
 use App\Modules\Pub\Teacher\Models\Teacher;
 use App\Modules\Pub\UserNote\Models\UserNote;
 use App\Modules\Pub\UserSettings\Models\UserSetting;
-use App\Modules\Pub\UserWorkCalendar\Models\UserWorkCalendar;
 use App\Modules\Pub\VisitMeasureWork\Models\VisitMeasureWork;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -121,12 +119,6 @@ class User extends Authenticatable
     public function sub_users()
     {
         return $this->belongsToMany(User::class, 'user_sub_users', 'user_id', 'sub_user_id', null, 'id')->orderBy('full_name', 'asc');
-    }
-
-
-    public function work_calendar()
-    {
-        return $this->hasMany(UserWorkCalendar::class);
     }
 
     public function payments()
