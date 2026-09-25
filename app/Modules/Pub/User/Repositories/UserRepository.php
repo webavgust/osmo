@@ -33,15 +33,8 @@ class UserRepository
                 ->orderBy('last_name', 'asc');
         }
 
-        if (!empty($request->get('group_id')))
-            $builder->whereHas('groups', function ($query) use ($request) {
-                $query->where('id', $request->get('group_id'));
-            });
-
-        if (!empty($request->get('department_id')))
-            $builder->whereHas('departments', function ($query) use ($request) {
-                $query->where('id', $request->get('department_id'));
-            });
+        // patch v39: фильтры group_id / department_id убраны — связи groups и departments
+        // удалены вместе с модулями UserGroup / UserDepartment
 
         $count_filtered = $count = $builder->count();
         # Search
@@ -57,10 +50,7 @@ class UserRepository
         if ($request->input('offset'))
             $builder->skip($request->input('offset'));
 
-        $builder
-            ->select(User::getShowFields())
-            ->withCount('groups', 'departments')
-            ->with('groups', 'departments');
+        $builder->select(User::getShowFields());
 
         return [
             'count' => $count,

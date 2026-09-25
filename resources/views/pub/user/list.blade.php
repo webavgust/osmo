@@ -95,7 +95,7 @@
                                 <div class="ms-2">
                                     <div class="user-meta-info">
                                         <h6 class="user-name mb-0 font-weight-medium ` + (!row.active ? 'text-danger' : '') + `">
-                                            ` + row.last_name + ' ' + row.name + ' ' + row.second_name + `
+                                            ` + row.last_name + ' ' + row.name + ' ' + (row.second_name || '') + `
                                         </h6>
                                     </div>
                                 </div>
