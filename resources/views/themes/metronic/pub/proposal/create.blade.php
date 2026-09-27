@@ -645,8 +645,11 @@
                                                                            </span>
                                                                         </div>
 
+                                                                        {{-- скрытая галочка ячейки — её читает сервер; включается только общей кнопкой
+                                                                             «НДС» раздела (#neuro_nds_cb), по умолчанию выключена, как и кнопка. Раньше
+                                                                             стояла включённой: итог на экране шёл без НДС, а после сохранения НДС появлялся --}}
                                                                         <div class="fs-2 d-flex align-items-center mt-2 justify-content-start d-none">
-                                                                            <input name="cell[{{ $i }}][{{ $j }}][nds]" class="active form-check-input secondary me-1 cb_nds" type="checkbox" id="nds_{{ $i }}_{{ $j }}" value="1" @checked($cell->cb_nds ?? true)>
+                                                                            <input name="cell[{{ $i }}][{{ $j }}][nds]" class="active form-check-input secondary me-1 cb_nds" type="checkbox" id="nds_{{ $i }}_{{ $j }}" value="1">
                                                                             <label class="form-check-label fs-1 fw-normal m-0 ms-1" for="nds_{{ $i }}_{{ $j }}">НДС</label>
                                                                         </div>
                                                                     </div>
