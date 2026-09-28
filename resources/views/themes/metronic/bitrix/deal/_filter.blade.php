@@ -15,7 +15,7 @@
 
     Параметры:
       $params            — текущий отбор (CrmDealRegistryService::params());
-      $stages, $managers, $countries, $customers, $has_proposal_list — значения списков;
+      $stages, $managers, $countries, $customers, $partners, $has_proposal_list — значения списков;
       $action            — куда отправлять форму (по умолчанию страница реестра);
       $partner           — область партнёра, если фильтр живёт во вкладке;
       $prefix            — префикс id, если на странице два таких блока;
@@ -106,6 +106,20 @@
                                                   :items="$countries" :selected="$params['country']" blank-ignore="1"/>
                         </div>
                     </div>
+
+                    {{-- Партнёр — компания сделки в Битриксе (patch v41); на карточке
+                         партнёра списка нет: там и так только его сделки --}}
+                    @if(!empty($partners))
+                        <div class="row mb-5">
+                            <label class="col-sm-3 col-form-label fw-semibold text-sm-end">Партнёр</label>
+                            <div class="col-sm-9">
+                                <x-ui.select.multiple name="partner[]" id="id"
+                                                      class="{{ $prefix }}_select"
+                                                      data-placeholder="любой"
+                                                      :items="$partners" :selected="$params['partner']" blank-ignore="1"/>
+                            </div>
+                        </div>
+                    @endif
 
                     {{-- Заказчик: в Битриксе это текстовое поле сделки, поэтому
                          список собран из самих сделок области (patch v25) --}}

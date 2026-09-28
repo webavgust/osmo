@@ -49,6 +49,9 @@ class CrmDealRegistryService
     /** Подпись для сделок, у компании которых не заполнена страна */
     public const COUNTRY_EMPTY = 'Неизвестно';
 
+    /** Значение фильтра «партнёр не указан» — у сделки нет компании (patch v41) */
+    public const PARTNER_EMPTY = 'none';
+
     /** Отбор по наличию привязанного КП (поле фильтра «Привязано КП») */
     public const HAS_PROPOSAL = [
         'no' => 'нет',
@@ -68,6 +71,7 @@ class CrmDealRegistryService
         'manager' => [],
         'country' => [],
         'customer' => [],
+        'partner' => [],
         'q' => '',
     ];
 
@@ -144,6 +148,7 @@ class CrmDealRegistryService
             'manager' => static::listOf($input['manager'] ?? []),
             'country' => static::listOf($input['country'] ?? []),
             'customer' => static::listOf($input['customer'] ?? []),
+            'partner' => static::listOf($input['partner'] ?? []),
             'q' => trim((string) ($input['q'] ?? '')),
         ];
     }
@@ -295,6 +300,18 @@ class CrmDealRegistryService
             $builder->whereIn($customer_field, $params['customer']);
         }
 
+        // партнёр — компания сделки в Битриксе (patch v41)
+        if (!empty($params['partner'])) {
+            $builder->where(function ($builder) use ($params) {
+                $ids = array_map('intval', array_diff($params['partner'], [static::PARTNER_EMPTY]));
+                if ($ids) $builder->orWhereIn('crm_deal.company_id', $ids);
+
+                if (in_array(static::PARTNER_EMPTY, $params['partner'], true)) {
+                    $builder->orWhereNull('crm_deal.company_id')->orWhere('crm_deal.company_id', 0);
+                }
+            });
+        }
+
         if ($params['q'] !== '') {
             $like = '%' . $params['q'] . '%';
 
@@ -423,6 +440,8 @@ class CrmDealRegistryService
             'countries' => static::countries(),
             // заказчики берутся из самих сделок области: у партнёра — только его
             'customers' => static::customers($partner),
+            // на карточке партнёра поле не нужно — там и так только его сделки (patch v41)
+            'partners' => $partner ? [] : static::partners(),
             // select ждёт список пар id/name (иначе компонент берёт первый символ подписи)
             'has_proposal_list' => collect(static::HAS_PROPOSAL)
                 ->map(fn($label, $code) => ['id' => $code, 'name' => $label])
@@ -462,6 +481,36 @@ class CrmDealRegistryService
             ->map(fn($item) => ['id' => $item, 'name' => $item])
             ->values()
             ->all();
+    }
+
+    /**
+     * Партнёры сделок реестра для фильтра (patch v41).
+     *
+     * Партнёр сделки — её компания в Битриксе: значение фильтра — id компании
+     * (название может смениться), подпись — название. Сделки без компании —
+     * отдельным пунктом «партнёр не указан», как в таблице.
+     *
+     * @return array [['id' => company_id | PARTNER_EMPTY, 'name' => название], …]
+     */
+    public static function partners(): array
+    {
+        $rows = CrmDeal::query()
+            ->where('date_create', '>=', static::since())
+            ->select('company_id', 'company_name')
+            ->distinct()
+            ->get();
+
+        $list = $rows->filter(fn($row) => (int) $row->company_id > 0)
+            ->groupBy('company_id')
+            ->map(fn($group, $id) => ['id' => (string) $id, 'name' => trim((string) $group->first()->company_name) ?: 'компания #' . $id])
+            ->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)
+            ->values();
+
+        if ($rows->contains(fn($row) => (int) $row->company_id <= 0)) {
+            $list->push(['id' => static::PARTNER_EMPTY, 'name' => 'партнёр не указан']);
+        }
+
+        return $list->all();
     }
 
     /**

@@ -13,7 +13,7 @@
         <input type="hidden" name="has_proposal" value="{{ $params['has_proposal'] }}"/>
         <input type="hidden" name="q" value="{{ $params['q'] }}"/>
         <input type="hidden" name="mode" value="{{ $mode ?? 'all' }}"/>
-        @foreach(['stage', 'manager', 'country', 'customer'] as $field)
+        @foreach(['stage', 'manager', 'country', 'customer', 'partner'] as $field)
             @foreach($params[$field] as $value)
                 <input type="hidden" name="{{ $field }}[]" value="{{ $value }}"/>
             @endforeach

@@ -25,7 +25,7 @@
 
     // «Фильтр (n)»: правила модалки (наличие КП считается, когда отличается
     // от значения по умолчанию) и строка поиска
-    $rules_count = collect(['stage', 'manager', 'country', 'customer'])
+    $rules_count = collect(['stage', 'manager', 'country', 'customer', 'partner'])
             ->filter(fn($key) => !empty($params[$key]))
             ->count()
         + ($params['q'] !== '' ? 1 : 0)
