@@ -386,7 +386,7 @@
                                $platforms_count = $variant->proposal_platforms()->where('count', '>', 0)->count();
                            @endphp
                            <tr>
-                               <td class="ps-9 py-3 fs-6">
+                               <td class="ps-9 py-3 fs-6 fw-semibold">
                                    @if($platforms_count > 1)
                                        {{ __('proposal_pdf.proposal_platform_group_title') }}
                                    @else
@@ -409,8 +409,8 @@
                            @if($platforms_count > 1)
                                @foreach($variant->proposal_platforms as $platform)
                                    <tr>
-                                       <td class="ps-5 fs-2 py-2">
-                                            <span class="ps-5">
+                                       <td class="ps-5 fs-7 py-2 text-gray-700">
+                                            <span class="ps-10">
                                                 @if(\Illuminate\Support\Str::contains($platform->description, 'платформа'))
                                                     {{ __('proposal_pdf.proposal_platform') }}
                                                 @else
@@ -418,7 +418,7 @@
                                                 @endif
                                             </span>
                                        </td>
-                                       <td class="text-end py-2 fs-1">
+                                       <td class="text-end py-2 fs-7 text-gray-700">
                                            @php
                                                $raw_cost = $platform->cost;
                                                $customer_discount = $raw_cost / 100 * $platform->discount;
@@ -426,17 +426,17 @@
                                            @endphp
                                            {!! cost_out($client_cost * $platform->count, $proposal) !!}
                                        </td>
-                                       <td class="text-end py-2 fs-1">
+                                       <td class="text-end py-2 fs-7 text-gray-700">
                                            @php
                                                $partner_discount = $client_cost / 100 * $variant->platform_discount_partner_p;
                                                $partner_cost = ($client_cost - $partner_discount);
                                            @endphp
                                            {!! cost_out($partner_cost * $platform->count, $proposal) !!}
                                        </td>
-                                       <td class="text-end py-2 fs-1">
+                                       <td class="text-end py-2 fs-7 text-gray-700">
                                            {!! cost_out($platform->nds, $proposal) !!}
                                        </td>
-                                       <td class="text-end py-2 fs-1">
+                                       <td class="text-end py-2 fs-7 text-gray-700">
                                            {!! cost_out($partner_cost * $platform->count + $platform->nds, $proposal) !!}
                                        </td>
                                    </tr>
@@ -447,7 +447,7 @@
                        @if(!empty($variant->neuro_cost_total))
                            @php  $total_cost_client += $variant->neuro_discount_customer; @endphp
                            <tr>
-                               <td class="ps-9 py-3 fs-6">{{ __('proposal_pdf.proposal_neuro') }}</td>
+                               <td class="ps-9 py-3 fs-6 fw-semibold">{{ __('proposal_pdf.proposal_neuro') }}</td>
                                <td class="text-end py-2 fs-6">
                                    {!! cost_out($variant->neuro_discount_customer, $proposal) !!}
                                </td>
@@ -504,7 +504,7 @@
                                     });
                                 @endphp
                                 <tr>
-                                    <td class="ps-9 py-3 fs-6">
+                                    <td class="ps-9 py-3 fs-6 fw-semibold">
                                         {{
                                             \Illuminate\Support\Facades\Lang::has("proposal_pdf.$group_name")
                                             ? __("proposal_pdf.$group_name")
@@ -692,7 +692,7 @@
                                             {!! cost_out(round($software->cost), $proposal) !!}
                                         </nobr>
                                         @if(round($software->discount) > 0)
-                                            <div class="text-danger fs-1">
+                                            <div class="text-danger fs-9">
                                                 &ndash;&nbsp;{!! cost_out(round($software->cost - ($software->total / $software->count), 2), $proposal) !!}
                                             </div>
                                         @endif
@@ -720,7 +720,7 @@
                                     {!! $software->proposal_software->notice !!}
                                 </div>
                                 @if($software->discount)
-                                    <div class="text-danger fs-1">
+                                    <div class="text-danger fs-9">
                                         {{ __('proposal_pdf.discount_label') }}
                                     </div>
                                 @endif
@@ -778,7 +778,7 @@
                                 </div>
 
                                 @if($platform->discount > 0)
-                                    <div class="text-danger fs-1">
+                                    <div class="text-danger fs-9">
                                         {{ __('proposal_pdf.client_discount_label') }} {{ $platform->discount }}%
                                     </div>
                                 @endif
@@ -835,7 +835,7 @@
                                 </div>
 
                                 @if($scenario->discount > 0)
-                                    <div class="text-danger fs-1">
+                                    <div class="text-danger fs-9">
                                         {{ __('proposal_pdf.client_discount_label') }} {{ $scenario->discount }}%
                                     </div>
                                 @endif
@@ -902,7 +902,7 @@
                                     {!! $work->proposal_work->notice !!}
                                 </div>
                                 @if($work->discount_customer > 0)
-                                    <div class="text-danger fs-1">
+                                    <div class="text-danger fs-9">
                                         {{ __('proposal_pdf.client_discount_label') }} {{ $work->discount_customer }}%
                                     </div>
                                 @endif

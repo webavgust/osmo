@@ -222,10 +222,14 @@ class ProposalExcelService
 
                 $final = $price - $customer - $partner;
 
-                $totals['list'] += $price * $count;
-                $totals['customer'] += $customer * $count;
-                $totals['partner'] += $partner * $count;
-                $totals['total'] += $final * $count;
+                // неактивная позиция выводится (если попросили), но в итог не идёт — как в КП и PDF
+                $processed = static::processed($item);
+                if ($processed) {
+                    $totals['list'] += $price * $count;
+                    $totals['customer'] += $customer * $count;
+                    $totals['partner'] += $partner * $count;
+                    $totals['total'] += $final * $count;
+                }
 
                 if ($client) {
                     // заказчику показываем цену со его скидкой, партнёрскую не раскрываем
@@ -237,6 +241,11 @@ class ProposalExcelService
 
                 foreach ($values as $i => $value) {
                     $sheet->setCellValue(chr(ord('A') + $i) . $row, $value);
+                }
+                // жёлтая строка — как bg-light-warning в PDF
+                if (!$processed) {
+                    $sheet->getStyle('A' . $row . ':' . $last . $row)->getFill()
+                        ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('FFF8DD');
                 }
                 $row++;
             }
