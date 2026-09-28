@@ -108,7 +108,14 @@
         function save() {
             if (!box_check_form()) return;
 
-            $("#generate").submit();
+            // POST-форма в новое окно: встроенный браузер приложения окон не открывает и
+            // превращал отправку в GET той же вкладки — маршрут GET уводит на карточку КП,
+            // и PDF «не открывался». Окно открываем сами по клику; не открылось — отправляем
+            // в текущую вкладку тем же POST
+            var form = document.getElementById('generate');
+            var win = window.open('', 'proposal_pdf');
+            form.target = win ? 'proposal_pdf' : '_self';
+            form.submit();
         }
 
 

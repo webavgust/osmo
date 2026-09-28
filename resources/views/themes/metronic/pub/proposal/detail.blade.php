@@ -56,6 +56,12 @@
         table#table-summary p + p {
             margin-top: 1rem;
         }
+        /* списки в комментариях — по левому краю: в центрированной ячейке точки
+           оставались слева, а строки уезжали к центру */
+        table#table-summary td ul,
+        table#table-summary td ol {
+            text-align: left;
+        }
         .textarea p {
             white-space: normal !important;
         }

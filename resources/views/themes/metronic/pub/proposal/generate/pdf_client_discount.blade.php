@@ -81,6 +81,12 @@
             border-left: 1px solid #BAC7E1;
             border-top: 1px solid #BAC7E1;
         }
+        /* списки в комментариях — по левому краю: в центрированной ячейке точки
+           оставались слева, а строки уезжали к центру */
+        table#table-summary td ul,
+        table#table-summary td ol {
+            text-align: left;
+        }
         table#table-summary tr td:last-of-type,
         table#table-summary tr th:last-of-type
         {
@@ -678,7 +684,7 @@
                         <tr @class(["bg-light-warning text-warning" => !$software->proposal_software->cb_process])>
                         <td class="text-center align-center">{{ $i }}
                             </td>
-                            <td @class(["align-center text-wrap fs-3 textarea", "text-warning" => !$software->proposal_software->cb_process])>{!! $software->proposal_software->description !!}</td>
+                            <td @class(["align-center text-wrap", "text-warning" => !$software->proposal_software->cb_process])>{!! $software->proposal_software->description !!}</td>
                             <td class="align-center text-center">
                                 <div>
                                     @if($software->count > 0)
@@ -687,8 +693,7 @@
                                         </nobr>
                                         @if(round($software->discount) > 0)
                                             <div class="text-danger fs-1">
-                                                &ndash;
-                                                {!! cost_out(round($software->cost - ($software->total / $software->count), 2), $proposal) !!}
+                                                &ndash;&nbsp;{!! cost_out(round($software->cost - ($software->total / $software->count), 2), $proposal) !!}
                                             </div>
                                         @endif
                                     @else
@@ -710,7 +715,7 @@
                                         {!! cost_out($sum, $proposal) !!}
                                     </nobr></div>
                             </td>
-                            <td class="align-center fs-3 text-center textarea">
+                            <td class="align-center text-center text-wrap">
                                 <div style="min-height: 21px; color: rgb(103, 117, 124); font-size: 14px;">
                                     {!! $software->proposal_software->notice !!}
                                 </div>
@@ -859,7 +864,7 @@
                             @endphp
                         <tr @class(["bg-light-warning text-warning" => !$work->proposal_work->cb_process])>
                             <td class="text-center align-center">{{ $i }}</td>
-                            <td @class(["align-center text-wrap fs-3 textarea", "text-warning" => !$work->proposal_work->cb_process])>{!! $work->proposal_work->description !!} </td>
+                            <td @class(["align-center text-wrap", "text-warning" => !$work->proposal_work->cb_process])>{!! $work->proposal_work->description !!} </td>
                             <td @class(["align-center text-center", "text-warning" => !$work->proposal_work->cb_process])>
                                 <div>
                                     @if($work->cost_discount)
@@ -892,7 +897,7 @@
                                 @endif
                             </td>
 
-                            <td @class(["align-center text-wrap fs-3 text-center textarea", "text-warning" => !$work->proposal_work->cb_process])>
+                            <td @class(["align-center text-wrap text-center", "text-warning" => !$work->proposal_work->cb_process])>
                                 <div style="min-height: 21px; color: rgb(103, 117, 124); font-size: 14px;">
                                     {!! $work->proposal_work->notice !!}
                                 </div>
