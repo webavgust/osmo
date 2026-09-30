@@ -73,6 +73,8 @@ class CrmDealRegistryService
         'customer' => [],
         'partner' => [],
         'q' => '',
+        // «Все сделки»: не отсекать по дате создания (since()); '1' — включено
+        'all_dates' => '',
     ];
 
     /**
@@ -150,6 +152,7 @@ class CrmDealRegistryService
             'customer' => static::listOf($input['customer'] ?? []),
             'partner' => static::listOf($input['partner'] ?? []),
             'q' => trim((string) ($input['q'] ?? '')),
+            'all_dates' => !empty($input['all_dates']) ? '1' : '',
         ];
     }
 
@@ -268,8 +271,12 @@ class CrmDealRegistryService
                 'crm_deal_uf.uf_crm_1725019324602 as amount_platform',
                 // страна получения средств — поле компании, а не сделки
                 $country_field . ' as country',
-            ])
-            ->where('crm_deal.date_create', '>=', static::since());
+            ]);
+
+        // по умолчанию — сделки с since(); галочка «Все сделки» снимает отсечку
+        if ($params['all_dates'] !== '1') {
+            $builder->where('crm_deal.date_create', '>=', static::since());
+        }
 
         if ($partner) {
             $builder->whereIn('crm_deal.company_id', $company_ids);

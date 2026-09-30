@@ -29,7 +29,8 @@
             ->filter(fn($key) => !empty($params[$key]))
             ->count()
         + ($params['q'] !== '' ? 1 : 0)
-        + ($params['has_proposal'] !== $defaults['has_proposal'] ? 1 : 0);
+        + ($params['has_proposal'] !== $defaults['has_proposal'] ? 1 : 0)
+        + ($params['all_dates'] === '1' ? 1 : 0);
 @endphp
 
 <button type="button" class="btn btn-light-info"

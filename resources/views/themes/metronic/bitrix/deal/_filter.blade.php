@@ -135,14 +135,29 @@
                         </div>
                     @endif
 
+                    {{-- «Все сделки»: без отсечки по дате создания (consts.bitrix_deals_since) --}}
+                    <div class="row mb-5">
+                        <div class="col-sm-9 offset-sm-3">
+                            <label class="form-check form-switch form-check-custom form-check-solid">
+                                <input class="form-check-input" type="checkbox" name="all_dates" value="1"
+                                       @checked($params['all_dates'] === '1')/>
+                                <span class="form-check-label fw-semibold text-gray-800">
+                                    Все сделки, включая созданные до
+                                    {{ \Carbon\Carbon::parse($service::since())->format('d.m.Y') }}
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
                     <div class="separator separator-dashed my-8"></div>
 
                     <div class="row">
                         <label class="col-sm-3 col-form-label fw-semibold text-sm-end">Что показываем</label>
                         <div class="col-sm-9">
                             <div class="form-text mt-3">
-                                Сделки с
-                                {{ \Carbon\Carbon::parse($service::since())->format('d.m.Y') }}@switch($mode)
+                                {{ $params['all_dates'] === '1'
+                                    ? 'Все сделки'
+                                    : 'Сделки с ' . \Carbon\Carbon::parse($service::since())->format('d.m.Y') }}@switch($mode)
                                     @case($service::MODE_PROJECTS), у которых есть действующий проект@break
                                     @case($service::MODE_ARCHIVE), проект которых отправлен в архив@break
                                     @default; по умолчанию — те, к которым ещё не привязано КП

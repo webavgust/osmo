@@ -12,6 +12,7 @@
         {{-- текущий отбор страницы уходит в выгрузку как есть --}}
         <input type="hidden" name="has_proposal" value="{{ $params['has_proposal'] }}"/>
         <input type="hidden" name="q" value="{{ $params['q'] }}"/>
+        <input type="hidden" name="all_dates" value="{{ $params['all_dates'] }}"/>
         <input type="hidden" name="mode" value="{{ $mode ?? 'all' }}"/>
         @foreach(['stage', 'manager', 'country', 'customer', 'partner'] as $field)
             @foreach($params[$field] as $value)
