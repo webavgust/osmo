@@ -6,15 +6,25 @@
     @php
         function cost_out($amount, \App\Modules\Pub\Proposal\Models\Proposal $proposal) {
             if(!$amount) return '-';
-            $amount = round($amount);
 
             if(!$proposal->isForeignCurrency) {
-                return '<nobr>' . tools()->cost_normalize($amount) . ' ' . $proposal->currency->symbol . '</nobr>';
+                return '<nobr>' . tools()->cost_normalize(round($amount)) . ' ' . $proposal->currency->symbol . '</nobr>';
             } else {
-                return '<nobr>' . $proposal->currency->symbol . ' ' . tools()->cost_normalize($amount, separator: ',') . '.00</nobr>';
+                // в валюте центы настоящие: цена за единицу бывает дробной (0.89 $ за час), «.00» к округлённому врёт
+                return '<nobr>' . $proposal->currency->symbol . ' ' . number_format(round($amount, 2), 2, '.', ',') . '</nobr>';
+            }
+        }
+        // количество: дробное (312,5 часа) не округляем
+        if(!function_exists('count_out')) {
+            function count_out($count, \App\Modules\Pub\Proposal\Models\Proposal $proposal) {
+                if(!(float) $count) return '-';
+                $delim = ($proposal->isForeignCurrency || app()->getLocale() !== 'ru') ? '.' : ',';
+                return tools()->cost_normalize($count, $delim, precision: 2);
             }
         }
         $cur_symbol = $proposal->currency->symbol;
+        // в валютном КП заголовки колонок не должны говорить «руб.»
+        $tr_money = fn(string $key) => $proposal->isForeignCurrency ? str_replace('РУБ.', $cur_symbol, __($key)) : __($key);
     @endphp
 
     <link rel="stylesheet" type="text/css" href="/assets/libs/quill/dist/quill.snow.css"/>
@@ -288,6 +298,8 @@
                 @foreach($variants as $variant)
                     @php
                         $total_cost_client = 0;
+                        // числа строк из позиций: строки блока в сумме дают итог блока карточки
+                        $fig = \App\Modules\Pub\ProposalTools\Services\ProposalFigures::variant($variant);
 
                         $has_customer_discount =
                             ($variant->proposal_platforms->isNotEmpty() && $variant->proposal_platforms?->where('discount', '>', 0)->count() > 0) ||
@@ -332,12 +344,12 @@
                         </th>
                     </tr>
 
-                    @if(!empty($variant->soft_cost_total))
-                           @php  $total_cost_client += $variant->soft_discount_customer; @endphp
+                    @if($fig['blocks']['soft']['active'])
+                           @php  $total_cost_client += $fig['blocks']['soft']['client']; @endphp
                         <tr>
                             <td>{{ __('proposal_pdf.proposal_soft') }}</td>
                             <td class="text-end">
-                                {!! cost_out($variant->soft_discount_customer, $proposal) !!}
+                                {!! cost_out($fig['blocks']['soft']['client'], $proposal) !!}
                             </td>
                             <td class="text-end">
                                 {!! cost_out($variant->soft_cost_total, $proposal) !!}
@@ -351,11 +363,11 @@
                         </tr>
                     @endif
 
-                    @if($variant->platform_cost_total || $variant->neuro_cost_total)
+                    @if($fig['blocks']['platform']['active'] || $fig['blocks']['neuro']['active'])
                             <tr class="fw-bold">
                                 <td>{{ __('proposal_pdf.proposal_software_group') }}</td>
                                 <td class="text-end">
-                                    {!! cost_out($variant->platform_discount_customer + $variant->neuro_discount_customer, $proposal) !!}
+                                    {!! cost_out($fig['blocks']['platform']['client'] + $fig['blocks']['neuro']['client'], $proposal) !!}
                                 </td>
                                 <td class="text-end">
                                     {!! cost_out($variant->platform_cost_total + $variant->neuro_cost_total, $proposal) !!}
@@ -368,10 +380,10 @@
                                 </td>
                             </tr>
                     @endif
-                    @if(!empty($variant->platform_cost_total))
+                    @if($fig['blocks']['platform']['active'])
                            @php
-                               $total_cost_client += $variant->platform_discount_customer;
-                               $platforms_count = $variant->proposal_platforms()->where('count', '>', 0)->count();
+                               $total_cost_client += $fig['blocks']['platform']['client'];
+                               $platforms_count = $fig['blocks']['platform']['active'];
                            @endphp
 
                         <tr>
@@ -383,7 +395,7 @@
                                 @endif
                             </td>
                             <td class="text-end py-2 fs-6">
-                                {!! cost_out($variant->platform_discount_customer, $proposal) !!}
+                                {!! cost_out($fig['blocks']['platform']['client'], $proposal) !!}
                             </td>
                             <td class="text-end py-2 fs-6">
                                 {!! cost_out($variant->platform_cost_total, $proposal) !!}
@@ -398,6 +410,9 @@
 
                             @if($platforms_count > 1)
                                 @foreach($variant->proposal_platforms as $platform)
+                                    {{-- в разбивке только позиции, вошедшие в итог платформы --}}
+                                    @php $r = $fig['rows']['platform:' . $platform->id] ?? null; @endphp
+                                    @continue(!$r || !$r['processed'])
                                     <tr>
                                         <td class="ps-5 fs-7 py-2 text-gray-700">
                                             <span class="ps-10">
@@ -409,36 +424,27 @@
                                             </span>
                                         </td>
                                         <td class="text-end py-2 fs-7 text-gray-700">
-                                            @php
-                                                $raw_cost = $platform->cost;
-                                                $customer_discount = $raw_cost / 100 * $platform->discount;
-                                                $client_cost = $raw_cost - $customer_discount;
-                                            @endphp
-                                            {!! cost_out($client_cost * $platform->count, $proposal) !!}
+                                            {!! cost_out($r['client_out'], $proposal) !!}
                                         </td>
                                         <td class="text-end py-2 fs-7 text-gray-700">
-                                            @php
-                                                $partner_discount = $client_cost / 100 * $variant->platform_discount_partner_p;
-                                                $partner_cost = ($client_cost - $partner_discount);
-                                            @endphp
-                                            {!! cost_out($partner_cost * $platform->count, $proposal) !!}
+                                            {!! cost_out($r['final_out'], $proposal) !!}
                                         </td>
                                         <td class="text-end py-2 fs-7 text-gray-700">
-                                            {!! cost_out($platform->nds, $proposal) !!}
+                                            {!! cost_out($r['nds_out'], $proposal) !!}
                                         </td>
                                         <td class="text-end py-2 fs-7 text-gray-700">
-                                            {!! cost_out($partner_cost * $platform->count + $platform->nds, $proposal) !!}
+                                            {!! cost_out($r['final_out'] + $r['nds_out'], $proposal) !!}
                                         </td>
                                     </tr>
                                 @endforeach
                             @endif
                     @endif
-                    @if(!empty($variant->neuro_cost_total))
-                           @php  $total_cost_client += $variant->neuro_discount_customer; @endphp
+                    @if($fig['blocks']['neuro']['active'])
+                           @php  $total_cost_client += $fig['blocks']['neuro']['client']; @endphp
                         <tr>
                             <td class="ps-9 py-3 fs-6 fw-semibold">{{ __('proposal_pdf.proposal_neuro') }}</td>
                             <td class="text-end py-2 fs-6">
-                                {!! cost_out($variant->neuro_discount_customer, $proposal) !!}
+                                {!! cost_out($fig['blocks']['neuro']['client'], $proposal) !!}
                             </td>
                             <td class="text-end py-2 fs-6">
                                 {!! cost_out($variant->neuro_cost_total, $proposal) !!}
@@ -451,19 +457,20 @@
                             </td>
                         </tr>
                     @endif
-                    @if(!empty($variant->work_cost_total))
+                    @if($fig['blocks']['work']['active'])
                         @php
                             $groups = collect();
                             $block_total = 0;
                             foreach($variant->proposal_works as $pw) {
-                                if(!$pw->proposal_work->cb_process) continue;
+                                // группа из одних нулевых позиций — строка прочерков, её не выводим
+                                if(!$pw->proposal_work->cb_process || empty($fig['rows']['work:' . $pw->id])) continue;
 
                                 $group = $pw->proposal_work->group ?? 'Без группы';
                                 if(empty($groups[$group])) $groups[$group] = collect();
                                 $groups[$group]->push($pw);
                             }
 
-                            $block_total = $variant->work_cost_total_base - $variant->work_discount_customer;
+                            $block_total = $fig['blocks']['work']['client'];
 //                             foreach($groups as $group_name => $works) {
 //                                $block_total += $works->sum(function($instance) {
 //                                    return $instance->count * $instance->cost - $instance->discount;
@@ -493,17 +500,10 @@
                             @foreach($groups as $group_name => $works)
                                 @php
 
-                                    $group_cost_total = $works->sum(function($work) {
-                                        return ($work->count * $work->cost) - $work->discount;
-                                    });
-                                    $nds = $works->sum('nds');
-
-                                    $cost_base = $works->sum(function($instance) {
-                                        $raw_cost = $instance->count * $instance->cost;
-                                        $customer_discount = $raw_cost / 100 * $instance->discount_customer;
-
-                                        return   $raw_cost - $customer_discount;
-                                    });
+                                    // группы — из строк позиций, чтобы в сумме давали итог работ
+                                    $group_cost_total = $works->sum(fn($work) => $fig['rows']['work:' . $work->id]['final_out'] ?? 0);
+                                    $nds = $works->sum(fn($work) => $fig['rows']['work:' . $work->id]['nds_out'] ?? 0);
+                                    $cost_base = $works->sum(fn($work) => $fig['rows']['work:' . $work->id]['client_out'] ?? 0);
                                 @endphp
                                 <tr>
                                     <td class="ps-9 py-3 fs-6 fw-semibold">
@@ -654,13 +654,17 @@
             </div>
 
 
+            @php
+                // числа строк из позиций: строки блока в сумме дают итог блока карточки
+                $fig = \App\Modules\Pub\ProposalTools\Services\ProposalFigures::variant($variant);
+            @endphp
             <table id="table-summary" class="table no-wrap w-100" keep="main_table">
                 <tr class="caption">
                     <th class="text-center text-dark fw-bold fs-7 p-1" valign="top" width="30">№</th>
                     <th class="text-center text-dark fw-bold fs-7 p-1" valign="top">{{ __('proposal_pdf.tr_name') }}</th>
-                    <th class="text-center text-dark fw-bold fs-7 p-1" valign="top">{{ __('proposal_pdf.tr_price') }}</th>
+                    <th class="text-center text-dark fw-bold fs-7 p-1" valign="top">{{ $tr_money('proposal_pdf.tr_price') }}</th>
                     <th class="text-center text-dark fw-bold fs-7 p-1" valign="top">{{ __('proposal_pdf.tr_count') }}</th>
-                    <th class="text-center text-dark fw-bold fs-7 p-1" valign="top">{{ __('proposal_pdf.tr_total') }}</th>
+                    <th class="text-center text-dark fw-bold fs-7 p-1" valign="top">{{ $tr_money('proposal_pdf.tr_total') }}</th>
                     <th class="text-center text-dark fw-bold fs-7 p-1" valign="top">{{ __('proposal_pdf.tr_remark') }}</th>
                 </tr>
 
@@ -681,6 +685,7 @@
                         @continue(!$software->count)
                         @php
                             $i++;
+                            $r = $fig['rows']['soft:' . $software->id];
                         @endphp
                         <tr @class(["bg-light-warning text-warning" => !$software->proposal_software->cb_process])>
                         <td class="text-center align-center">{{ $i }}
@@ -690,11 +695,11 @@
                                 <div>
                                     @if($software->count > 0)
                                         <nobr>
-                                            {!! cost_out(round($software->cost), $proposal) !!}
+                                            {!! cost_out($software->cost, $proposal) !!}
                                         </nobr>
                                         @if(round($software->discount) > 0)
                                             <div class="text-danger fs-9">
-                                                &ndash;&nbsp;{!! cost_out(round($software->cost - ($software->total / $software->count), 2), $proposal) !!}
+                                                &ndash;&nbsp;{!! cost_out($r['cost'] - $r['final_out'] / $r['count'], $proposal) !!}
                                             </div>
                                         @endif
                                     @else
@@ -703,15 +708,15 @@
                                 </div>
                             </td>
                             <td class="align-center text-center"><nobr>
-                                    {{ $software->count ? tools()->cost_normalize($software->count) : '-' }}
+                                    {{ count_out($software->count, $proposal) }}
                                 </nobr></td>
                             <td class="align-center text-center">
                                 <div><nobr>
-                                        {!! cost_out(round($software->total), $proposal) !!}
+                                        {!! cost_out($r['final_out'], $proposal) !!}
                                     </nobr></div>
                             </td>
                             <td class="align-center text-center text-wrap">
-                                <div style="min-height: 21px; color: rgb(103, 117, 124); font-size: 14px;">
+                                <div style="min-height: 21px; color: rgb(103, 117, 124);">
                                     {!! $software->proposal_software->notice !!}
                                 </div>
                                 @if($software->discount)
@@ -742,27 +747,28 @@
                         @continue(!$platform->count)
                         @php
                             $i++;
+                            $r = $fig['rows']['platform:' . $platform->id];
                         @endphp
                         <tr @class(["bg-light-warning text-warning" => !$platform->cb_process])>
                             <td class="text-center">{{ $i }}</td>
                             <td class="text-wrap">{!! $platform->description !!}</td>
                             <td class="text-center">
-                                {!! cost_out(round($platform->cost), $proposal) !!}
+                                {!! cost_out($platform->cost, $proposal) !!}
 
-                                @if(round($platform->cost - $platform->cost_discount) > 0)
+                                @if(round($r['cost'] - $r['final_out'] / $r['count']) > 0)
                                     <div class="text-danger fs-9">
-                                        &ndash;&nbsp;{!! cost_out(round($platform->cost - $platform->cost_discount), $proposal) !!}
+                                        &ndash;&nbsp;{!! cost_out($r['cost'] - $r['final_out'] / $r['count'], $proposal) !!}
                                     </div>
                                 @endif
                             </td>
                             <td class="text-center">
-                                {{ $platform->count ? tools()->cost_normalize($platform->count) : '-' }}
+                                {{ count_out($platform->count, $proposal) }}
                             </td>
                             <td class="text-center">
-                                {!! cost_out($platform->cost_total, $proposal) !!}
+                                {!! cost_out($r['final_out'], $proposal) !!}
                             </td>
                             <td class="text-center text-wrap">
-                                <div style="min-height: 21px; color: rgb(103, 117, 124); font-size: 14px;">
+                                <div style="min-height: 21px; color: rgb(103, 117, 124);">
                                     @if(!empty($platform->notice))
                                         {!! $platform->notice !!}
                                     @endif
@@ -808,27 +814,28 @@
                             @continue(!$scenario->count)
                             @php
                                 $i++;
+                                $r = $fig['rows']['neuro:' . $scenario->id];
                             @endphp
                         <tr @class(["bg-light-warning text-warning" => !$scenario->cb_process])>
                             <td class="text-center">{{ $i }}</td>
                             <td class="text-wrap">{{ $scenario->mnemonic_name ?? $scenario->real_name }}</td>
                             <td class="text-center">
-                                {!! cost_out(round($scenario->cost), $proposal) !!}
+                                {!! cost_out($scenario->cost, $proposal) !!}
 
-                                @if(round($scenario->cost - $scenario->cost_discount) > 0)
+                                @if(round($r['cost'] - $r['final_out'] / $r['count']) > 0)
                                     <div class="text-danger fs-9">
-                                        &ndash;&nbsp;{!! cost_out(round($scenario->cost - $scenario->cost_discount), $proposal) !!}
+                                        &ndash;&nbsp;{!! cost_out($r['cost'] - $r['final_out'] / $r['count'], $proposal) !!}
                                     </div>
                                 @endif
                             </td>
                             <td class="text-center">
-                                {{ $scenario->count ? tools()->cost_normalize($scenario->count) : '-' }}
+                                {{ count_out($scenario->count, $proposal) }}
                             </td>
                             <td class="text-center">
-                                {!! cost_out($scenario->cost_total, $proposal) !!}
+                                {!! cost_out($r['final_out'], $proposal) !!}
                             </td>
                             <td class="text-center text-wrap">
-                                <div style="min-height: 21px; color: rgb(103, 117, 124); font-size: 14px;">
+                                <div style="min-height: 21px; color: rgb(103, 117, 124);">
                                     @if(!empty($scenario->comment))
                                         {!! $scenario->comment !!}
                                     @endif
@@ -874,6 +881,7 @@
                             @continue(!$work->count)
                             @php
                                 $i++;
+                                $r = $fig['rows']['work:' . $work->id];
                             @endphp
                         <tr @class(["bg-light-warning text-warning" => !$work->proposal_work->cb_process])>
                             <td class="text-center align-center">{{ $i }}</td>
@@ -886,34 +894,34 @@
                                         </nobr>
                                         @if(round($work->discount) > 0)
                                             <div class="text-danger fs-9">
-                                                &ndash;&nbsp;{!! cost_out(round($work->discount / $work->count, 2), $proposal) !!}
+                                                &ndash;&nbsp;{!! cost_out($r['cost'] - $r['final_out'] / $r['count'], $proposal) !!}
                                             </div>
                                         @endif
                                     @else
                                         @if($work->cost)
                                             {!! cost_out($work->cost, $proposal) !!}
                                         @else
-                                            0 ₽
+                                            {{ $proposal->isForeignCurrency ? $cur_symbol . ' 0.00' : '0 ' . $cur_symbol }}
                                         @endif
                                     @endif
                                 </div>
                             </td>
                             <td @class(["align-center text-center", "text-warning" => !$work->proposal_work->cb_process])><nobr>
-                                    {{ $work->count ? tools()->cost_normalize($work->count) : '-' }}
+                                    {{ count_out($work->count, $proposal) }}
                                 </nobr></td>
                             <td @class(["align-center text-center", "text-warning" => !$work->proposal_work->cb_process])>
                                 <div>
                                     <nobr>
-                                        @if($work->total)
-                                            {!! cost_out($work->total, $proposal) !!}
+                                        @if($r['final_out'])
+                                            {!! cost_out($r['final_out'], $proposal) !!}
                                         @else
-                                            0 ₽
+                                            {{ $proposal->isForeignCurrency ? $cur_symbol . ' 0.00' : '0 ' . $cur_symbol }}
                                         @endif
                                     </nobr>
                                 </div>
                             </td>
                             <td @class(["align-center text-wrap text-center", "text-warning" => !$work->proposal_work->cb_process])>
-                                <div style="min-height: 21px; color: rgb(103, 117, 124); font-size: 14px;">
+                                <div style="min-height: 21px; color: rgb(103, 117, 124);">
                                     {!! $work->proposal_work->notice !!}
                                 </div>
 
@@ -978,10 +986,10 @@
                     </tr>
                         @forelse($variant->hardware as $hardware)
                             <tr>
-                                <td class="text-wrap fs-3">{!! $loop->iteration !!}</td>
-                                <td class="text-wrap fs-3">{!! $hardware->name !!}</td>
-                                <td class="text-wrap fs-3">{!! $hardware->count !!}</td>
-                                <td class="text-wrap fs-3">{!! html_entity_decode($hardware->params) !!}</td>
+                                <td class="text-wrap">{!! $loop->iteration !!}</td>
+                                <td class="text-wrap">{!! $hardware->name !!}</td>
+                                <td class="text-wrap">{!! $hardware->count !!}</td>
+                                <td class="text-wrap">{!! html_entity_decode($hardware->params) !!}</td>
                             </tr>
                         @empty
                             <tr>
@@ -1015,8 +1023,8 @@
                                         {!! cost_out( $variant->final_payment , $proposal) !!}
                                     </span>
 
-                                    @if($variant->neuro_nds_cost_total || $variant->soft_nds_cost_total)
-                                        ({{ __('proposal_pdf.tax_included') }}: <span keep="final_payment_nds">{!! cost_out($variant->neuro_nds_cost_total + $variant->soft_nds_cost_total, $proposal) !!})</span>
+                                    @if($variant->platform_nds_cost_total || $variant->neuro_nds_cost_total || $variant->soft_nds_cost_total)
+                                        ({{ __('proposal_pdf.tax_included') }}: <span keep="final_payment_nds">{!! cost_out($variant->platform_nds_cost_total + $variant->neuro_nds_cost_total + $variant->soft_nds_cost_total, $proposal) !!})</span>
                                     @else
                                         ({{ __('proposal_pdf.tax_excluded_warning') }})
                                     @endif

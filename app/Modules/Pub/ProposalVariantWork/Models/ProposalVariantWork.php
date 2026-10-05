@@ -43,9 +43,15 @@ class ProposalVariantWork extends ModuleModel
         return $this->belongsTo(ProposalWork::class);
     }
 
+    /**
+     * Цена за единицу после всех скидок.
+     * discount — скидка на всю строку, поэтому делим итог строки на количество.
+     *
+     * @return float
+     */
     public function getCostDiscountAttribute()
     {
-        return round(($this->cost - $this->discount), 2);
+        return $this->count > 0 ? round($this->total / $this->count, 2) : round((float) $this->cost, 2);
     }
 
     /*** ЖУРНАЛ ИЗМЕНЕНИЙ (patch v29) ***/

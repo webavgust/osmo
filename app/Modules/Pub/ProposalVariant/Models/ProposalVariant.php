@@ -100,10 +100,16 @@ class ProposalVariant extends ModuleModel
     }
 
 
+    /**
+     * Окончательный расчёт за лицензии: ПО, платформа и нейросервисы с их НДС.
+     * С доплатами — остаток после последней (в её базу НДС платформы тоже входит).
+     *
+     * @return float|int
+     */
     public function getFinalPaymentAttribute()
     {
         if($this->extra_pays->isEmpty()) {
-            return $this->platform_cost_total + $this->soft_cost_total + $this->neuro_cost_total + $this->neuro_nds_cost_total + $this->soft_nds_cost_total;
+            return $this->platform_cost_total + $this->platform_nds_cost_total + $this->soft_cost_total + $this->neuro_cost_total + $this->neuro_nds_cost_total + $this->soft_nds_cost_total;
         } else {
             return $this->extra_pays->last()->software_end;
         }

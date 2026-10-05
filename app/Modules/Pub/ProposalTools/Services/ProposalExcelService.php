@@ -12,16 +12,14 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 /**
  * Выгрузка КП в Excel.
  *
- * Тот же расчёт, что в карточке и в PDF: процент заказчику снимается с прайса,
- * процент партнёру — с уже уменьшенной цены; у платформы, ПО и нейросервисов
- * процент партнёра общий на вариант, у работ — свой на каждой позиции.
- * Формулы повторены, а не переиспользованы из вида, чтобы выгрузка не зависела
- * от вёрстки, но цифры обязаны сходиться с PDF.
+ * Числа строк берутся из ProposalFigures — те же, что в PDF: суммы строк
+ * в целых единицах валюты и в сумме дают итоги карточки, цены за единицу
+ * выводятся из сумм строк.
  *
  * Два шаблона:
  *  - default — внутренний: видны обе скидки, прайс и итог;
  *  - client_discount — для заказчика: цена сразу со скидкой, партнёрская
- *    скидка не показывается вообще.
+ *    скидка не показывается вообще; НДС — с цены заказчика.
  *
  * Каждый выбранный вариант КП — отдельный лист.
  */
@@ -34,10 +32,10 @@ class ProposalExcelService
 
     /** Блоки в порядке вывода */
     public const BLOCKS = [
-        'platform' => ['label' => 'ПЛАТФОРМА', 'relation' => 'proposal_platforms', 'discount' => 'discount', 'partner_p' => 'platform_discount_partner_p'],
-        'soft' => ['label' => 'ПО', 'relation' => 'proposal_software', 'discount' => 'discount_customer', 'partner_p' => 'soft_discount_partner_p'],
-        'neuro' => ['label' => 'НЕЙРОСЕРВИСЫ', 'relation' => 'proposal_scenarios', 'discount' => 'discount', 'partner_p' => 'neuro_discount_partner_p'],
-        'work' => ['label' => 'РАБОТЫ', 'relation' => 'proposal_works', 'discount' => 'discount_customer', 'partner_p' => null],
+        'platform' => ['label' => 'ПЛАТФОРМА', 'relation' => 'proposal_platforms'],
+        'soft' => ['label' => 'ПО', 'relation' => 'proposal_software'],
+        'neuro' => ['label' => 'НЕЙРОСЕРВИСЫ', 'relation' => 'proposal_scenarios'],
+        'work' => ['label' => 'РАБОТЫ', 'relation' => 'proposal_works'],
     ];
 
     /**
@@ -152,8 +150,8 @@ class ProposalExcelService
     {
         $client = $template === 'client_discount';
         $columns = $client
-            ? ['№', 'Наименование', 'Цена', 'Кол-во', 'Итого', 'Примечание']
-            : ['№', 'Наименование', 'Прайс', 'Скидка заказчику', 'Скидка партнёру', 'Цена итог', 'Кол-во', 'Итого', 'Примечание'];
+            ? ['№', 'Наименование', 'Цена', 'Кол-во', 'Итого', 'НДС', 'Итого с НДС', 'Примечание']
+            : ['№', 'Наименование', 'Прайс', 'Скидка заказчику', 'Скидка партнёру', 'Цена итог', 'Кол-во', 'Итого', 'НДС', 'Итого с НДС', 'Примечание'];
 
         $last = chr(ord('A') + count($columns) - 1);
         $symbol = $proposal->currency->symbol ?? '';
@@ -179,13 +177,16 @@ class ProposalExcelService
         $sheet->getStyle('A' . $row)->getFont()->setSize(10);
         $row += 2;
 
-        $totals = ['list' => 0.0, 'customer' => 0.0, 'partner' => 0.0, 'total' => 0.0];
+        $totals = ['list' => 0.0, 'customer' => 0.0, 'partner' => 0.0, 'total' => 0.0, 'nds' => 0.0, 'client' => 0.0, 'client_nds' => 0.0];
+        // числа строк — те же, что в PDF: суммы строк блока дают итог блока карточки
+        $figures = ProposalFigures::variant($variant);
+        $money = [];
 
         foreach (static::BLOCKS as $code => $block) {
             $items = $variant->{$block['relation']} ?? collect();
-            $items = $items->filter(fn($item) => (float) ($item->count ?? 0) > 0);
+            $items = $items->filter(fn($item) => isset($figures['rows'][$code . ':' . $item->id]));
             if (!$show_unprocessed) {
-                $items = $items->filter(fn($item) => static::processed($item));
+                $items = $items->filter(fn($item) => $figures['rows'][$code . ':' . $item->id]['processed']);
             }
             if ($items->isEmpty()) continue;
 
@@ -209,39 +210,38 @@ class ProposalExcelService
             $number = 0;
             foreach ($items as $item) {
                 $number++;
-                $count = (float) $item->count;
-                $price = (float) ($item->cost ?? 0);
+                $figure = $figures['rows'][$code . ':' . $item->id];
+                $count = $figure['count'];
 
-                $pct_customer = (float) ($item->{$block['discount']} ?? 0);
-                $customer = $pct_customer > 0 ? $price / 100 * $pct_customer : 0.0;
-
-                $pct_partner = $block['partner_p']
-                    ? (float) ($variant->{$block['partner_p']} ?? 0)
-                    : (float) ($item->discount_partner ?? 0);
-                $partner = $pct_partner > 0 ? ($price - $customer) / 100 * $pct_partner : 0.0;
-
-                $final = $price - $customer - $partner;
+                // суммы строки — в целых единицах, как в PDF; цены за единицу выводятся из них
+                $customer = $figure['list_out'] - $figure['client_out'];
+                $partner = $figure['client_out'] - $figure['final_out'];
 
                 // неактивная позиция выводится (если попросили), но в итог не идёт — как в КП и PDF
-                $processed = static::processed($item);
+                $processed = $figure['processed'];
                 if ($processed) {
-                    $totals['list'] += $price * $count;
-                    $totals['customer'] += $customer * $count;
-                    $totals['partner'] += $partner * $count;
-                    $totals['total'] += $final * $count;
+                    $totals['list'] += $figure['list_out'];
+                    $totals['customer'] += $customer;
+                    $totals['partner'] += $partner;
+                    $totals['total'] += $figure['final_out'];
+                    $totals['nds'] += $figure['nds_out'];
+                    $totals['client'] += $figure['client_out'];
+                    $totals['client_nds'] += $figure['client_nds_out'];
                 }
 
                 if ($client) {
-                    // заказчику показываем цену со его скидкой, партнёрскую не раскрываем
-                    $price_out = $price - $customer;
-                    $values = [$number, static::name($code, $item), $price_out, $count, $price_out * $count, static::notice($code, $item)];
+                    // заказчику — цена с его скидкой и НДС с неё же, партнёрскую не раскрываем
+                    $values = [$number, static::name($code, $item), $figure['client_out'] / $count, $count, $figure['client_out'],
+                        $figure['client_nds_out'] ?: null, $figure['client_out'] + $figure['client_nds_out'], static::notice($code, $item)];
                 } else {
-                    $values = [$number, static::name($code, $item), $price, $customer ?: null, $partner ?: null, $final, $count, $final * $count, static::notice($code, $item)];
+                    $values = [$number, static::name($code, $item), $figure['cost'], $customer ? $customer / $count : null, $partner ? $partner / $count : null,
+                        $figure['final_out'] / $count, $count, $figure['final_out'], $figure['nds_out'] ?: null, $figure['final_out'] + $figure['nds_out'], static::notice($code, $item)];
                 }
 
                 foreach ($values as $i => $value) {
                     $sheet->setCellValue(chr(ord('A') + $i) . $row, $value);
                 }
+                $money[] = $row;
                 // жёлтая строка — как bg-light-warning в PDF
                 if (!$processed) {
                     $sheet->getStyle('A' . $row . ':' . $last . $row)->getFill()
@@ -258,14 +258,26 @@ class ProposalExcelService
         $sheet->getStyle('A' . $row)->getFont()->setBold(true);
 
         if ($client) {
-            $sheet->setCellValue('E' . $row, $totals['list'] - $totals['customer']);
-            $sheet->getStyle('E' . $row)->getFont()->setBold(true);
+            $sheet->setCellValue('E' . $row, $totals['client']);
+            $sheet->setCellValue('F' . $row, $totals['client_nds']);
+            $sheet->setCellValue('G' . $row, $totals['client'] + $totals['client_nds']);
+            $sheet->getStyle('E' . $row . ':G' . $row)->getFont()->setBold(true);
         } else {
             $sheet->setCellValue('C' . $row, $totals['list']);
             $sheet->setCellValue('D' . $row, $totals['customer']);
             $sheet->setCellValue('E' . $row, $totals['partner']);
             $sheet->setCellValue('H' . $row, $totals['total']);
+            $sheet->setCellValue('I' . $row, $totals['nds']);
+            $sheet->setCellValue('J' . $row, $totals['total'] + $totals['nds']);
             $sheet->getStyle('C' . $row . ':' . $last . $row)->getFont()->setBold(true);
+        }
+
+        // деньги — с разрядами и копейками; количество не трогаем, оно бывает дробным
+        $money[] = $row;
+        foreach ($money as $money_row) {
+            foreach ($client ? ['C', 'E', 'F', 'G'] : ['C', 'D', 'E', 'F', 'H', 'I', 'J'] as $letter) {
+                $sheet->getStyle($letter . $money_row)->getNumberFormat()->setFormatCode('#,##0.00');
+            }
         }
         $row += 2;
 
@@ -328,25 +340,6 @@ class ProposalExcelService
         };
 
         return static::plain($raw);
-    }
-
-    /**
-     * Позиция обработана (не помечена как неактивная)
-     *
-     * @param mixed $item
-     * @return bool
-     */
-    protected static function processed($item): bool
-    {
-        foreach (['cb_process'] as $field) {
-            if (isset($item->{$field})) return (bool) $item->{$field};
-        }
-
-        // у ПО признак лежит на справочной записи
-        if (isset($item->proposal_software)) return (bool) ($item->proposal_software->cb_process ?? true);
-        if (isset($item->proposal_work)) return (bool) ($item->proposal_work->cb_process ?? true);
-
-        return true;
     }
 
     /**
