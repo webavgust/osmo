@@ -5,6 +5,8 @@
     - высота ≥3: шапка (название, стадия значком на ширине ≥6, «↗» шире 170 px), плитки «сумма» и
       (ширина ≥6) «квартал плана», поля строками в .desk-fit — стадия и квартал (ширина 2–5),
       партнёр, заказчик, ответственный, КП, проект; в узком блоке подпись над значением;
+    - КП у сделки несколько (patch v43): номера через запятую — в узком блоке первый, шире до трёх,
+      остальное «+N» с подсказкой списком; полный список — в title строки;
     - высота ≥6 (dh lg|xl): + лестница стадий воронки с текущей стадией (подгон прячет её первой),
       на ширине ≥12 — отдельной колонкой справа. Стили — osmo-desktop-widgets/funnel-1.css.
 --}}
@@ -46,9 +48,23 @@
     }
     $fields[] = ['label' => 'ответственный', 'text' => $data['manager'] ?: '—', 'title' => $data['manager'] ?: 'не указан'];
     if ($settings['links']) {
-        $fields[] = $data['proposal'] !== ''
-            ? ['label' => 'КП', 'text' => $data['proposal'], 'title' => $data['proposal'], 'href' => $href($data['proposal_url'])]
-            : ['label' => 'КП', 'text' => 'не привязано', 'title' => 'К сделке не привязано КП', 'muted' => true];
+        // patch v43: КП сделки может быть несколько; в старом кэше списка нет — тогда одно КП
+        $proposals = $data['proposals'] ?? [];
+        if (count($proposals) > 1) {
+            $shown = array_slice($proposals, 0, $narrow ? 1 : 3);
+            $rest = array_slice($proposals, count($shown));
+            $fields[] = [
+                'label' => 'КП',
+                'title' => 'КП сделки: ' . implode('; ', array_map(fn($row) => '№ ' . $row['number'] . ' · ' . $row['name'], $proposals)),
+                'items' => array_map(fn($row) => ['text' => $row['number'], 'title' => '№ ' . $row['number'] . ' · ' . $row['name'], 'href' => $href($row['url'])], $shown),
+                'more' => $rest ? '+' . count($rest) : '',
+                'more_title' => implode('; ', array_map(fn($row) => '№ ' . $row['number'] . ' · ' . $row['name'], $rest)),
+            ];
+        } else {
+            $fields[] = $data['proposal'] !== ''
+                ? ['label' => 'КП', 'text' => $data['proposal'], 'title' => $data['proposal'], 'href' => $href($data['proposal_url'])]
+                : ['label' => 'КП', 'text' => 'не привязано', 'title' => 'К сделке не привязано КП', 'muted' => true];
+        }
         $fields[] = $data['project'] !== ''
             ? ['label' => 'проект', 'text' => $data['project'], 'title' => $data['project'], 'href' => $box($data['project_url'])]
             : ['label' => 'проект', 'text' => 'нет', 'title' => 'По сделке не заведён проект', 'muted' => true];
@@ -111,7 +127,15 @@
                 @foreach($fields as $field)
                     <li title="{{ $field['title'] }}">
                         <span class="desk-label desk-nowrap flex-shrink-0" title="{{ $field['label'] }}">{{ $field['label'] }}</span>
-                        @if(!empty($field['href']))
+                        @if(!empty($field['items']))
+                            {{-- несколько КП: номера ссылками, не влезшие — «+N» --}}
+                            <span class="desk-grow text-end">
+                                @foreach($field['items'] as $item)<a href="{{ $item['href'] }}" class="desk-link text-hover-primary" title="{{ $item['title'] }}">{{ $item['text'] }}</a>{{ $loop->last ? '' : ', ' }}@endforeach
+                                @if($field['more'] !== '')
+                                    <span class="desk-muted text-nowrap" title="{{ $field['more_title'] }}">{{ $field['more'] }}</span>
+                                @endif
+                            </span>
+                        @elseif(!empty($field['href']))
                             <a href="{{ $field['href'] }}" class="desk-link desk-grow text-end text-hover-primary">{{ $field['text'] }}</a>
                         @else
                             <span @class(['desk-grow text-end', 'desk-muted' => !empty($field['muted'])])>{{ $field['text'] }}</span>

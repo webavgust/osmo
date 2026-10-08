@@ -8,6 +8,7 @@ use App\Modules\Pub\Currency\Services\CurrencyService;
 use App\Modules\Pub\Proposal\Models\Proposal;
 use App\Modules\Pub\Proposal\Models\ProposalCrmDeal;
 use App\Modules\Pub\Proposal\Models\ProposalStatus;
+use App\Modules\Pub\Proposal\Services\ProposalDealService;
 use Illuminate\Support\Collection;
 
 /**
@@ -22,6 +23,10 @@ use Illuminate\Support\Collection;
  * а не повод пересчитать по курсу.
  *
  * Новых таблиц не нужно: читаем proposals, proposal_crm_deals и crm_deal.
+ *
+ * patch v43: сделка может быть общей у нескольких КП. Такие КП сверяются
+ * кластером (ProposalDealService::cluster()): сумма уникальных сделок кластера
+ * против суммы всех его КП; в итогах money() кластер считается один раз.
  */
 class CrmMismatchService
 {
@@ -144,14 +149,27 @@ class CrmMismatchService
 
         $deals = collect();
         $deal_ids = $links->flatten()->pluck('crm_deal_id')->unique();
+
+        // patch v43: КП, связанные общими сделками, сверяются кластером
+        $clusters = static::clusters($proposals, $deal_ids);
+        $deal_ids = $deal_ids->merge(collect($clusters)->pluck('deal_ids')->flatten())->unique();
+
         if ($deal_ids->isNotEmpty()) {
             $deals = CrmDeal::whereIn('id', $deal_ids)->get()->keyBy('id');
+        }
+
+        // сумма сделок кластера: каждая сделка один раз, сделки вне выгрузки — ноль (как у одиночного КП)
+        foreach ($clusters as $group => $cluster) {
+            $clusters[$group]['deals_total'] = (float) collect($cluster['deal_ids'])
+                ->sum(fn($id) => (float) ($deals->get($id)?->opportunity ?? 0));
+            $clusters[$group]['diff'] = $clusters[$group]['deals_total'] - $cluster['proposal_total'];
         }
 
         $rows = $proposals->map(fn($proposal) => static::check(
             $proposal,
             $links->get($proposal->group, collect()),
-            $deals
+            $deals,
+            $clusters[$proposal->group] ?? null
         ));
 
         if (!isset($params['only_issues']) || $params['only_issues']) {
@@ -168,14 +186,117 @@ class CrmMismatchService
     }
 
     /**
+     * Кластеры КП с общими сделками (patch v43)
+     *
+     * Кластер — связная компонента графа КП↔сделки (ProposalDealService::cluster()).
+     * Обход делается только для КП, у которых хотя бы одна сделка привязана ещё
+     * к другому КП; у остальных кластер — само КП, и сверка идёт как раньше.
+     *
+     * «Ведущее» КП кластера — с наименьшим id последней редакции: на нём
+     * считается расхождение в итогах, остальные КП кластера ссылаются на него.
+     *
+     * @param Collection $proposals Последние редакции КП выборки
+     * @param Collection $dealIds Сделки этих КП
+     * @return array [group => [
+     *     'key' => string — ключ кластера (группы через запятую, по возрастанию),
+     *     'groups' => [group, ...],
+     *     'members' => [{group, number, name, url, total}, ...] — КП кластера, первым ведущее,
+     *     'lead' => group ведущего КП,
+     *     'deal_ids' => [int, ...] — уникальные сделки кластера,
+     *     'truncated' => bool,
+     *     'proposal_total' => сумма последних вариантов всех КП кластера,
+     * ]] — только для КП, у которых кластер больше одного КП
+     */
+    protected static function clusters(Collection $proposals, Collection $dealIds): array
+    {
+        if ($dealIds->isEmpty()) return [];
+
+        // группы, чьи сделки привязаны больше чем к одному КП
+        $shared = ProposalCrmDeal::whereIn('crm_deal_id', $dealIds->all())
+            ->get(['proposal_group', 'crm_deal_id'])
+            ->groupBy('crm_deal_id')
+            ->filter(fn($rows) => $rows->pluck('proposal_group')->unique()->count() > 1)
+            ->flatten()
+            ->pluck('proposal_group')
+            ->unique()
+            ->flip();
+
+        $found = [];
+        foreach ($proposals as $proposal) {
+            $group = (string) $proposal->group;
+            if (!isset($shared[$group]) || isset($found[$group])) continue;
+
+            $cluster = ProposalDealService::cluster($group);
+            if (count($cluster['groups']) < 2) continue;
+
+            foreach ($cluster['groups'] as $item) {
+                $found[$item] ??= $cluster;
+            }
+        }
+
+        if (empty($found)) return [];
+
+        // КП кластеров, которых нет в выборке (другой фильтр), — догружаем
+        // toBase(): merge() у Eloquent-коллекции склеивает по id модели, а нужны ключи-группы
+        $known = $proposals->keyBy('group')->toBase();
+        $missing = array_diff(array_keys($found), $known->keys()->all());
+        if (!empty($missing)) {
+            $known = $known->merge(Proposal::query()
+                ->latestIteration()
+                ->whereIn('group', $missing)
+                ->with('variants')
+                ->get()
+                ->keyBy('group')
+                ->toBase());
+        }
+
+        $ret = [];
+        foreach ($found as $group => $cluster) {
+            $members = collect($cluster['groups'])
+                ->map(fn($item) => $known->get($item))
+                ->filter()
+                ->sortBy('id')
+                ->map(fn(Proposal $member) => [
+                    'group' => (string) $member->group,
+                    'number' => (string) ($member->number ?? ''),
+                    'name' => (string) $member->name,
+                    'url' => route('deal_card.index', $member),
+                    'total' => (float) ($member->variants->sortBy('id')->last()->cost_total ?? 0),
+                ])
+                ->values();
+
+            $groups = $cluster['groups'];
+            sort($groups);
+
+            $ret[$group] = [
+                'key' => implode(',', $groups),
+                'groups' => $cluster['groups'],
+                'members' => $members->all(),
+                'lead' => $members->first()['group'] ?? $group,
+                'deal_ids' => $cluster['deal_ids'],
+                'truncated' => $cluster['truncated'],
+                'proposal_total' => (float) $members->sum('total'),
+            ];
+        }
+
+        return $ret;
+    }
+
+    /**
      * Сверка одного КП
+     *
+     * patch v43: если сделка КП общая с другими КП ($cluster), сумма сверяется
+     * по кластеру — сумма уникальных сделок кластера против суммы всех КП кластера.
+     * Валюта, «нет в выгрузке», стадия, «нет сделки», «нет расчёта» — по своим
+     * привязкам КП, как раньше.
      *
      * @param Proposal $proposal
      * @param Collection $links
      * @param Collection $deals
+     * @param array|null $cluster Кластер КП (см. clusters()), null — КП ни с кем сделок не делит
      * @return array
      */
-    public static function check(Proposal $proposal, Collection $links, Collection $deals): array
+    public static function check(Proposal $proposal, Collection $links, Collection $deals, ?array $cluster = null): array
     {
         $variant = $proposal->variants->sortBy('id')->last();
         $currency = CurrencyService::slug($proposal->currency_slug);
@@ -184,7 +305,9 @@ class CrmMismatchService
 
         $issues = [];
         $deals_total = 0.0;
-        $single = $links->count() === 1;
+        $shared = !empty($cluster);
+        // у общего кластера сумма сверяется ниже целиком, а не по сделке
+        $single = !$shared && $links->count() === 1;
         $tolerance = static::amountTolerance();
 
         $links = $links->map(function ($link) use ($deals, $currency, $total, $single, &$issues, &$deals_total, $status, $tolerance) {
@@ -229,8 +352,22 @@ class CrmMismatchService
         });
 
         $diff = $deals_total - $total;
+        $own_total = $total;
+        $own_deals_total = $deals_total;
 
-        if (!$single && $links->isNotEmpty() && abs($diff) > $tolerance) {
+        if ($shared) {
+            // patch v43: сумма уникальных сделок кластера против суммы всех его КП
+            $total = $cluster['proposal_total'];
+            $deals_total = $cluster['deals_total'];
+            $diff = $cluster['diff'];
+
+            if (abs($diff) > $tolerance) {
+                $issues['amount'] = 'Сумма ' . tools()->num_rus(count($cluster['deal_ids']), ['сделок', 'сделки', 'сделок'], 1)
+                    . ' ' . tools()->cost_normalize(round($deals_total))
+                    . ' против ' . tools()->cost_normalize(round($total)) . ' в КП '
+                    . collect($cluster['members'])->map(fn($row) => $row['number'] ?: $row['name'])->implode(' + ');
+            }
+        } elseif (!$single && $links->isNotEmpty() && abs($diff) > $tolerance) {
             $issues['amount'] = 'Сумма ' . $links->count() . ' сделок '
                 . tools()->cost_normalize(round($deals_total))
                 . ' против ' . tools()->cost_normalize(round($total)) . ' в КП';
@@ -256,7 +393,36 @@ class CrmMismatchService
             'diff' => $diff,
             'issues' => $issues,
             'issue_codes' => array_keys($issues),
+            // patch v43: у общей сделки proposal_total / deals_total / diff — суммы кластера,
+            // own_* — только этого КП и его сделок
+            'own_total' => $own_total,
+            'own_deals_total' => $own_deals_total,
+            'cluster' => [
+                'shared' => $shared,
+                'key' => $shared ? $cluster['key'] : (string) $proposal->group,
+                // ведущее КП кластера: расхождение в итогах считается на нём
+                'lead' => !$shared || $cluster['lead'] === (string) $proposal->group,
+                'lead_number' => $shared ? static::leadLabel($cluster) : null,
+                'others' => $shared
+                    ? array_values(array_filter($cluster['members'], fn($row) => $row['group'] !== (string) $proposal->group))
+                    : [],
+                'deal_ids' => $shared ? $cluster['deal_ids'] : [],
+                'truncated' => $shared && $cluster['truncated'],
+            ],
         ];
+    }
+
+    /**
+     * Номер (или название) ведущего КП кластера
+     *
+     * @param array $cluster
+     * @return string
+     */
+    protected static function leadLabel(array $cluster): string
+    {
+        $lead = collect($cluster['members'])->firstWhere('group', $cluster['lead']);
+
+        return (string) (($lead['number'] ?? '') ?: ($lead['name'] ?? ''));
     }
 
     /**
@@ -279,18 +445,25 @@ class CrmMismatchService
     /**
      * Деньги, по которым расходятся портал и CRM
      *
+     * patch v43: суммы берутся по кластерам — у КП с общей сделкой в строке уже
+     * суммы всего кластера, поэтому каждый кластер (и каждая его сделка) входит
+     * в итог один раз, сколько бы его КП ни попало в выборку. count — по-прежнему
+     * число КП с расхождением суммы, clusters — число расхождений без повторов.
+     *
      * @param Collection $rows
-     * @return array
+     * @return array ['count', 'clusters', 'proposal_total', 'deals_total', 'diff']
      */
     public static function money(Collection $rows): array
     {
         $amount = $rows->filter(fn($row) => in_array('amount', $row['issue_codes'], true));
+        $unique = $amount->unique(fn($row) => $row['cluster']['key'] ?? $row['proposal']->group);
 
         return [
             'count' => $amount->count(),
-            'proposal_total' => (float) $amount->sum('proposal_total'),
-            'deals_total' => (float) $amount->sum('deals_total'),
-            'diff' => (float) $amount->sum('diff'),
+            'clusters' => $unique->count(),
+            'proposal_total' => (float) $unique->sum('proposal_total'),
+            'deals_total' => (float) $unique->sum('deals_total'),
+            'diff' => (float) $unique->sum('diff'),
         ];
     }
 }

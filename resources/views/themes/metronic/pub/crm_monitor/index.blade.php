@@ -136,6 +136,10 @@
                 <b>{{ $money['diff'] > 0 ? '+' : '' }}{{ tools()->cost_normalize(round($money['diff'])) }}</b>
                 (в Битрикс24 {{ tools()->cost_normalize(round($money['deals_total'])) }},
                 в КП {{ tools()->cost_normalize(round($money['proposal_total'])) }}).
+                @if(($money['clusters'] ?? $money['count']) < $money['count'])
+                    {{-- patch v43: КП с общей сделкой сверяются вместе — их расхождение в итоге один раз --}}
+                    <span class="text-muted">Общие сделки посчитаны один раз: расхождений {{ $money['clusters'] }}.</span>
+                @endif
             </x-ui.notification.regular>
         @endif
 
@@ -252,11 +256,28 @@
                                                 </div>
                                             @endforeach
                                         @endif
+
+                                        {{-- patch v43: сделка общая с другими КП — суммы сверяются вместе --}}
+                                        @if($row['cluster']['shared'])
+                                            <div class="fs-8 text-muted mt-1"
+                                                 title="Суммы сверяются вместе: все сделки этих КП против суммы всех КП">
+                                                <i class="fa-light fa-link fs-8 me-1"></i>сделка общая с КП
+                                                @foreach($row['cluster']['others'] as $other)
+                                                    <a href="{{ $other['url'] }}" class="text-gray-700 text-hover-primary"
+                                                       title="{{ $other['name'] }}">{{ $other['number'] ?: $other['name'] }}</a>{{ $loop->last ? '' : ',' }}
+                                                @endforeach
+                                            </div>
+                                        @endif
                                     </td>
 
                                     <td class="text-end text-nowrap">
                                         <span class="fw-bold fs-5">{{ tools()->cost_normalize(round($row['proposal_total'])) }}</span>
                                         <span class="text-muted fs-7 ms-1">{{ $row['currency'] }}</span>
+                                        @if($row['cluster']['shared'])
+                                            <div class="fs-8 text-muted" title="Сумма последнего варианта этого КП">
+                                                в т. ч. это КП {{ tools()->cost_normalize(round($row['own_total'])) }}
+                                            </div>
+                                        @endif
                                     </td>
 
                                     <td class="text-end text-nowrap">
@@ -264,12 +285,23 @@
                                             <span class="text-muted">—</span>
                                         @else
                                             <span class="fw-bold fs-5">{{ tools()->cost_normalize(round($row['deals_total'])) }}</span>
+                                            @if($row['cluster']['shared'])
+                                                <div class="fs-8 text-muted" title="Сделки всех КП с общей сделкой, каждая один раз">
+                                                    {{ tools()->num_rus(count($row['cluster']['deal_ids']), ['сделки', 'сделка', 'сделок'], 1) }} вместе
+                                                </div>
+                                            @endif
                                         @endif
                                     </td>
 
                                     <td class="text-end text-nowrap fs-5">
                                         @if($row['links']->isEmpty() || abs($row['diff']) < 1)
                                             <span class="text-muted">—</span>
+                                        @elseif(!$row['cluster']['lead'])
+                                            {{-- patch v43: расхождение общей сделки считается на ведущем КП --}}
+                                            <span class="text-muted fs-7"
+                                                  title="Расхождение {{ $row['diff'] > 0 ? '+' : '' }}{{ tools()->cost_normalize(round($row['diff'])) }} общее с КП {{ $row['cluster']['lead_number'] }} и посчитано у него">
+                                                см. № {{ $row['cluster']['lead_number'] }}
+                                            </span>
                                         @else
                                             <span class="fw-bold text-danger">
                                                 {{ $row['diff'] > 0 ? '+' : '' }}{{ tools()->cost_normalize(round($row['diff'])) }}

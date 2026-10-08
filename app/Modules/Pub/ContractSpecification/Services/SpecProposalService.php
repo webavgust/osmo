@@ -237,6 +237,7 @@ class SpecProposalService
             ->update([
                 'status' => ProposalStatus::WON->value,
                 'status_reason' => null,
+                'status_reasons' => null,
                 'status_changed_at' => now(),
                 'status_changed_by' => auth()->id(),
             ]));

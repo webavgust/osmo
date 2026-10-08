@@ -8,8 +8,6 @@ use App\Modules\Bitrix\CrmDeal\Repositories\CrmDealRepository;
 use App\Modules\Pub\Constant\Models\Constant;
 use App\Modules\Pub\DealProject\Services\DealProjectService;
 use App\Modules\Pub\Partner\Models\Partner;
-use App\Modules\Pub\Proposal\Models\Proposal;
-use App\Modules\Pub\Proposal\Models\ProposalCrmDeal;
 use App\Modules\Pub\Proposal\Services\ProposalDealService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -97,7 +95,7 @@ class CrmDealRegistryService
      */
     public const UF_CUSTOMER = 'uf_crm_1717755645';
 
-    /** Карта «сделка → КП» на время запроса */
+    /** Карта «сделка → все её КП» на время запроса (patch v43: КП у сделки может быть несколько) */
     protected static ?Collection $proposals = null;
 
     /**
@@ -382,7 +380,10 @@ class CrmDealRegistryService
         $projects = DealProjectService::forDeals();
 
         return $rows->map(function ($row) use ($proposals, $projects) {
-            $row->setAttribute('proposal', $proposals->get($row->id));
+            // все КП сделки (patch v43) и первое из них — для мест, где ждут одно
+            $list = $proposals->get($row->id, collect());
+            $row->setAttribute('proposals', $list);
+            $row->setAttribute('proposal', $list->first());
             $row->setAttribute('project', $projects->get((int) $row->id));
             $row->setAttribute('deal_url', static::url($row->id));
             $row->setAttribute('country', $row->country ?: static::COUNTRY_EMPTY);
@@ -625,25 +626,22 @@ class CrmDealRegistryService
     }
 
     /**
-     * Карта «id сделки → последняя итерация КП»
+     * Карта «id сделки → все КП сделки» (patch v43).
      *
-     * @return Collection
+     * К одной сделке может быть привязано несколько КП: значение — коллекция
+     * последних итераций, порядок как в ProposalDealService::proposalsOfDeal()
+     * (свежие по дате отправки выше, затем по номеру). Сделки, у которых КП
+     * не нашлось (привязка к удалённой группе), в карту не попадают — ключи
+     * по-прежнему означают «у сделки есть КП».
+     *
+     * @return Collection [deal_id => Collection<Proposal>]
      */
     public static function proposals(): Collection
     {
         if (static::$proposals !== null) return static::$proposals;
 
-        $links = ProposalCrmDeal::query()->get(['crm_deal_id', 'proposal_group']);
-        if ($links->isEmpty()) return static::$proposals = collect();
-
-        $proposals = Proposal::whereIn('group', $links->pluck('proposal_group')->unique()->all())
-            ->latestIteration()
-            ->get()
-            ->keyBy('group');
-
-        return static::$proposals = $links
-            ->mapWithKeys(fn($link) => [$link->crm_deal_id => $proposals->get($link->proposal_group)])
-            ->filter();
+        return static::$proposals = ProposalDealService::proposalsByDeal()
+            ->filter(fn($list) => $list->isNotEmpty());
     }
 
     /**

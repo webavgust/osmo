@@ -85,11 +85,11 @@
         <th data-field="date" data-align="center" data-width="100"
             data-sortable="true" data-sorter="dealDateSort">Дата</th>
 
-        <th data-field="manager" data-align="left" data-width="160"
+        <th data-field="manager" data-align="center" data-width="60"
             data-sortable="true" data-sorter="dealTextSort"
             >Менеджер</th>
 
-        <th data-field="partner" data-align="left" data-width="250"
+        <th data-field="partner" data-align="left" data-width="125"
             data-sortable="true" data-sorter="dealTextSort">Партнёр и заказчик</th>
 
         <th data-field="country" data-align="center" data-width="90"
@@ -101,16 +101,23 @@
         <th data-field="project" data-align="center" data-width="120"
             data-sortable="true" data-sorter="dealDateSort">Проект</th>
 
-        <th data-field="proposal" data-align="center" data-width="120"
+        <th data-field="proposal" data-align="center" data-width="180"
             data-sortable="true" data-sorter="dealTextSort">КП</th>
     </tr>
     </thead>
     <tbody>
     @foreach($rows as $row)
         @php
-            $proposal = $row->proposal;
+            // все КП сделки (patch v43); на всякий случай — и старый вид строки с одним КП
+            $proposals = $row->proposals ?? collect($row->proposal ? [$row->proposal] : []);
             $project = $row->project;
             $currency = $symbols[$row->currency_id] ?? $row->currency_id;
+
+            // менеджер — инициалы («Александр Максимов» → «АМ»), полное имя в подсказке
+            $manager_initials = collect(preg_split('/\s+/u', trim((string) $row->manager)))
+                ->filter()->take(2)
+                ->map(fn($word) => mb_strtoupper(mb_substr($word, 0, 1)))
+                ->implode('');
         @endphp
         <tr>
             <td>
@@ -149,13 +156,16 @@
             </td>
 
             <td>
-                <div class="cell fs-7 text-nowrap ps-2">{{ $row->manager ?: '—' }}</div>
+                <div class="cell fs-7 text-nowrap fw-semibold" title="{{ $row->manager }}">{{ $manager_initials ?: '—' }}</div>
             </td>
 
             <td>
-                <div class="cell">
+                {{-- партнёр первой строкой, заказчик второй; длинные названия — с многоточием,
+                     полное название в подсказке. Ширина задана явно: иначе таблица растянет ячейку --}}
+                <div class="cell d-flex flex-column align-items-start gap-1" style="max-width: 125px">
                     @if($row->company_name)
-                        <x-ui.badge.light type="info" class="text-info-700 bg-hover-info text-hover-white">
+                        <x-ui.badge.light type="info" class="d-block mw-100 text-truncate text-start text-info-700 bg-hover-info text-hover-white"
+                                          title="{{ $row->company_name }}">
                             {{ $row->company_name }}
                         </x-ui.badge.light>
                     @else
@@ -163,8 +173,8 @@
                     @endif
 
                     @if($row->customer_name)
-                        <span class="px-1 text-dark-800">--></span>
-                        <x-ui.badge.light type="primary" class="text-primary-700 bg-hover-primary text-hover-white">
+                        <x-ui.badge.light type="primary" class="d-block mw-100 text-truncate text-start text-primary-700 bg-hover-primary text-hover-white"
+                                          title="{{ $row->customer_name }}">
                             {{ $row->customer_name }}
                         </x-ui.badge.light>
                     @endif
@@ -223,17 +233,34 @@
 
             <td>
                 <div class="cell">
-                    <div class="d-flex justify-content-center">
-                            @if($proposal)
-                                <a href="{{ route('proposal.detail', [$proposal, $proposal->iteration]) }}"
-                                   class="fs-7 badge badge-light-success d-inline-flex align-items-center text-decoration-none bg-hover-success-700 text-hover-white-900"
-                                   title="{{ $proposal->name }}">
-                                    <i class="fa-light fa-link me-2"></i>
-                                    {{ $proposal->number ?: 'КП' }}
-                                </a>
+                    <div class="d-flex justify-content-center align-items-center flex-nowrap gap-1">
+                            @if($proposals->isNotEmpty())
+                                {{-- все КП сделки (patch v43): до двух плашек, остальные — «+N» с
+                                     номерами в подсказке. Порядок — свежие по дате отправки выше.
+                                     При одном КП значок ссылки остаётся, при нескольких его нет —
+                                     две плашки должны уместиться в колонку --}}
+                                @foreach($proposals->take(2) as $item)
+                                    <a href="{{ route('proposal.detail', [$item, $item->iteration]) }}"
+                                       class="fs-7 badge badge-light-success d-inline-flex align-items-center text-decoration-none bg-hover-success-700 text-hover-white-900"
+                                       title="{{ $item->name }}">
+                                        @if($proposals->count() === 1)
+                                            <i class="fa-light fa-link me-2"></i>
+                                        @endif
+                                        {{ $item->number ?: 'КП' }}
+                                    </a>
+                                @endforeach
+
+                                @if($proposals->count() > 2)
+                                    <a href="javascript:void(0)"
+                                       onclick="javascript:box({href:'{{ route('crm-deal.box.proposal', $row->id) }}'})"
+                                       class="fs-8 badge badge-light-success text-decoration-none bg-hover-success-700 text-hover-white-900"
+                                       title="Ещё КП: {{ $proposals->slice(2)->map(fn($item) => $item->number ?: 'КП')->implode(', ') }}">
+                                        +{{ $proposals->count() - 2 }}
+                                    </a>
+                                @endif
 
                                 {{-- сменить или снять привязку, не уходя из реестра --}}
-                                <a href="javascript:void(0)" class="text-muted ms-2 text-hover-primary"
+                                <a href="javascript:void(0)" class="text-muted ms-1 text-hover-primary"
                                    onclick="javascript:box({href:'{{ route('crm-deal.box.proposal', $row->id) }}'})"
                                    title="Изменить привязку к КП">
                                     <i class="fa-light fa-pen fs-8"></i>

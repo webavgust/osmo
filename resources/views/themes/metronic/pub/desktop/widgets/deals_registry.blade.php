@@ -8,6 +8,7 @@
       на ширине 2 название и сумма в две строки;
     - ширина ≥12 (dw lg|xl): таблица — сделка, стадия, дата, сумма, КП; от 620 px ещё ID и менеджер,
       от 800 px — партнёр (osmo-desktop-widgets/funnel-1.css).
+    - КП у сделки несколько (patch v43): плашка первого КП и «+N», в подсказке «+N» — остальные КП.
 --}}
 @php
     $low = in_array($dh, ['xs', 'sm'], true);
@@ -107,6 +108,9 @@
                                 @if($row['proposal'])
                                     <a href="{{ $href($row['proposal_url']) }}" class="desk-link badge badge-light-success fs-8 text-nowrap"
                                        title="{{ $row['proposal_name'] }}">{{ $row['proposal'] }}</a>
+                                    @if(!empty($row['proposals_more']))
+                                        <span class="desk-muted fs-8 text-nowrap" title="Ещё КП сделки:&#10;{{ $row['proposals_title'] }}">+{{ $row['proposals_more'] }}</span>
+                                    @endif
                                 @else
                                     <span class="desk-muted fs-8" title="КП не привязано">—</span>
                                 @endif
@@ -127,6 +131,10 @@
                         @if($row['proposal'])
                             <span class="badge badge-light-success fs-8 flex-shrink-0 desk-only-w-lg"
                                   title="{{ $row['proposal_name'] }}">{{ $row['proposal'] }}</span>
+                            @if(!empty($row['proposals_more']))
+                                <span class="desk-muted fs-8 text-nowrap flex-shrink-0 desk-only-w-lg"
+                                      title="Ещё КП сделки:&#10;{{ $row['proposals_title'] }}">+{{ $row['proposals_more'] }}</span>
+                            @endif
                         @endif
                         {{-- на ширине 2 сумма без символа валюты: «184 тыс. ₽» шире самого блока --}}
                         <span class="fw-semibold text-nowrap flex-shrink-0" title="{{ $full($row) }}">{{ $dw === 'xs' && $row['amount'] > 0 ? $widget::compact($row['amount']) : $money($row) }}</span>

@@ -96,12 +96,13 @@
                         <th>Название</th>
                         <th style="width: 140px">Стадия</th>
                         <th style="width: 100px">Дата</th>
-                        <th style="width: 120px">КП</th>
+                        <th style="width: 150px">КП</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach($deals as $row)
-                        @php $proposal = $proposals->get($row->id); @endphp
+                        {{-- все КП сделки (patch v43): до двух плашек, остальные — «+N» --}}
+                        @php $deal_proposals = $proposals->get($row->id, collect()); @endphp
                         <tr>
                             <td>
                                 <a href="{{ $service::url($row->id) }}" target="_blank">{{ $row->id }}</a>
@@ -121,11 +122,26 @@
                                 {{ $row->date_create ? \Carbon\Carbon::parse($row->date_create)->format('d.m.Y') : '—' }}
                             </td>
                             <td>
-                                @if($proposal)
-                                    <a href="{{ route('proposal.detail', [$proposal, $proposal->iteration]) }}"
-                                       class="badge badge-light-success fs-8 text-decoration-none">
-                                        <i class="fa-light fa-link me-1"></i>{{ $proposal->number ?: 'КП' }}
-                                    </a>
+                                @if($deal_proposals->isNotEmpty())
+                                    <div class="d-flex align-items-center flex-nowrap gap-1">
+                                        @foreach($deal_proposals->take(2) as $item)
+                                            <a href="{{ route('proposal.detail', [$item, $item->iteration]) }}"
+                                               class="badge badge-light-success fs-8 text-decoration-none"
+                                               title="{{ $item->name }}">
+                                                @if($deal_proposals->count() === 1)
+                                                    <i class="fa-light fa-link me-1"></i>
+                                                @endif
+                                                {{ $item->number ?: 'КП' }}
+                                            </a>
+                                        @endforeach
+
+                                        @if($deal_proposals->count() > 2)
+                                            <span class="badge badge-light-success fs-8"
+                                                  title="Ещё КП: {{ $deal_proposals->slice(2)->map(fn($item) => $item->number ?: 'КП')->implode(', ') }}">
+                                                +{{ $deal_proposals->count() - 2 }}
+                                            </span>
+                                        @endif
+                                    </div>
                                 @else
                                     <span class="text-muted fs-8">нет</span>
                                 @endif

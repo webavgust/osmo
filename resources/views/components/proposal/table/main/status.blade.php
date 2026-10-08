@@ -7,7 +7,8 @@
      * живут в своих колонках.
      */
     $status = $row->status_decorate;
-    $reason = $row->reason_decorate;
+    // patch v44: причин может быть несколько — в подсказке все через запятую
+    $reasons = implode(", ", array_column($row->reasons_decorate, "label"));
     // secondary в Metronic — светло-серый: светлый текст на светлом фоне не читается
     $palette = fn($color) => in_array($color, ['secondary', 'light', 'white', '', null], true) ? 'dark' : $color;
 @endphp
@@ -16,11 +17,11 @@
        @class([
             "badge d-inline-flex align-items-center text-decoration-none",
             "badge-light-" . $palette($status['color']),
-            "cursor-pointer" => !empty($reason['label']),
+            "cursor-pointer" => $reasons !== "",
             $status['text'] ?? null
         ])
-        @if($reason)
-            data-bs-toggle="popover" data-bs-placement="bottom" title="{{ $reason['label'] }}"
+        @if($reasons !== "")
+            data-bs-toggle="popover" data-bs-placement="bottom" title="{{ $reasons }}"
         @endif
     >
 

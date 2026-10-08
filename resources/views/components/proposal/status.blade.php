@@ -10,9 +10,11 @@
      * as="btn" — вид кнопки: нужен там, где статус стоит в ряду кнопок
      * и должен совпадать с ними по высоте.
      * stacked — статус и причина столбиком: для узких колонок таблиц.
+     * Причин у проигрыша может быть несколько (patch v44): обычно выводятся все,
+     * в stacked — первая (основная) и «+N» с полным списком в подсказке.
      */
     $status = $proposal->status_decorate;
-    $reason = $proposal->reason_decorate;
+    $reasons = $proposal->reasons_decorate;
     $editable = !empty($editable);
     $as_btn = ($as ?? '') === 'btn';
     $stacked = !empty($stacked);
@@ -40,10 +42,25 @@
         </span>
     @endif
 
-    @if($reason)
-        <span class="badge badge-light-{{ $palette($reason['color']) }}"
-              title="{{ $proposal->status_comment ?: $reason['hint'] }}">
-            {{ $reason['label'] }}
+    @if($reasons)
+        @php
+            // в узкой колонке — только основная причина, остальные в подсказке «+N»
+            $shown = $stacked ? array_slice($reasons, 0, 1) : $reasons;
+            $rest = array_slice($reasons, count($shown));
+        @endphp
+        <span class="d-inline-flex flex-wrap align-items-center gap-1">
+            @foreach($shown as $reason)
+                <span class="badge badge-light-{{ $palette($reason['color']) }}"
+                      title="{{ $proposal->status_comment ?: $reason['hint'] }}">
+                    {{ $reason['label'] }}
+                </span>
+            @endforeach
+            @if($rest)
+                <span class="badge badge-light-dark cursor-help"
+                      title="{{ implode(', ', array_column($reasons, 'label')) }}">
+                    +{{ count($rest) }}
+                </span>
+            @endif
         </span>
     @endif
 </span>

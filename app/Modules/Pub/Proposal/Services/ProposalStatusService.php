@@ -17,36 +17,46 @@ class ProposalStatusService
     /**
      * Сменить статус у всей группы КП
      *
+     * patch v44: причин у проигрыша может быть несколько — список пишется
+     * в status_reasons, первая (основная) дублируется в status_reason
+     * для старых отчётов. Одиночная причина по-прежнему принимается.
+     *
      * @param Proposal $proposal Любая итерация КП
      * @param ProposalStatus $status Новый статус
-     * @param ProposalLostReason|null $reason Причина (обязательна для проигрыша)
+     * @param ProposalLostReason|ProposalLostReason[]|string[]|null $reason Причины (для проигрыша нужна хотя бы одна)
      * @param string|null $comment Комментарий менеджера
      * @return Proposal Обновлённая итерация
      */
     public static function set(
         Proposal $proposal,
         ProposalStatus $status,
-        ProposalLostReason $reason = null,
+        ProposalLostReason|array|null $reason = null,
         string $comment = null
     ): Proposal {
         // patch v33: второстепенное КП — только просмотр, статус меняется у главного
         ProposalLinkService::assertEditable($proposal);
 
-        if ($status->needReason() && empty($reason)) {
+        $reasons = ProposalLostReason::fromCodes($reason === null ? [] : (is_array($reason) ? $reason : [$reason]));
+
+        if ($status->needReason() && empty($reasons)) {
             throw new \InvalidArgumentException(
                 'Для статуса «' . $status->data()['label'] . '» нужно указать причину'
             );
         }
 
-        // причина имеет смысл только для «неуспешных» статусов
+        // причины имеют смысл только для «неуспешных» статусов
         if (!$status->needReason()) {
-            $reason = null;
+            $reasons = [];
         }
+
+        $codes = array_map(fn(ProposalLostReason $case) => $case->value, $reasons);
 
         // patch v29: массовый update без событий модели — журнал изменений оборачивается явно
         EntityLogService::around($proposal, fn() => Proposal::where('group', $proposal->group)->update([
             'status' => $status->value,
-            'status_reason' => $reason?->value,
+            'status_reason' => $codes[0] ?? null,
+            // update() идёт мимо cast-ов модели — json кодируется руками
+            'status_reasons' => $codes ? json_encode($codes) : null,
             'status_comment' => $comment,
             'status_changed_at' => now(),
             'status_changed_by' => auth()->id(),

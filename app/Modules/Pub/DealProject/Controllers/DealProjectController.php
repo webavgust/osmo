@@ -87,7 +87,7 @@ class DealProjectController extends Controller
             'title' => $project->label,
             'project' => $project,
             'deals' => $deals,
-            // «сделка → КП» уже собрана реестром, второй раз не считаем
+            // «сделка → все её КП» (patch v43) уже собрана реестром, второй раз не считаем
             'proposals' => CrmDealRegistryService::proposals(),
             'deal_url' => fn($id) => CrmDealRegistryService::url($id),
             'specifications' => DealProjectService::specifications($project),

@@ -25,9 +25,9 @@ class Proposal extends ModuleModel
 {
     use HasLogger;
 
-    protected $fillable = ['group', 'iteration', 'name', 'name_alt', 'sended_at', 'rate_unlimited', 'number', 'number_int', 'currency_rate', 'currency_rate_cumulative', 'lang', 'nds', 'status', 'status_reason', 'status_comment', 'crm_deal_id'];
+    protected $fillable = ['group', 'iteration', 'name', 'name_alt', 'sended_at', 'rate_unlimited', 'number', 'number_int', 'currency_rate', 'currency_rate_cumulative', 'lang', 'nds', 'status', 'status_reason', 'status_reasons', 'status_comment', 'crm_deal_id'];
     protected $searchable = ["name", "number"];
-    protected $casts = ['sended_at' => 'date', 'status_changed_at' => 'datetime', 'crm_deal_linked_at' => 'datetime'];
+    protected $casts = ['sended_at' => 'date', 'status_reasons' => 'array', 'status_changed_at' => 'datetime', 'crm_deal_linked_at' => 'datetime'];
 
     /**
      * Дополняем слушатели событий
@@ -373,6 +373,32 @@ class Proposal extends ModuleModel
         return $this->reason_enum?->data();
     }
 
+    /**
+     * Причины проигрыша в виде enum (patch v44): в порядке выбора,
+     * без неизвестных кодов и дублей. У записей до v44 — одна причина из status_reason
+     *
+     * @return ProposalLostReason[]
+     */
+    public function getReasonsEnumAttribute(): array
+    {
+        $codes = $this->status_reasons;
+        if (!is_array($codes) || empty($codes)) {
+            $codes = (string) $this->status_reason !== '' ? [$this->status_reason] : [];
+        }
+
+        return ProposalLostReason::fromCodes($codes);
+    }
+
+    /**
+     * Оформление всех причин: [['value', 'label', 'hint', 'color', ...], ...]
+     *
+     * @return array
+     */
+    public function getReasonsDecorateAttribute(): array
+    {
+        return array_map(fn(ProposalLostReason $case) => ['value' => $case->value] + $case->data(), $this->reasons_enum);
+    }
+
     /*** ЖУРНАЛ ИЗМЕНЕНИЙ (patch v29) ***/
 
     /** Слаг ленты (совпадает с config/entity_log.php) */
@@ -439,7 +465,7 @@ class Proposal extends ModuleModel
     /** Статус и сделка пишутся во все редакции группы */
     public static function logSharedFields(): array
     {
-        return ['status', 'status_reason', 'status_comment', 'crm_deal_id'];
+        return ['status', 'status_reason', 'status_reasons', 'status_comment', 'crm_deal_id'];
     }
 
     public static function logIgnore(): array
@@ -447,6 +473,8 @@ class Proposal extends ModuleModel
         return [
             'group', 'iteration', 'number_int', 'rate_unlimited', 'currency_rate_cumulative', 'neuro_costs',
             'status_changed_at', 'status_changed_by', 'crm_deal_linked_at', 'crm_deal_linked_by', 'proposal_parent_id',
+            // patch v44: основная причина дублирует первую из status_reasons — в ленте только «Причины»
+            'status_reason',
         ];
     }
 
@@ -462,6 +490,8 @@ class Proposal extends ModuleModel
             'partner_id' => ['label' => 'Партнёр', 'relation' => 'partner'],
             'status' => ['label' => 'Статус', 'enum' => ProposalStatus::class],
             'status_reason' => ['label' => 'Причина', 'enum' => ProposalLostReason::class],
+            // patch v44: список причин — подписи через запятую
+            'status_reasons' => ['label' => 'Причины', 'format' => fn($value) => ProposalLostReason::labels($value) ?: '—'],
             'status_comment' => ['label' => 'Комментарий к статусу'],
             'crm_deal_id' => ['label' => 'Главная сделка Битрикс24'],
             'nds' => ['label' => 'НДС, %'],

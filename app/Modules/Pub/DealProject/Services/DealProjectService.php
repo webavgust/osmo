@@ -15,6 +15,7 @@ use App\Modules\Pub\Partner\Models\Partner;
 use App\Modules\Pub\Partner\Models\PartnerCrmCompany;
 use App\Modules\Pub\Proposal\Models\Proposal;
 use App\Modules\Pub\Proposal\Models\ProposalCrmDeal;
+use App\Modules\Pub\Proposal\Services\ProposalDealService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
@@ -194,7 +195,8 @@ class DealProjectService
     /**
      * Компания сделки.
      *
-     * Порядок: компания прикреплённого КП → компания портала с названием
+     * Порядок: компания прикреплённого КП (если КП несколько и компании у них
+     * разные — этот шаг пропускается, см. proposalFor()) → компания портала с названием
      * конечного заказчика (uf_crm_1717755645) → ничего. При совпадении по
      * названию предпочитаем компанию нужного партнёра: названия заказчиков
      * в портале повторяются у разных партнёров.
@@ -239,19 +241,31 @@ class DealProjectService
     }
 
     /**
-     * Последняя редакция КП, прикреплённого к сделке
+     * КП сделки, по которому определяется компания проекта.
+     *
+     * К сделке может быть привязано несколько КП (patch v43). Берём первое
+     * в едином порядке ProposalDealService::proposalsOfDeal() (свежие по дате
+     * отправки, затем по номеру) — чтобы выбор не зависел от порядка строк
+     * в базе. Если у КП сделки разные компании, КП не выбираем вовсе
+     * (null): угадывать компанию нельзя, resolveCompany() перейдёт к
+     * запасному пути — по названию конечного заказчика.
      *
      * @param CrmDeal|int $deal
-     * @return Proposal|null
+     * @return Proposal|null Последняя итерация КП или null
      */
     public static function proposalFor($deal): ?Proposal
     {
         $id = (int) ($deal instanceof CrmDeal ? $deal->id : $deal);
 
-        $groups = ProposalCrmDeal::where('crm_deal_id', $id)->pluck('proposal_group');
-        if ($groups->isEmpty()) return null;
+        $proposals = ProposalDealService::proposalsOfDeal($id);
+        if ($proposals->isEmpty()) return null;
 
-        return Proposal::whereIn('group', $groups->all())->latestIteration()->first();
+        // разные компании у КП сделки — компанию по КП не определить
+        $companies = $proposals->pluck('company_id')->filter()->unique();
+        if ($companies->count() > 1) return null;
+
+        // КП с компанией вперёд: без компании оно resolveCompany() не поможет
+        return $proposals->first(fn($proposal) => !empty($proposal->company_id)) ?? $proposals->first();
     }
 
     /**

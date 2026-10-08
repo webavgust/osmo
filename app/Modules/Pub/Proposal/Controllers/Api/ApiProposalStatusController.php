@@ -30,6 +30,8 @@ class ApiProposalStatusController
         $request->validate([
             'status' => 'required|string',
             'reason' => 'nullable|string',
+            'reasons' => 'nullable|array',
+            'reasons.*' => 'nullable|string',
             'comment' => 'nullable|string|max:500',
         ]);
 
@@ -41,13 +43,18 @@ class ApiProposalStatusController
             return ['result' => 'error', 'message' => 'Неизвестный статус'];
         }
 
-        $reason = ProposalLostReason::tryFrom((string) $request->input('reason'));
+        // patch v44: список reasons[] и по-старому одиночный reason — вместе;
+        // неизвестные коды и повторы отбрасываются
+        $reasons = ProposalLostReason::fromCodes(array_merge(
+            (array) $request->input('reasons', []),
+            [(string) $request->input('reason')]
+        ));
 
         try {
             ProposalStatusService::set(
                 proposal: $proposal,
                 status: $status,
-                reason: $reason,
+                reason: $reasons,
                 comment: $request->input('comment')
             );
         } catch (\InvalidArgumentException $e) {
@@ -76,7 +83,8 @@ class ApiProposalStatusController
             'manager' => $request->input('manager'),
             'stage' => $request->input('stage'),
             'company' => $request->input('company'),
-            'only_free' => $request->boolean('only_free', true),
+            // patch v43: only_free — только сделки без КП; по умолчанию показываем все
+            'only_free' => $request->boolean('only_free', false),
             'proposal_group' => $proposal->group,
         ]);
 
@@ -93,8 +101,11 @@ class ApiProposalStatusController
                 'amount' => $deal->opportunity,
                 'currency' => $deal->currency_id,
                 'quarter' => $deal->plan_quarter,
+                // patch v43: занятых сделок нет — всегда false / null, оставлено для старого JS
                 'is_taken' => $deal->is_taken,
                 'taken_by' => $deal->taken_by?->name,
+                // другие КП сделки (без текущего): [{group, number, name, url}]
+                'proposals' => $deal->proposals,
             ]),
         ];
     }

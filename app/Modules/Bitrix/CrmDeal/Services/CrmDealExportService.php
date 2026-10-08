@@ -178,7 +178,8 @@ class CrmDealExportService
      */
     public static function value(string $code, $row)
     {
-        $proposal = $row->proposal ?? null;
+        // все КП сделки (patch v43), порядок — как в реестре
+        $proposals = $row->proposals ?? collect(!empty($row->proposal) ? [$row->proposal] : []);
 
         return match ($code) {
             'id' => (int) $row->id,
@@ -196,12 +197,38 @@ class CrmDealExportService
             'date_create', 'begindate', 'closedate' => static::date($row->{$code}),
             'comments' => static::plain($row->comments),
 
-            'proposal_number' => $proposal?->number ?: '',
-            'proposal_name' => $proposal?->name ?: '',
-            'proposal_status' => $proposal ? ($proposal->status_enum->data()['label'] ?? '') : '',
+            // несколько КП: номера через запятую, названия — по строке на КП
+            // (в том же порядке), статус один раз, если у всех одинаковый
+            'proposal_number' => $proposals->map(fn($item) => $item->number ?: 'КП')->implode(', '),
+            'proposal_name' => $proposals->map(fn($item) => (string) $item->name)->filter()->implode("\n"),
+            'proposal_status' => static::statuses($proposals),
 
             default => is_null($row->{$code}) ? '' : (string) $row->{$code},
         };
+    }
+
+    /**
+     * Статусы КП сделки для колонки «КП, статус» (patch v43).
+     *
+     * Одинаковый у всех КП — пишется один раз («В работе»); разные —
+     * статус с номерами КП в скобках: «В работе (AA805, AM804), Выиграно (OD588)».
+     * Порядок статусов — по первому КП в порядке колонки «КП, номер».
+     *
+     * @param Collection $proposals КП сделки
+     * @return string
+     */
+    public static function statuses(Collection $proposals): string
+    {
+        $labels = $proposals->mapWithKeys(fn($item, $i) => [
+            $i => (string) ($item->status_enum->data()['label'] ?? ''),
+        ]);
+
+        if ($labels->filter()->isEmpty()) return '';
+        if ($labels->unique()->count() === 1) return $labels->first();
+
+        return $proposals->groupBy(fn($item, $i) => $labels[$i] ?: 'без статуса')
+            ->map(fn($items, $label) => $label . ' (' . $items->map(fn($item) => $item->number ?: 'КП')->implode(', ') . ')')
+            ->implode(', ');
     }
 
     /**

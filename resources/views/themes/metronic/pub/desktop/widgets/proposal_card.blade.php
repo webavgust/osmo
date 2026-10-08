@@ -44,7 +44,8 @@
         // на ширине 2 длинные подписи не помещаются даже отдельной строкой — там короткие
         $settings['show_date'] ? [$narrow ? 'дата' : 'отправлено', $data['date'] ?? '—', 'Дата отправки последней редакции' . ($days_text !== '' ? ' · ' . $days_text : ''), true] : null,
         $data['iterations'] > 1 ? [$narrow ? 'ред.' : 'редакция', $data['iteration'] . ' из ' . $data['iterations'], 'Показана последняя редакция', true] : null,
-        $data['reason'] !== '' ? ['причина', $data['reason'], $status_title, false] : null,
+        // patch v44: причин может быть несколько — подписи через запятую
+        $data['reason'] !== '' ? [str_contains($data['reason'], ', ') ? 'причины' : 'причина', $data['reason'], $status_title, false] : null,
         $settings['show_deal'] ? ['сделки', $data['deals_count'] > 0 ? (string) $data['deals_count'] : 'нет', 'Привязанные сделки Битрикс24', true] : null,
         $settings['show_specs'] && $data['specs_count'] > 0
             ? [$narrow ? 'спец.' : 'спецификации', $data['specs_count'] . ($narrow ? '' : ' · ' . $widget::money($data['specs_sum'], $data['symbol'])),

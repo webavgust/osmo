@@ -356,7 +356,22 @@
                             <div class="fs-7">
                                 Сделки в CRM не совпадают с последним вариантом КП:
                                 в Битрикс24 <b>{{ tools()->cost_normalize(round($deal_check['deals_amount'])) }}</b>,
-                                в КП <b>{{ tools()->cost_normalize(round($deal_check['amount'])) }} {{ $deal_check['currency'] }}</b>.
+                                в КП <b>{{ tools()->cost_normalize(round($deal_check['amount'])) }} {{ $deal_check['currency'] }}</b>@if($deal_share['shared'])
+                                    (это КП вместе с
+                                    @foreach($deal_check['cluster']['others'] as $other){{ $loop->first ? '' : ', ' }}<a href="{{ $other['url'] }}" class="fw-bold text-danger text-hover-primary">{{ $other['number'] ?: $other['name'] }}</a>@endforeach
+                                    — сделка у них общая)@endif.
+                            </div>
+                        </div>
+                    @endif
+
+                    {{-- patch v43: сделка общая с другими КП — сверка идёт по всем КП вместе --}}
+                    @if($deal_share['shared'] && !$deal_check['has_errors'])
+                        <div class="alert alert-primary d-flex align-items-center m-5">
+                            <i class="fa-light fa-link fs-2 me-4"></i>
+                            <div class="fs-7">
+                                Сделка общая с КП
+                                @foreach($deal_check['cluster']['others'] as $other){{ $loop->first ? '' : ', ' }}<a href="{{ $other['url'] }}" class="fw-bold">{{ $other['number'] ?: $other['name'] }}</a>@endforeach.
+                                Сумма сделок сверяется с суммой этих КП вместе, общая сделка считается один раз.
                             </div>
                         </div>
                     @endif
@@ -415,6 +430,13 @@
                                             <div class="fs-8 text-muted">{{ $link->deal->company_name }}</div>
                                         @endif
 
+                                        @if(!empty($deal_share['by_deal'][$link->crm_deal_id]))
+                                            <div class="fs-8 text-primary">
+                                                <i class="fa-light fa-link fs-8 me-1"></i>сделка общая с КП
+                                                @foreach($deal_share['by_deal'][$link->crm_deal_id] as $other){{ $loop->first ? '' : ', ' }}<a href="{{ $other['url'] }}" class="fw-bold">{{ $other['number'] ?: $other['name'] }}</a>@endforeach
+                                            </div>
+                                        @endif
+
                                         @foreach($errors as $error)
                                             <div class="fs-8 text-danger">{{ $error }}</div>
                                         @endforeach
@@ -435,6 +457,57 @@
                                     </td>
                                 </tr>
                             @endforeach
+
+                            {{-- patch v43: сделки других КП кластера — входят в сверку, но к этому КП не привязаны --}}
+                            @foreach($deal_share['extra'] as $link)
+                                @php $errors = $deal_check['errors'][$link->crm_deal_id] ?? []; @endphp
+                                <tr @class(['bg-light-danger' => !empty($errors)])>
+                                    <td class="ps-5">
+                                        <span @class(['fw-bold', 'text-muted' => empty($errors), 'text-danger' => !empty($errors)])>#{{ $link->crm_deal_id }}</span>
+                                        @if(!empty($errors))
+                                            <div class="fs-8 text-danger mt-1">
+                                                <i class="fa-light fa-triangle-exclamation fs-8 me-1"></i>ошибка
+                                            </div>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        <div>
+                                            @if(!empty($link->deal?->title))
+                                                <a href="{{ \App\Modules\Bitrix\CrmDeal\Services\CrmDealRegistryService::url($link->crm_deal_id) }}"
+                                                   target="_blank" class="text-gray-700 text-hover-primary"
+                                                   title="Открыть сделку в Битрикс24">
+                                                    {{ $link->deal->title }}<i class="fa-light fa-arrow-up-right-from-square fs-8 ms-2 text-muted"></i>
+                                                </a>
+                                            @else
+                                                <span class="text-muted">Сделки нет в выгрузке Битрикс24</span>
+                                            @endif
+                                        </div>
+                                        <div class="fs-8 text-muted">
+                                            сделка
+                                            @foreach($link->proposals as $other){{ $loop->first ? '' : ', ' }}<a href="{{ $other['url'] }}" class="fw-bold">КП {{ $other['number'] ?: $other['name'] }}</a>@endforeach
+                                            — к этому КП не привязана, но входит в сверку
+                                        </div>
+
+                                        @foreach($errors as $error)
+                                            <div class="fs-8 text-danger">{{ $error }}</div>
+                                        @endforeach
+                                    </td>
+                                    <td class="fs-6 text-gray-700">{{ $link->deal?->stage_name ?: '—' }}</td>
+                                    <td class="fs-6 text-gray-700">
+                                        {{ $link->deal?->manager ?: ($link->deal?->assigned_by ?: '—') }}
+                                    </td>
+                                    <td class="text-end pe-5 text-nowrap">
+                                        @if($link->deal?->opportunity)
+                                            <span @class(['fs-5', 'text-gray-700' => empty($errors), 'text-danger' => !empty($errors)])>
+                                                {{ tools()->cost_normalize(round($link->deal->opportunity)) }}
+                                            </span>
+                                            <span class="text-muted fs-8">{{ $link->deal->currency_id }}</span>
+                                        @else
+                                            <span class="text-muted">—</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
                             </tbody>
 
                             <tfoot>
@@ -442,8 +515,16 @@
                                 <td class="ps-5" colspan="4">
                                     <span class="fs-4">ИТОГО по сделкам</span>
                                     <div class="fs-7 fw-normal text-muted">
-                                        Последний вариант КП:
-                                        {{ tools()->cost_normalize(round($deal_check['amount'])) }} {{ $deal_check['currency'] }}
+                                        @if($deal_share['shared'])
+                                            {{-- общая сделка: сумма КП — по всем КП кластера, с разбивкой --}}
+                                            КП вместе:
+                                            {{ tools()->cost_normalize(round($deal_check['amount'])) }} {{ $deal_check['currency'] }}
+                                            =
+                                            @foreach($deal_check['cluster']['proposals'] as $row){{ $loop->first ? '' : ' + ' }}<span class="text-nowrap">{{ $loop->first ? 'это КП' : ($row['number'] ?: $row['name']) }} {{ tools()->cost_normalize(round($row['amount'])) }}@if($row['currency'] !== $deal_check['currency']) {{ $row['currency'] }}@endif</span>@endforeach
+                                        @else
+                                            Последний вариант КП:
+                                            {{ tools()->cost_normalize(round($deal_check['amount'])) }} {{ $deal_check['currency'] }}
+                                        @endif
                                     </div>
                                 </td>
                                 <td class="text-end pe-5 text-nowrap text-{{ $deal_check['has_errors'] ? 'danger' : 'success' }}">

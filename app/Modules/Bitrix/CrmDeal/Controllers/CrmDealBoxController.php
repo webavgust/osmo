@@ -66,12 +66,16 @@ class CrmDealBoxController extends Controller
             'title' => 'Привязка КП к сделке #' . $deal->id,
             'deal' => $deal,
             'deal_url' => CrmDealRegistryService::url($deal->id),
-            'proposal' => ProposalDealService::proposalOfDeal((int) $deal->id),
+            // patch v43: к сделке может быть привязано несколько КП;
+            // 'proposal' — первое из них, для шаблона до его переделки
+            'proposals' => $proposals = ProposalDealService::proposalsOfDeal((int) $deal->id),
+            'proposal' => $proposals->first(),
             'partner' => $partner,
             'q' => $q,
             'rows' => ProposalDealService::searchProposals([
                 'q' => $q,
                 'partner_id' => $partner?->id,
+                'deal_id' => (int) $deal->id,
             ]),
         ]);
     }

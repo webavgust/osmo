@@ -16,7 +16,8 @@ use Illuminate\Support\Collection;
  * количество, доли и сумма по каждой причине.
  *
  * Считается по последним редакциям групп (ProposalStatusService::latestIterations()),
- * берутся КП в статусе «Проиграно» (v27). Причина — proposals.status_reason
+ * берутся КП в статусе «Проиграно» (v27). Причины — proposals.status_reasons (v44, несколько у КП;
+ * до v44 — одна, status_reason)
  * (ProposalLostReason); «Заморожено» и «Отменено» с v27 живут здесь же, а не
  * в статусах. Дата решения — status_changed_at, без неё — дата отправки,
  * как у проигранных в MetricRegistry::decidedDates() (выигрыши датируются
@@ -105,6 +106,7 @@ class LostReasonsWidget extends Widget
 
         return [
             'total' => $total,
+            'multi' => 0,
             'amount' => array_sum(array_column($sample, 2)),
             'symbol' => '₽',
             'label' => $period['label'],
@@ -120,7 +122,7 @@ class LostReasonsWidget extends Widget
      *
      * @param array $settings
      * @param DesktopContext $ctx
-     * @return array ['total', 'amount', 'symbol', 'label', 'dates', 'scope_label', 'top',
+     * @return array ['total', 'multi', 'amount', 'symbol', 'label', 'dates', 'scope_label', 'top',
      *     'rows' => [['key', 'label', 'hint', 'color', 'count', 'share', 'amount']]]
      */
     public function data(array $settings, DesktopContext $ctx): array
@@ -140,22 +142,46 @@ class LostReasonsWidget extends Widget
             $lost = static::resolvedBetween($lost, $period['from'], $period['to']);
         }
 
+        // итог — по уникальным КП
         $total = $lost->count();
+        $sums = !empty($settings['show_sum']);
         $rows = [];
 
-        foreach ($lost->groupBy(fn($row) => (string) ($row->status_reason ?? '')) as $key => $group) {
+        // patch v44: у КП может быть несколько причин — КП входит в каждую свою причину
+        // (число КП по причине честное, доли в сумме дают больше 100 %), а сумма КП
+        // делится между его причинами поровну: суммы по причинам складываются в итог.
+        // Корзины [код причины][число причин у КП] — чтобы делить сумму одним запросом на корзину
+        $buckets = [];
+        foreach ($lost as $row) {
+            $codes = array_map(fn(ProposalLostReason $case) => $case->value, $row->reasons_enum) ?: [''];
+            foreach ($codes as $code) {
+                $buckets[$code][count($codes)][] = $row;
+            }
+        }
+
+        foreach ($buckets as $key => $by_split) {
             $case = ProposalLostReason::tryFrom((string) $key);
             $info = $case?->data() ?? ['label' => 'Причина не указана', 'hint' => 'Статус поставлен без причины', 'color' => 'secondary'];
-            $amount = !empty($settings['show_sum']) ? MetricRegistry::mainSum($group, $currency) : 0.0;
+            $count = 0;
+            $amount = 0.0;
 
-            $rows[] = static::row((string) $key, $info, $group->count(), $amount, $total);
+            foreach ($by_split as $split => $group) {
+                $count += count($group);
+                if ($sums) {
+                    $amount += MetricRegistry::mainSum(collect($group), $currency) / $split;
+                }
+            }
+
+            $rows[] = static::row((string) $key, $info, $count, $amount, $total);
         }
 
         usort($rows, fn($a, $b) => [$b['count'], $b['amount']] <=> [$a['count'], $a['amount']]);
 
         return [
             'total' => $total,
-            'amount' => round(array_sum(array_column($rows, 'amount')), 2),
+            // КП с несколькими причинами — для подписи о делении суммы
+            'multi' => $lost->filter(fn($row) => count($row->reasons_enum) > 1)->count(),
+            'amount' => $sums ? round(MetricRegistry::mainSum($lost, $currency), 2) : 0.0,
             'symbol' => $ctx->symbol($currency),
             'label' => $by_period ? $period['label'] : 'за всё время',
             'dates' => $period['dates'],

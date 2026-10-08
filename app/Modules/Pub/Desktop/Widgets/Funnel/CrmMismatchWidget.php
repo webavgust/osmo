@@ -101,6 +101,8 @@ class CrmMismatchWidget extends Widget
             'color' => $issues[$row[4][0]]['color'],
             'diff' => $row[5],
             'deals' => $row[6],
+            // patch v43: у одной строки образца сделка общая с другим КП
+            'shared' => $row[0] === 'Продление, ООО «Гранит»' ? 'Сделка общая с КП AK611' : null,
             'url' => null,
         ], $rows), [
             'count' => 5, 'proposal_total' => 12400000.0, 'deals_total' => 12735000.0, 'diff' => 335000.0,
@@ -115,7 +117,8 @@ class CrmMismatchWidget extends Widget
      * @return array ['total', 'shown', 'issue', 'issue_label', 'tolerance', 'money',
      *                'issues' => [code => ['label', 'color', 'icon', 'hint', 'count']],
      *                'rows' => [['name', 'number', 'company', 'status_label', 'status_color',
-     *                            'codes', 'labels', 'reasons', 'color', 'diff', 'deals', 'url']]]
+     *                            'codes', 'labels', 'reasons', 'color', 'diff', 'deals', 'shared', 'url']]]
+     *                'shared' — текст «Сделка общая с КП …» или null (patch v43)
      */
     public function data(array $settings, DesktopContext $ctx): array
     {
@@ -131,6 +134,15 @@ class CrmMismatchWidget extends Widget
         $list = $rows->take((int) $settings['limit'])->map(function ($row) use ($catalog) {
             $proposal = $row['proposal'];
             $codes = $row['issue_codes'];
+            $cluster = $row['cluster'];
+
+            // patch v43: сделка общая с другими КП — пометка в подсказке; расхождение кластера
+            // показывается только у ведущего КП, чтобы не повторять одну сумму в нескольких строках
+            $reasons = array_values($row['issues']);
+            if ($cluster['shared']) {
+                $reasons[] = 'Сделка общая с КП ' . collect($cluster['others'])->map(fn($other) => $other['number'] ?: $other['name'])->implode(', ')
+                    . ($cluster['lead'] ? '' : '; расхождение посчитано у КП ' . $cluster['lead_number']);
+            }
 
             return [
                 'name' => (string) $proposal->name,
@@ -140,10 +152,11 @@ class CrmMismatchWidget extends Widget
                 'status_color' => $row['status']?->data()['color'] ?? 'secondary',
                 'codes' => $codes,
                 'labels' => array_map(fn($code) => $catalog[$code]['label'] ?? $code, $codes),
-                'reasons' => array_values($row['issues']),
+                'reasons' => $reasons,
                 'color' => $catalog[$codes[0] ?? '']['color'] ?? 'warning',
-                'diff' => in_array('amount', $codes, true) ? round((float) $row['diff'], 2) : 0.0,
+                'diff' => in_array('amount', $codes, true) && $cluster['lead'] ? round((float) $row['diff'], 2) : 0.0,
                 'deals' => $row['links']->count(),
+                'shared' => $cluster['shared'] ? end($reasons) : null,
                 'url' => route('deal_card.index', $proposal),
             ];
         })->all();

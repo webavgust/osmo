@@ -189,7 +189,8 @@ class ProposalCardWidget extends Widget
             'status_label' => (string) $info['label'],
             'status_color' => $color,
             'status_icon' => (string) $info['icon'],
-            'reason' => (string) ($proposal->reason_decorate['label'] ?? ''),
+            // patch v44: причин может быть несколько — подписи через запятую
+            'reason' => implode(', ', array_column($proposal->reasons_decorate, 'label')),
             'comment' => (string) ($proposal->status_comment ?? ''),
             'amount' => $variant?->cost_total !== null ? (float) $variant->cost_total : null,
             'symbol' => $symbol,

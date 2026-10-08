@@ -106,4 +106,40 @@ enum ProposalLostReason: string
 
         return $ret;
     }
+
+    /**
+     * Причины из списка кодов (patch v44): в исходном порядке,
+     * неизвестные коды и повторы отбрасываются
+     *
+     * @param mixed $codes массив кодов, enum-ы, json-строка или один код
+     * @return ProposalLostReason[]
+     */
+    public static function fromCodes($codes): array
+    {
+        if (is_string($codes)) {
+            $decoded = json_decode($codes, true);
+            $codes = is_array($decoded) ? $decoded : [$codes];
+        }
+
+        $ret = [];
+        foreach ((array) $codes as $code) {
+            $case = $code instanceof ProposalLostReason ? $code : ProposalLostReason::tryFrom((string) $code);
+            if ($case && !in_array($case, $ret, true)) {
+                $ret[] = $case;
+            }
+        }
+
+        return $ret;
+    }
+
+    /**
+     * Подписи причин через запятую — для журнала изменений и подсказок
+     *
+     * @param mixed $codes см. fromCodes()
+     * @return string
+     */
+    public static function labels($codes): string
+    {
+        return implode(', ', array_map(fn(ProposalLostReason $case) => $case->data()['label'], static::fromCodes($codes)));
+    }
 }

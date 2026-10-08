@@ -9,7 +9,7 @@ use App\Modules\Pub\DealProject\Services\DealProjectService;
 use App\Modules\Pub\Desktop\Services\DesktopContext;
 use App\Modules\Pub\Desktop\Widgets\Widget;
 use App\Modules\Pub\Proposal\Models\Proposal;
-use App\Modules\Pub\Proposal\Models\ProposalCrmDeal;
+use App\Modules\Pub\Proposal\Services\ProposalDealService;
 use Illuminate\Support\Facades\Route;
 
 /**
@@ -19,6 +19,10 @@ use Illuminate\Support\Facades\Route;
  * Клик по названию — сводная карточка сделки на портале (она строится по КП,
  * привязанному к сделке, и требует права deal_card_view); «↗» — сама сделка
  * в Битрикс24. Проект по сделке открывается попапом, как в реестре сделок.
+ *
+ * patch v43: к сделке может быть привязано несколько КП — в поле «КП» все номера
+ * (что не влезло — «+N»), сводная карточка открывается от первого КП в порядке
+ * ProposalDealService::proposalsOfDeal() (свежее отправленное выше).
  *
  * Сумма сделки лежит в своей валюте, поэтому под валюту стола пересчитывается
  * курсом на сегодня; курса нет — показываем сумму как есть.
@@ -98,6 +102,11 @@ class DealCardWidget extends Widget
             'quarter' => 'IV квартал 2026',
             'proposal' => '№ AA794 · Платформа Восток',
             'proposal_url' => null,
+            'proposals' => [
+                ['number' => 'AA794', 'name' => 'Платформа Восток', 'url' => null],
+                ['number' => 'AK727', 'name' => 'Платформа Восток — расширение', 'url' => null],
+                ['number' => 'AM610', 'name' => 'Платформа Восток — поддержка', 'url' => null],
+            ],
             'project' => 'Проект от 12.03.2026',
             'project_url' => null,
             'url' => null,
@@ -110,7 +119,7 @@ class DealCardWidget extends Widget
      *
      * @param array $settings
      * @param DesktopContext $ctx
-     * @return array ['found', 'id', 'title', 'stage', 'amount', 'symbol', 'converted', 'manager', 'partner', 'customer', 'quarter', 'proposal', 'proposal_url', 'project', 'project_url', 'url', 'bitrix_url']
+     * @return array ['found', 'id', 'title', 'stage', 'amount', 'symbol', 'converted', 'manager', 'partner', 'customer', 'quarter', 'proposal', 'proposal_url', 'proposals', 'project', 'project_url', 'url', 'bitrix_url']
      */
     public function data(array $settings, DesktopContext $ctx): array
     {
@@ -120,7 +129,7 @@ class DealCardWidget extends Widget
         $out = [
             'found' => false, 'id' => $id, 'title' => '', 'stage' => '', 'amount' => null,
             'symbol' => $ctx->symbol($currency), 'converted' => true, 'manager' => '', 'partner' => '', 'customer' => '',
-            'quarter' => '', 'proposal' => '', 'proposal_url' => null, 'project' => '', 'project_url' => null,
+            'quarter' => '', 'proposal' => '', 'proposal_url' => null, 'proposals' => [], 'project' => '', 'project_url' => null,
             'url' => null, 'bitrix_url' => null,
         ];
 
@@ -155,32 +164,41 @@ class DealCardWidget extends Widget
     }
 
     /**
-     * Привязанное КП, сводная карточка портала и проект по сделке
+     * Привязанные КП, сводная карточка портала и проект по сделке
      *
      * @param int $id
      * @param DesktopContext $ctx
-     * @return array ['proposal', 'proposal_url', 'project', 'project_url', 'url']
+     * @return array ['proposal', 'proposal_url', 'proposals' => [{number, name, url}], 'project', 'project_url', 'url']
+     *     proposal / proposal_url — первое КП (для старого кэша и подписи одного КП)
      */
     protected static function linksOf(int $id, DesktopContext $ctx): array
     {
-        $out = ['proposal' => '', 'proposal_url' => null, 'project' => '', 'project_url' => null, 'url' => null];
+        $out = ['proposal' => '', 'proposal_url' => null, 'proposals' => [], 'project' => '', 'project_url' => null, 'url' => null];
 
-        // КП сделки: сначала привязки patch v24, потом старое поле КП
-        $group = ProposalCrmDeal::where('crm_deal_id', $id)->orderByDesc('is_main')->value('proposal_group')
-            ?? Proposal::where('crm_deal_id', $id)->value('group');
+        // КП сделки: привязки patch v24 (все, порядок proposalsOfDeal), без них — старое поле КП
+        $proposals = ProposalDealService::proposalsOfDeal($id);
+        if ($proposals->isEmpty()) {
+            $group = Proposal::where('crm_deal_id', $id)->value('group');
+            $last = $group ? Proposal::where('group', $group)->orderByDesc('iteration')->first() : null;
+            $proposals = $last ? collect([$last]) : collect();
+        }
 
-        if ($group) {
-            $proposal = Proposal::where('group', $group)->orderByDesc('iteration')->first();
+        foreach ($proposals as $proposal) {
+            $out['proposals'][] = [
+                'number' => trim((string) $proposal->number) !== '' ? trim((string) $proposal->number) : 'б/н',
+                'name' => (string) $proposal->name,
+                'url' => route('proposal.detail', [$proposal, $proposal->iteration]),
+            ];
+        }
 
-            if ($proposal) {
-                $number = trim((string) $proposal->number) !== '' ? trim((string) $proposal->number) : 'б/н';
-                $out['proposal'] = '№ ' . $number . ' · ' . $proposal->name;
-                $out['proposal_url'] = route('proposal.detail', [$proposal, $proposal->iteration]);
+        $first = $proposals->first();
+        if ($first) {
+            $out['proposal'] = '№ ' . $out['proposals'][0]['number'] . ' · ' . $first->name;
+            $out['proposal_url'] = $out['proposals'][0]['url'];
 
-                // сводная карточка сделки на портале строится по КП и закрыта правом
-                if ($ctx->user && Route::has('deal_card.index') && $ctx->user->can_do('deal_card_view')) {
-                    $out['url'] = route('deal_card.index', $group);
-                }
+            // сводная карточка сделки на портале строится по КП и закрыта правом; КП несколько — от первого
+            if ($ctx->user && Route::has('deal_card.index') && $ctx->user->can_do('deal_card_view')) {
+                $out['url'] = route('deal_card.index', $first->group);
             }
         }
 

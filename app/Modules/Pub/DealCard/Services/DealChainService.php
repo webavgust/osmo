@@ -2,6 +2,7 @@
 
 namespace App\Modules\Pub\DealCard\Services;
 
+use App\Modules\Bitrix\CrmDeal\Models\CrmDeal;
 use App\Modules\Pub\Proposal\Models\Proposal;
 use App\Modules\Pub\Proposal\Services\ProposalDealService;
 use Illuminate\Support\Carbon;
@@ -48,11 +49,15 @@ class DealChainService
         // сверяем сделки с ПОСЛЕДНИМ СОЗДАННЫМ вариантом последней итерации
         $check = ProposalDealService::check($links, $last);
 
+        // patch v43: сделка может быть общей с другими КП — кто ещё на ней и какие сделки кластера не наши
+        $share = static::dealShare($last, $links, $check);
+
         return [
             'proposal' => $last,
             'iterations' => $iterations,
             'deal_links' => $links,
             'deal_check' => $check,
+            'deal_share' => $share,
             'variant' => $check['variant'],
             'deals' => $links->map(fn($link) => $link->deal)->filter()->values(),
             'contracts' => $contracts,
@@ -61,6 +66,54 @@ class DealChainService
             'license_keys' => $keys,
             'steps' => static::steps($last, $links, $contracts, $specs, $payments, $keys, $check),
             'money' => static::money($specs, $payments),
+        ];
+    }
+
+    /**
+     * Общие сделки (patch v43).
+     *
+     * Если к сделке этого КП привязаны и другие КП, check() сверяет весь кластер:
+     * сумму уникальных сделок против суммы всех КП. Карточке нужно показать,
+     * с какими КП сделка общая, и сделки кластера, которые к этому КП не привязаны, —
+     * иначе «ИТОГО по сделкам» не сходится со строками таблицы.
+     *
+     * @param Proposal $proposal Последняя итерация
+     * @param \Illuminate\Support\Collection $links Привязки КП (см. ProposalDealService::links())
+     * @param array $check Результат ProposalDealService::check()
+     * @return array [
+     *     'shared' => bool — в кластере больше одного КП,
+     *     'by_deal' => [deal_id => [{group, number, name, url}, ...]] — другие КП на сделках этого КП,
+     *     'extra' => Collection<{crm_deal_id, deal, proposals}> — сделки других КП кластера,
+     * ]
+     */
+    public static function dealShare(Proposal $proposal, $links, array $check): array
+    {
+        $empty = ['shared' => false, 'by_deal' => [], 'extra' => collect()];
+
+        if (empty($check['cluster']['shared'])) return $empty;
+
+        $deal_ids = array_map('intval', $check['cluster']['deal_ids'] ?? []);
+        if (empty($deal_ids)) return $empty;
+
+        // другие КП на каждой сделке кластера, порядок — как в proposalsOfDeal()
+        $others = ProposalDealService::proposalsByDeal((string) $proposal->group, $deal_ids)
+            ->map(fn($list) => ProposalDealService::proposalRows($list));
+
+        $own_ids = $links->pluck('crm_deal_id')->map(fn($id) => (int) $id)->all();
+        $extra_ids = array_values(array_diff($deal_ids, $own_ids));
+
+        $deals = $extra_ids
+            ? CrmDeal::whereIn('id', $extra_ids)->get()->keyBy('id')
+            : collect();
+
+        return [
+            'shared' => true,
+            'by_deal' => $others->only($own_ids)->all(),
+            'extra' => collect($extra_ids)->map(fn($id) => (object) [
+                'crm_deal_id' => $id,
+                'deal' => $deals->get($id),
+                'proposals' => $others->get($id, []),
+            ]),
         ];
     }
 
@@ -217,7 +270,15 @@ class DealChainService
         $overdue = $live_payments->where('state', 'overdue');
 
         $deals = $links->map(fn($link) => $link->deal)->filter();
+        // главная сделка всегда первая: links() сортирует по is_main desc
         $main = $links->first();
+
+        // patch v43: у общей сделки check() считает кластер — в шагах показываем своё
+        $shared = !empty($check['cluster']['shared']);
+        $own_amount = (float) ($check['own_amount'] ?? $check['amount'] ?? 0);
+        $own_deals_amount = (float) $deals->sum(fn($deal) => (float) $deal->opportunity);
+        $shared_with = collect($check['cluster']['others'] ?? [])
+            ->map(fn($row) => $row['number'] ?: $row['name'])->implode(', ');
 
         return [
             [
@@ -225,8 +286,8 @@ class DealChainService
                 'title' => 'Коммерческое предложение',
                 'icon' => 'fa-file-invoice',
                 'state' => 'ok',
-                'value' => !empty($check['amount'])
-                    ? tools()->cost_normalize(round($check['amount'])) . ' ' . ($check['currency'] ?? '')
+                'value' => $own_amount > 0
+                    ? tools()->cost_normalize(round($own_amount)) . ' ' . ($check['currency'] ?? '')
                     : ($proposal->name_number ?? $proposal->name),
                 'hint' => 'Последний вариант, редакция ' . ($proposal->iteration ?? 1)
                     . ' · статус: ' . ($proposal->status_decorate['label'] ?? '—'),
@@ -246,12 +307,14 @@ class DealChainService
                 'value' => match (true) {
                     $links->isEmpty() => 'Не привязана',
                     $links->count() === 1 => '#' . $main->crm_deal_id . ' ' . ($main->deal->title ?? ''),
-                    default => $links->count() . ' сделки на '
-                        . tools()->cost_normalize(round((float) ($check['deals_amount'] ?? 0))),
+                    default => tools()->num_rus($links->count(), ['сделки', 'сделка', 'сделок'], true) . ' на '
+                        . tools()->cost_normalize(round($own_deals_amount)),
                 },
                 'hint' => match (true) {
                     $links->isEmpty() => 'Привяжите сделку — без неё не сойдётся сверка с CRM',
                     !empty($check['has_errors']) => $check['summary'],
+                    // общая сделка: сверка сошлась вместе с другими КП
+                    $shared => 'Общая с КП ' . $shared_with . ' · суммы сходятся вместе',
                     $links->count() === 1 => trim((string) ($main->deal->stage_name ?? 'Нет в выгрузке Битрикс24')),
                     default => 'Главная #' . $main->crm_deal_id . ' · суммы сходятся',
                 },

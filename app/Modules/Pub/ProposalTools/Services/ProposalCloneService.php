@@ -60,6 +60,7 @@ class ProposalCloneService
                 'sended_at' => $params['sended_at'] ?? now()->format('Y-m-d'),
                 'status' => ProposalStatus::IN_WORK->value,
                 'status_reason' => null,
+                'status_reasons' => null,
                 'status_comment' => null,
             ]);
 

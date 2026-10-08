@@ -14,13 +14,20 @@
     $value_class = $dh === 'xl' && $dw !== 'xs' ? 'desk-value-lg' : 'desk-value';
 
     $money_full = fn($amount) => $widget::money($amount, $data['symbol'], false);
+    // patch v44: КП с несколькими причинами входит в каждую, его сумма делится между причинами поровну
+    $multi = (int) ($data['multi'] ?? 0);
+    $multi_note = $multi > 0
+        ? 'У ' . $multi . ' КП несколько причин: КП входит в каждую (доли в сумме больше 100 %), сумма КП делится между причинами поровну'
+        : '';
     $title = fn($row) => $row['label'] . ' · ' . $row['count'] . ' из ' . $data['total']
         . ' (' . $percent($row['share']) . ')'
         . ($sums ? ' · ' . $money_full($row['amount']) : '')
-        . ($row['hint'] !== '' ? ' · ' . $row['hint'] : '');
+        . ($row['hint'] !== '' ? ' · ' . $row['hint'] : '')
+        . ($multi_note !== '' ? ' · ' . $multi_note : '');
     $total_title = 'Проиграно КП: ' . $data['total']
         . ($data['top'] !== '' ? ' · чаще всего: ' . $data['top'] : '')
-        . ($sums ? ' · всего ' . $money_full($data['amount']) : '');
+        . ($sums ? ' · всего ' . $money_full($data['amount']) : '')
+        . ($multi_note !== '' ? ' · ' . $multi_note : '');
 @endphp
 @if(empty($data['rows']))
     <div class="desk-empty">

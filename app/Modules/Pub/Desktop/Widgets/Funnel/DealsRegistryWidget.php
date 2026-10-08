@@ -17,6 +17,9 @@ use Illuminate\Support\Carbon;
  * Фильтр упрощён до одного значения на поле (вкладка, стадия, менеджер, привязка КП):
  * на столе множественный выбор страницы негде разместить. Суммы сделок не складываются —
  * в реестре они в разных валютах, как и на странице.
+ *
+ * patch v43: КП у сделки может быть несколько — плашкой первое (порядок
+ * ProposalDealService::proposalsOfDeal()), остальные — «+N» с подсказкой списком.
  */
 class DealsRegistryWidget extends Widget
 {
@@ -108,7 +111,7 @@ class DealsRegistryWidget extends Widget
     public function sample(array $settings, DesktopContext $ctx): array
     {
         $sample = [
-            [4821, 'Лицензии OSMO, ГК «Восток»', 'Contracting', 'P', 'ГК «Восток»', 'Роснефть', 'Россия', 4200000.0, 'RUB', 'AA795', true],
+            [4821, 'Лицензии OSMO, ГК «Восток»', 'Contracting', 'P', 'ГК «Восток»', 'Роснефть', 'Россия', 4200000.0, 'RUB', 'AA795', true, ['AK727', 'AM610']],
             [4817, 'Пилот, Ташкент-Софт', 'Pilot project', 'P', 'Ташкент-Софт', 'UzGas', 'Узбекистан', 38000.0, 'USD', null, true],
             [4802, 'Продление, ООО «Гранит»', 'Invoice + Specification', 'P', 'ООО «Гранит»', '', 'Россия', 1750000.0, 'RUB', 'OD781', false],
             [4790, 'Внедрение, АО «Вектор»', 'Execution (PRE-PAYMENT)', 'S', 'АО «Вектор»', 'Вектор-Юг', 'Россия', 9300000.0, 'RUB', 'AK770', false],
@@ -134,6 +137,8 @@ class DealsRegistryWidget extends Widget
                 'proposal' => $row[9],
                 'proposal_name' => $row[9] ? $row[1] : null,
                 'proposal_url' => null,
+                'proposals_more' => count($row[11] ?? []),
+                'proposals_title' => implode("\n", array_map(fn($number) => '№ ' . $number . ' · ' . $row[1], $row[11] ?? [])),
                 'project' => $row[10],
                 'url' => null,
             ];
@@ -156,7 +161,9 @@ class DealsRegistryWidget extends Widget
      * @param DesktopContext $ctx
      * @return array ['rows' => [['id', 'title', 'stage', 'color', 'date', 'manager', 'company',
      *                            'customer', 'country', 'amount', 'symbol', 'proposal',
-     *                            'proposal_name', 'proposal_url', 'project', 'url']],
+     *                            'proposal_name', 'proposal_url', 'proposals_more', 'proposals_title',
+     *                            'project', 'url']],
+     *                proposal* — первое КП сделки, proposals_more — сколько ещё, proposals_title — их список
      *                'total', 'with_proposal', 'mode', 'mode_label', 'filtered']
      */
     public function data(array $settings, DesktopContext $ctx): array
@@ -166,7 +173,10 @@ class DealsRegistryWidget extends Widget
         $rows = CrmDealRegistryService::rows($params, null, $mode);
 
         $list = $rows->take((int) $settings['limit'])->map(function ($row) use ($ctx) {
-            $proposal = $row->proposal;
+            // patch v43: все КП сделки (rows() отдаёт proposals); без списка — одно proposal
+            $proposals = $row->proposals ?? ($row->proposal ? collect([$row->proposal]) : collect());
+            $proposal = $proposals->first();
+            $others = $proposals->slice(1);
             $project = $row->project;
 
             return [
@@ -185,6 +195,8 @@ class DealsRegistryWidget extends Widget
                 'proposal' => $proposal ? (string) ($proposal->number ?: 'КП') : null,
                 'proposal_name' => $proposal?->name,
                 'proposal_url' => $proposal ? route('proposal.detail', [$proposal, $proposal->iteration]) : null,
+                'proposals_more' => $others->count(),
+                'proposals_title' => $others->map(fn($item) => '№ ' . ($item->number ?: 'б/н') . ' · ' . $item->name)->implode("\n"),
                 'project' => (bool) $project,
                 'url' => (string) $row->deal_url,
             ];

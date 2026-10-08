@@ -8,7 +8,8 @@
       на ширине 2 в строке номер КП, шире — название и сумма расхождения, от 420 px — вид;
     - высота ≥6 (dh lg|xl): число крупно, виды расхождений строками со счётчиками перед КП;
     - ширина ≥12 (dw lg|xl): сводка и виды колонкой слева, справа таблица КП
-      (статус — от 620 px, компания — от 860 px; стили в osmo-desktop-widgets/funnel-1.css).
+      (статус — от 620 px, компания — от 860 px; стили в osmo-desktop-widgets/funnel-1.css);
+    - сделка общая с другим КП (patch v43): значок-скрепка у строки, текст — в подсказке.
 --}}
 @php
     $show_list = !in_array($dh, ['xs', 'sm'], true);
@@ -111,7 +112,12 @@
                                     <td class="desk-only-w-xl">
                                         <span class="badge badge-light-{{ $row['status_color'] }} fs-8">{{ $row['status_label'] }}</span>
                                     </td>
-                                    <td class="desk-cut cmm-issue text-{{ $row['color'] }}" title="{{ implode(', ', $row['labels']) }}">{{ implode(', ', $row['labels']) }}</td>
+                                    <td class="desk-cut cmm-issue text-{{ $row['color'] }}" title="{{ implode(', ', $row['labels']) }}">
+                                        {{-- patch v43: сделка общая с другим КП --}}
+                                        @if(!empty($row['shared']))
+                                            <i class="fa-light fa-link desk-muted me-1" title="{{ $row['shared'] }}"></i>
+                                        @endif{{ implode(', ', $row['labels']) }}
+                                    </td>
                                     <td class="num fw-bold text-{{ $row['color'] }}" title="{{ $row['diff'] != 0 ? tools()->cost_normalize(round($row['diff'])) : 'Суммы сходятся' }}">
                                         {{ $row['diff'] == 0 ? '—' : $diff($row['diff']) }}
                                     </td>
@@ -136,6 +142,10 @@
                             <li @class(['pt-3' => $types_list && $i === 0 && !empty($badges)])>
                                 <a href="{{ $href($row) }}" class="desk-link desk-grow text-hover-primary"
                                    title="{{ $hint($row) }}">{{ $dw === 'xs' && $row['number'] !== '' ? $row['number'] : $row['name'] }}</a>
+                                {{-- patch v43: сделка общая с другим КП --}}
+                                @if(!empty($row['shared']))
+                                    <i class="fa-light fa-link desk-muted flex-shrink-0 desk-hide-narrow" title="{{ $row['shared'] }}"></i>
+                                @endif
                                 <span class="badge badge-light-{{ $row['color'] }} flex-shrink-0 desk-only-w-lg"
                                       title="{{ implode(', ', $row['labels']) }}">{{ $row['labels'][0] ?? '—' }}</span>
                                 @if($row['diff'] != 0)

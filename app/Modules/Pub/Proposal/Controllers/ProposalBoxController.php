@@ -68,7 +68,8 @@ class ProposalBoxController extends Controller
             'q' => $q,
             'manager' => $request->input('manager'),
             'stage' => $request->input('stage'),
-            'only_free' => $request->boolean('only_free', true),
+            // patch v43: only_free — только сделки без КП; по умолчанию показываем все
+            'only_free' => $request->boolean('only_free', false),
             'proposal_group' => $proposal->group,
         ];
 

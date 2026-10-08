@@ -10,7 +10,7 @@ use App\Modules\Pub\Desktop\Widgets\Widget;
 use App\Modules\Pub\Partner\Models\Partner;
 use App\Modules\Pub\Partner\Models\PartnerGrade;
 use App\Modules\Pub\Proposal\Models\Proposal;
-use App\Modules\Pub\Proposal\Models\ProposalCrmDeal;
+use App\Modules\Pub\Proposal\Services\ProposalDealService;
 use Illuminate\Support\Facades\Route;
 
 /**
@@ -148,7 +148,9 @@ class LinkWidget extends Widget
 
     /**
      * Сделка Битрикс24: сводная карточка портала (она строится по КП, привязанному к сделке)
-     * при праве deal_card_view, иначе — сделка в Битрикс24
+     * при праве deal_card_view, иначе — сделка в Битрикс24.
+     * patch v43: КП у сделки может быть несколько — берём первое в порядке proposalsOfDeal()
+     * (свежее отправленное выше), а не случайную строку привязок.
      */
     protected function deal(int $id, DesktopContext $ctx): ?array
     {
@@ -157,7 +159,7 @@ class LinkWidget extends Widget
 
         $url = CrmDealRegistryService::url($id);
         if ($ctx->user && Route::has('deal_card.index') && $ctx->user->can_do('deal_card_view')) {
-            $group = ProposalCrmDeal::where('crm_deal_id', $id)->orderByDesc('is_main')->value('proposal_group')
+            $group = ProposalDealService::proposalsOfDeal($id)->first()?->group
                 ?? Proposal::where('crm_deal_id', $id)->value('group');
             if ($group) {
                 $url = route('deal_card.index', $group);
