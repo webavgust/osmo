@@ -52,6 +52,17 @@ class CrmDealRegistryService
     /** Значение фильтра «партнёр не указан» — у сделки нет компании (patch v41) */
     public const PARTNER_EMPTY = 'none';
 
+    /**
+     * Тип строки истории стадий «создание сделки» (crm_deal_stage_history.type_id, patch v42).
+     * По документации BI-коннектора Битрикса: 1 — создание сделки, остальные типы — переходы
+     * между стадиями. Создание — не смена статуса, в фильтр «Статус менялся за N дней» не идёт.
+     * Значение взято из документации: сверить на данных прода, когда таблица наполнится.
+     */
+    public const HISTORY_TYPE_CREATE = 1;
+
+    /** Предел фильтра «Статус менялся за, дней»: 1…STAGE_CHANGED_MAX_DAYS (10 лет) */
+    public const STAGE_CHANGED_MAX_DAYS = 3650;
+
     /** Отбор по наличию привязанного КП (поле фильтра «Привязано КП») */
     public const HAS_PROPOSAL = [
         'no' => 'нет',
@@ -64,14 +75,17 @@ class CrmDealRegistryService
     public const MODE_PROJECTS = 'projects';
     public const MODE_ARCHIVE = 'archive';
 
-    /** Значения фильтра по умолчанию: интересуют сделки, которые ещё не посчитаны */
+    /** Значения фильтра по умолчанию: все сделки, с КП и без (08.10.2026, раньше — только без КП) */
     public const DEFAULTS = [
         'stage' => [],
-        'has_proposal' => 'no',
+        'has_proposal' => 'all',
         'manager' => [],
         'country' => [],
         'customer' => [],
         'partner' => [],
+        // «Статус менялся за, дней» и «в статус» (patch v42); '' — не отбирать
+        'stage_changed_days' => '',
+        'stage_changed_to' => [],
         'q' => '',
         // «Все сделки»: не отсекать по дате создания (since()); '1' — включено
         'all_dates' => '',
@@ -144,6 +158,12 @@ class CrmDealRegistryService
             $has_proposal = $defaults['has_proposal'];
         }
 
+        // дни — целое 1…STAGE_CHANGED_MAX_DAYS, всё остальное — «не отбирать»
+        $days = trim((string) (is_scalar($input['stage_changed_days'] ?? null) ? $input['stage_changed_days'] : ''));
+        if (!ctype_digit($days) || (int) $days < 1 || (int) $days > static::STAGE_CHANGED_MAX_DAYS) {
+            $days = '';
+        }
+
         return [
             'stage' => static::listOf($input['stage'] ?? []),
             'has_proposal' => $has_proposal,
@@ -151,6 +171,8 @@ class CrmDealRegistryService
             'country' => static::listOf($input['country'] ?? []),
             'customer' => static::listOf($input['customer'] ?? []),
             'partner' => static::listOf($input['partner'] ?? []),
+            'stage_changed_days' => $days === '' ? '' : (string) (int) $days,
+            'stage_changed_to' => static::listOf($input['stage_changed_to'] ?? []),
             'q' => trim((string) ($input['q'] ?? '')),
             'all_dates' => !empty($input['all_dates']) ? '1' : '',
         ];
@@ -319,6 +341,11 @@ class CrmDealRegistryService
             });
         }
 
+        // статус менялся за N дней / в выбранные статусы (patch v42)
+        if ($params['stage_changed_days'] !== '' || !empty($params['stage_changed_to'])) {
+            $builder->whereIn('crm_deal.id', static::stageChangedQuery($params));
+        }
+
         if ($params['q'] !== '') {
             $like = '%' . $params['q'] . '%';
 
@@ -362,6 +389,56 @@ class CrmDealRegistryService
 
             return $row;
         });
+    }
+
+    /**
+     * Подзапрос id сделок, у которых менялся статус (patch v42).
+     *
+     * Источник — crm_deal_stage_history (история стадий из BI-коннектора, база
+     * Битрикса). Засчитываются только переходы: строки создания сделки
+     * (HISTORY_TYPE_CREATE) отбрасываются. Отбор складывается из двух полей:
+     *  - stage_changed_days — переход был не раньше чем N дней назад;
+     *  - stage_changed_to — переход был в один из выбранных статусов.
+     * Без дней, но со статусами — за всё время истории.
+     *
+     * Статусы в фильтре — названия (stage_name), как у поля «Стадия»; в истории
+     * сверяем по коду стадии (stage_id), собранному по crm_deal для этих названий,
+     * и на всякий случай по названию — если код в зеркале не нашёлся.
+     *
+     * Подзапрос уходит в whereIn сделок целиком: одна выборка в базе Битрикса,
+     * без запроса на каждую сделку.
+     *
+     * @param array $params Фильтр (см. params())
+     * @return \Illuminate\Database\Query\Builder
+     */
+    public static function stageChangedQuery(array $params): \Illuminate\Database\Query\Builder
+    {
+        $query = CrmDeal::query()->getConnection()
+            ->table('crm_deal_stage_history')
+            ->select('deal_id')
+            ->whereNotNull('deal_id')
+            ->where(fn($builder) => $builder->whereNull('type_id')->orWhere('type_id', '<>', static::HISTORY_TYPE_CREATE));
+
+        if ($params['stage_changed_days'] !== '') {
+            $query->where('date_create', '>=', Carbon::now()->subDays((int) $params['stage_changed_days']));
+        }
+
+        if (!empty($params['stage_changed_to'])) {
+            $names = $params['stage_changed_to'];
+            $codes = CrmDeal::query()
+                ->whereIn('stage_name', $names)
+                ->whereNotNull('stage_id')
+                ->distinct()
+                ->pluck('stage_id')
+                ->all();
+
+            $query->where(function ($builder) use ($names, $codes) {
+                if ($codes) $builder->whereIn('stage_id', $codes);
+                $builder->orWhereIn('stage_name', $names);
+            });
+        }
+
+        return $query->distinct();
     }
 
     /**

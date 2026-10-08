@@ -135,6 +135,27 @@
                         </div>
                     @endif
 
+                    {{-- Смена статуса по истории стадий Битрикса (patch v42): за N дней
+                         и, если выбрано, только в эти статусы; статусы без дней — за всё время --}}
+                    <div class="row mb-5">
+                        <label class="col-sm-3 col-form-label fw-semibold text-sm-end">Статус менялся за, дней</label>
+                        <div class="col-sm-9">
+                            <div class="row g-3">
+                                <div class="col-sm-4">
+                                    <input type="number" name="stage_changed_days" class="form-control"
+                                           min="1" max="{{ $service::STAGE_CHANGED_MAX_DAYS }}" step="1"
+                                           placeholder="не важно" value="{{ $params['stage_changed_days'] }}"/>
+                                </div>
+                                <div class="col-sm-8">
+                                    <x-ui.select.multiple name="stage_changed_to[]" id="id"
+                                                          class="{{ $prefix }}_select"
+                                                          data-placeholder="в любой статус"
+                                                          :items="$stages" :selected="$params['stage_changed_to']" blank-ignore="1"/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     {{-- «Все сделки»: без отсечки по дате создания (consts.bitrix_deals_since) --}}
                     <div class="row mb-5">
                         <div class="col-sm-9 offset-sm-3">

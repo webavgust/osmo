@@ -14,7 +14,8 @@
         <input type="hidden" name="q" value="{{ $params['q'] }}"/>
         <input type="hidden" name="all_dates" value="{{ $params['all_dates'] }}"/>
         <input type="hidden" name="mode" value="{{ $mode ?? 'all' }}"/>
-        @foreach(['stage', 'manager', 'country', 'customer', 'partner'] as $field)
+        <input type="hidden" name="stage_changed_days" value="{{ $params['stage_changed_days'] }}"/>
+        @foreach(['stage', 'manager', 'country', 'customer', 'partner', 'stage_changed_to'] as $field)
             @foreach($params[$field] as $value)
                 <input type="hidden" name="{{ $field }}[]" value="{{ $value }}"/>
             @endforeach
