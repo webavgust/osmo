@@ -67,14 +67,14 @@
                     cb_all: $("#cb_all").prop("checked") ? 1 : 0,
                 },
                 success: function (response) {
-                    if($("#cb_all").prop("checked")) {
-                        $.each(response.html, function(variant, html) {
-                            $(`#hardware_table[variant='${variant}']`)[0].outerHTML = html;
-                        })
+                    // при одном варианте сервер возвращает одну таблицу строкой, при нескольких — объект {вариант: html}
+                    let tables = response.html;
+                    if (typeof tables === 'string') tables = {'{{ $variant->id }}': tables};
 
-                    } else {
-                        $("#hardware_table[variant='{{ $variant->id }}']")[0].outerHTML = response.html;
-                    }
+                    $.each(tables, function(variant, html) {
+                        const table = $(`#hardware_table[variant='${variant}']`)[0];
+                        if (table) table.outerHTML = html;
+                    });
 
 
 

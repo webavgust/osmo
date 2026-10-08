@@ -1,5 +1,5 @@
 <div class="card">
-    <div class="card-body p-0" id="hardware_table" variant="{{ $variant->id }}">
+    <div class="card-body p-0" id="extra_pays_table" variant="{{ $variant->id }}">
         <div class="
                                                       invoice-header
                                                       d-flex
