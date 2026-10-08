@@ -46,6 +46,9 @@ class ListFilterRequest extends FormRequest
             // сделка Битрикса: наличие привязки и конкретные ID
             'crm_deal' => 'nullable|in:linked,empty',
             'crm_deal_id' => 'nullable|string|max:200',
+
+            // patch v45: только удалённые КП (без права — игнорируется в ProposalListFilterService)
+            'trashed' => 'nullable|bool',
         ];
     }
 }

@@ -87,13 +87,38 @@ class ApiProposalController
         return ['result' => 'success', 'url' => route('proposal.detail', [$proposal, $proposal->iteration])];
     }
 
+    /**
+     * Мягкое удаление КП целиком — всех редакций группы (patch v45). Право — Proposal::canDelete()
+     *
+     * @param Proposal $proposal
+     * @param int $iteration
+     * @return array
+     */
     public function delete(Proposal $proposal, int $iteration)
     {
+        abort_unless(Proposal::canDelete(), 403, 'Удалять КП может только администратор');
+
         $proposal = ProposalRepository::getOnce($proposal->group, $iteration);
         if(empty($proposal)) abort(404);
         ProposalRepository::delete($proposal);
 
         return ['result' => 'success'];
+    }
+
+    /**
+     * Восстановление мягко удалённого КП — всех редакций группы (patch v45). Право — Proposal::canDelete()
+     *
+     * @param string $group группа КП
+     * @return array
+     */
+    public function restore(string $group)
+    {
+        abort_unless(Proposal::canDelete(), 403, 'Восстанавливать КП может только администратор');
+
+        if (!Proposal::onlyTrashed()->where('group', $group)->exists()) abort(404);
+        $count = ProposalRepository::restore($group);
+
+        return ['result' => 'success', 'count' => $count];
     }
 
 

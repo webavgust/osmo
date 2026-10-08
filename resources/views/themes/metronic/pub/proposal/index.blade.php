@@ -259,6 +259,21 @@
                                 </label>
                             </div>
                         </div>
+
+                        {{-- patch v45: только удалённые КП — их можно вернуть; галочка есть только у того, кто может удалять --}}
+                        @if(\App\Modules\Pub\Proposal\Models\Proposal::canDelete())
+                            <div class="row mt-3">
+                                <label class="col-sm-3 col-form-label"></label>
+                                <div class="col-sm-9">
+                                    <label class="form-check form-check-custom form-check-solid">
+                                        <input name="trashed" class="form-check-input" type="checkbox" value="1"
+                                               id="cbTrashed" @checked(!empty($filter['trashed'])) />
+                                        <span class="form-check-label fw-semibold text-danger">Показать удалённые</span>
+                                    </label>
+                                    <div class="form-text">В списке останутся только удалённые КП</div>
+                                </div>
+                            </div>
+                        @endif
                     </div>
 
                     <div class="modal-footer">
@@ -564,7 +579,8 @@
         })
 
         function row_delete(url) {
-            if(!confirm("Вы действительно хотите удалить эту запись?")) return;
+            // patch v45: удаляется КП целиком (мягко), вернуть — из фильтра «Удалённые»
+            if(!confirm("Удалить КП со всеми редакциями? Его можно будет вернуть из фильтра «Удалённые»")) return;
             $("body").block(block_default);
             $.ajax({
                 url: url + "?_token=" + csrf_token(),
@@ -576,6 +592,7 @@
                         $(".table_data").each(function() {
                             $(this).bootstrapTable('refresh');
                         });
+                        toastr.success("КП удалено", "Это успех!");
                         $("body").unblock();
                     } else {
                         toastr.error("Не получилось удалить запись", "Это провал!", {
@@ -585,12 +602,35 @@
                         $("body").unblock();
                     }
                 },
-                error: function () {
-                    toastr.error("Не получилось удалить запись", "Это провал!", {
+                error: function (xhr) {
+                    // patch v45: причина отказа (связка КП, нет права) — из ответа сервера
+                    toastr.error(xhr.responseJSON?.message || "Не получилось удалить запись", "Это провал!", {
                         progressBar: true,
-                        "timeOut": 3000,
+                        "timeOut": 6000,
                     });
                     $("body").unblock();
+                }
+            });
+        }
+
+        // patch v45: восстановление удалённого КП со всеми редакциями (фильтр «Показать удалённые»)
+        function row_restore(url) {
+            if(!confirm("Восстановить КП со всеми редакциями?")) return;
+            body_block();
+            $.ajax({
+                url: url + "?_token=" + csrf_token(),
+                type: "POST",
+                dataType: "json",
+                success: function () {
+                    $(".table_data").each(function() {
+                        $(this).bootstrapTable('refresh');
+                    });
+                    toastr.success("КП восстановлено", "Это успех!");
+                    body_unblock();
+                },
+                error: function (xhr) {
+                    toastr.error(xhr.responseJSON?.message || "Не получилось восстановить КП", "Это провал!");
+                    body_unblock();
                 }
             });
         }

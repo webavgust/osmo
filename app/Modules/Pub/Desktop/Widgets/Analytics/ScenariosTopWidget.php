@@ -212,6 +212,8 @@ class ScenariosTopWidget extends Widget
             ->join('scenarios as s', 's.id', '=', 'pvs.scenario_id')
             ->leftJoin('scenario_groups as g', 'g.id', '=', 's.scenario_group_id')
             ->where('pv.is_main', 1)
+            // patch v45: мягко удалённые КП не участвуют
+            ->whereNull('p.deleted_at')
             // только последняя редакция КП, как в отчёте: иначе КП в пяти редакциях считался бы пять раз
             ->whereIn('p.id', fn($query) => $query->selectRaw('MAX(id)')->from('proposals')->groupBy('group'))
             // patch v33: второстепенные КП в расчётах не участвуют

@@ -20,10 +20,13 @@ use App\Modules\Pub\ProposalWork\Models\ProposalWork;
 use App\Modules\Pub\Sector\Models\Sector;
 use App\Modules\Pub\User\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Proposal extends ModuleModel
 {
     use HasLogger;
+    // patch v45: мягкое удаление — deleted_at ставится всей группе (ProposalRepository::delete)
+    use SoftDeletes;
 
     protected $fillable = ['group', 'iteration', 'name', 'name_alt', 'sended_at', 'rate_unlimited', 'number', 'number_int', 'currency_rate', 'currency_rate_cumulative', 'lang', 'nds', 'status', 'status_reason', 'status_reasons', 'status_comment', 'crm_deal_id'];
     protected $searchable = ["name", "number"];
@@ -38,6 +41,9 @@ class Proposal extends ModuleModel
     {
         parent::boot();
         static::deleting(function ($instance) {
+            // patch v45: при мягком удалении варианты, ПО и работы остаются — КП можно вернуть
+            if (!$instance->isForceDeleting()) return;
+
             // почистим variants
             $instance->variants->each(function($sub_instance) {
                 $sub_instance->delete();
@@ -50,6 +56,21 @@ class Proposal extends ModuleModel
             });
         });
     }
+    /**
+     * Может ли пользователь удалять КП, видеть удалённые и восстанавливать их (patch v45).
+     * Список — config('proposal.deleters')
+     *
+     * @param \Illuminate\Contracts\Auth\Authenticatable|null $user null — текущий пользователь
+     * @return bool
+     */
+    public static function canDelete($user = null): bool
+    {
+        $user = $user ?? auth()->user();
+        if (empty($user)) return false;
+
+        return in_array((int) $user->getAuthIdentifier(), array_map('intval', (array) config('proposal.deleters', [])), true);
+    }
+
     public function getRouteKey()
     {
         return $this->group;

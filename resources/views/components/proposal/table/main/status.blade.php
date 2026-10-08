@@ -29,4 +29,12 @@
         <span class="fs-7">{{ $status['label'] }}</span>
 
     </span>
+    {{-- patch v45: КП мягко удалено — видно только в фильтре «Показать удалённые» --}}
+    @if($row->trashed())
+        <div class="mt-1">
+            <span class="badge badge-light-danger fs-8">
+                <i class="fas fa-trash fs-8 text-danger me-1"></i>Удалено {{ $row->deleted_at?->format('d.m.Y') }}
+            </span>
+        </div>
+    @endif
 </div>

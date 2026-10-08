@@ -20,6 +20,8 @@ class EntityLog extends Model
     public const EVENT_CREATED = 'created';
     public const EVENT_UPDATED = 'updated';
     public const EVENT_DELETED = 'deleted';
+    /** Восстановление мягко удалённого корня (patch v45, КП) */
+    public const EVENT_RESTORED = 'restored';
 
     /** Подписи событий для ленты */
     public const EVENTS = [
@@ -27,6 +29,7 @@ class EntityLog extends Model
         self::EVENT_CREATED => 'Создание',
         self::EVENT_UPDATED => 'Изменение',
         self::EVENT_DELETED => 'Удаление',
+        self::EVENT_RESTORED => 'Восстановление',
     ];
 
     protected $table = 'entity_logs';

@@ -80,7 +80,8 @@ class ProposalController extends Controller
         $partners = PartnerRepository::getAll();
         $scenarios = ScenarioRepository::getActive();
         $users = UserRepository::getAll();
-        $max_number = Proposal::max('number_int') + 1;
+        // patch v45: с учётом удалённых — у восстановленного КП номер не должен совпасть с новым
+        $max_number = Proposal::withTrashed()->max('number_int') + 1;
         $works = WorkRepository::getAll();
         $softs = SoftwareRepository::getAll();
         $company_default = $request->get('company') ?? null;
@@ -110,6 +111,23 @@ class ProposalController extends Controller
 
     public function detail(Proposal $proposal, int $iteration = 1)
     {
+        // patch v45: маршрут отдаёт и удалённое КП (withTrashed) — его видит только тот, кто может восстановить
+        if ($proposal->trashed()) {
+            if (!Proposal::canDelete()) abort(404);
+
+            $proposal = Proposal::onlyTrashed()->where('group', $proposal->group)->where('iteration', $iteration)->first();
+            if(empty($proposal)) abort(404);
+
+            $this->breadcrumb_add(route('proposal.detail', [$proposal, $proposal->iteration]), $proposal->number . " ({$proposal->iteration})");
+
+            return view('pub.proposal.detail', [
+                'breadcrumbs' => $this->breadcrumb,
+                'proposal' => $proposal,
+                'log_root' => null,
+                'log_state' => null,
+                'iterations' => Proposal::onlyTrashed()->where('group', $proposal->group)->orderBy('iteration', 'desc')->get(),
+            ]);
+        }
 
         $proposal = ProposalRepository::getOnce($proposal->group, $iteration);
         if(empty($proposal)) abort(404);
@@ -169,7 +187,8 @@ class ProposalController extends Controller
         $platform_matrix = $matrix['platform_matrix'];
 
         $users = UserRepository::getAll();
-        $max_number = Proposal::max('number_int') + 1;
+        // patch v45: с учётом удалённых — у восстановленного КП номер не должен совпасть с новым
+        $max_number = Proposal::withTrashed()->max('number_int') + 1;
 
         $works = WorkRepository::getAll();
         $softs = SoftwareRepository::getAll();
@@ -235,9 +254,12 @@ class ProposalController extends Controller
      */
     public function destroy(Proposal $Proposal)
     {
-        $Proposal->delete();
+        // patch v45: маршрута нет (остаток заготовки); на всякий случай — та же логика,
+        // что и у api.proposal.delete: право и мягкое удаление всей группы
+        abort_unless(Proposal::canDelete(), 403, 'Удалять КП может только администратор');
+        ProposalRepository::delete($Proposal);
 
-        return \Redirect::route('Proposals.index');
+        return \Redirect::route('proposal.index');
     }
 
 

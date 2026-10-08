@@ -3,6 +3,7 @@
 namespace App\Modules\Pub\Proposal\Services;
 
 use App\Modules\Pub\Education\Requests\ListFilterRequest;
+use App\Modules\Pub\Proposal\Models\Proposal;
 use App\Modules\Pub\User\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder as BuilderAlias;
@@ -56,6 +57,9 @@ class ProposalListFilterService
             if(is_array($value) && empty($value))
                 unset($arFilter[$field]);
         }
+        // patch v45: «Показать удалённые» — только тем, кто может удалять КП
+        if (empty($arFilter['trashed']) || !Proposal::canDelete()) unset($arFilter['trashed']);
+
         $this->filter = $arFilter;
         Cache::set('Proposal.list.filter:' . $this->token, $this->filter, 86400);
 
@@ -91,6 +95,17 @@ class ProposalListFilterService
     public function getFilterUsers()
     {
         return [];
+    }
+
+    /**
+     * Включена галочка «Показать удалённые» (patch v45): список показывает только
+     * мягко удалённые КП. Без права Proposal::canDelete() — всегда false
+     *
+     * @return bool
+     */
+    public function onlyTrashed(): bool
+    {
+        return !empty($this->filter['trashed']) && Proposal::canDelete();
     }
 
     /**

@@ -1,3 +1,8 @@
+@php
+    // patch v45: удалять / восстанавливать КП может только Proposal::canDelete().
+    // Ячейку рисует API списка (без темы), поэтому логика здесь, а не только в теме
+    $can_delete = \App\Modules\Pub\Proposal\Models\Proposal::canDelete();
+@endphp
 <div class="cell">
     <div class="dropdown-action">
         <div class="dropdown todo-action-dropdown">
@@ -5,14 +10,24 @@
                 <i class="icon-options-vertical"></i>
             </button>
             <div class="dropdown-menu dropdown-menu-right">
-                <a class="dropdown-item" href="{{ route('proposal.edit', [$row, $row->iteration]) }}">
-                    <i class="fas fa-edit text-warning me-2"></i> Редактировать
-                </a>
-                <a class="dropdown-item" href="javascript:row_delete('{{ route('api.proposal.delete', [$row, $row->iteration]) }}')">
-                    <i class="fas fa-trash text-danger me-2"></i> Удалить
-                </a>
+                @if($row->trashed())
+                    @if($can_delete)
+                        <a class="dropdown-item" href="javascript:row_restore('{{ route('api.proposal.restore', $row->group) }}')">
+                            <i class="fas fa-trash-restore text-success me-2"></i> Восстановить
+                        </a>
+                    @endif
+                @else
+                    <a class="dropdown-item" href="{{ route('proposal.edit', [$row, $row->iteration]) }}">
+                        <i class="fas fa-edit text-warning me-2"></i> Редактировать
+                    </a>
+                    @if($can_delete)
+                        <a class="dropdown-item" href="javascript:row_delete('{{ route('api.proposal.delete', [$row, $row->iteration]) }}')">
+                            <i class="fas fa-trash text-danger me-2"></i> Удалить
+                        </a>
+                    @endif
+                @endif
 
-                @if($row->iteration > 1)
+                @if($row->iteration > 1 && !$row->trashed())
                     <a class="dropdown-item" href="javascript:sidebar({ href: '{{ route('proposal.sidebar_iterations', [$row, $row->iteration]) }}'})">
                         <i class="fas fa-copy text-primary me-2"></i> Посмотреть редакции
                     </a>

@@ -7,6 +7,7 @@ use App\Modules\Pub\Company\Models\Company;
 use App\Modules\Pub\Constant\Models\Constant;
 use App\Modules\Pub\Currency\Models\Currency;
 use App\Modules\Pub\Currency\Repository\CurrencyRepository;
+use App\Modules\Pub\EntityLog\Services\EntityLogService;
 use App\Modules\Pub\Proposal\Services\ProposalListFilterService;
 use App\Modules\Pub\Proposal\Services\ProposalLinkService;
 use App\Modules\Pub\Proposal\Models\ProposalLink;
@@ -569,20 +570,58 @@ class ProposalRepository
     }
 
 
-    public static function delete(Proposal $company)
+    /**
+     * Мягкое удаление КП целиком — всех редакций группы (patch v45).
+     *
+     * Право — Proposal::canDelete(). Связи (сделки Битрикс24, связки КП, спецификации,
+     * договоры) не трогаются: после восстановления всё возвращается как было.
+     * patch v33: КП из связки «главное / второстепенное» не удаляется, пока его
+     * не разъединят, — иначе связка повиснет на удалённом КП.
+     *
+     * @param Proposal $proposal любая редакция
+     * @return int сколько редакций помечено удалёнными
+     */
+    public static function delete(Proposal $proposal): int
     {
-        // patch v33: второстепенное — только просмотр; последнюю редакцию главного
-        // со второстепенными не удаляем, пока его не разъединят, — иначе связки повиснут
-        ProposalLinkService::assertEditable($company);
+        abort_unless(Proposal::canDelete(), 403, 'Удалять КП может только администратор');
 
-        if ($company->is_main && Proposal::where('group', $company->group)->count() <= 1) {
-            $refs = ProposalLinkService::secondariesOf($company)->map(fn($secondary) => ProposalLink::refOf($secondary))->filter();
+        $last = ProposalLink::lastOf($proposal->group) ?? $proposal;
 
-            abort(403, 'У КП ' . ProposalLink::refOf($company) . ' есть второстепенные КП (' . $refs->implode(', ')
+        if ($last->is_secondary) {
+            abort(403, 'КП ' . ProposalLink::refOf($last) . ' — второстепенное к ' . ProposalLink::refOf(ProposalLinkService::mainOf($last))
+                . '. Сначала разъедините их — попап «Связка КП»');
+        }
+
+        $secondaries = ProposalLinkService::secondariesOf($last);
+        if ($secondaries->isNotEmpty()) {
+            abort(403, 'У КП ' . ProposalLink::refOf($last) . ' есть второстепенные КП (' . $secondaries->map(fn($secondary) => ProposalLink::refOf($secondary))->filter()->implode(', ')
                 . '). Сначала разъедините их — попап «Связка КП»');
         }
 
-        $company->delete();
+        // массово, без событий моделей: в журнал ложится одно событие «Удаление» — у последней редакции.
+        // toBase(): updated_at не трогаем — дата изменения КП остаётся прежней и после восстановления
+        return EntityLogService::around($last, fn() => Proposal::where('group', $proposal->group)->toBase()
+            ->update(['deleted_at' => now()]));
+    }
+
+    /**
+     * Восстановление мягко удалённого КП — всех редакций группы (patch v45)
+     *
+     * @param string $group группа КП
+     * @return int сколько редакций восстановлено; 0 — удалённых редакций нет
+     */
+    public static function restore(string $group): int
+    {
+        abort_unless(Proposal::canDelete(), 403, 'Восстанавливать КП может только администратор');
+
+        // toBase(): updated_at не трогаем (см. delete())
+        $restored = Proposal::onlyTrashed()->where('group', $group)->toBase()->update(['deleted_at' => null]);
+
+        // событие «Восстановление» — у последней редакции (EntityLogService::write)
+        $last = ProposalLink::lastOf($group);
+        if ($restored && $last) EntityLogService::touch($last);
+
+        return $restored;
     }
 
     /**
@@ -787,7 +826,10 @@ class ProposalRepository
     public function getTable($params = [])
     {
         $filterService = new ProposalListFilterService($params['_token'] ?? null);
-        $builder = Proposal::where('proposals.id', '>', 0);
+        // patch v45: галочка «Показать удалённые» — только мягко удалённые КП
+        $trashed = $filterService->onlyTrashed();
+        $base = fn() => $trashed ? Proposal::onlyTrashed() : Proposal::query();
+        $builder = $base()->where('proposals.id', '>', 0);
         if(!empty($params['manager'])) {
             $builder->whereHas('manager', function ($builder) use ($params) {
                 $builder->where('id', $params['manager']);
@@ -851,7 +893,7 @@ class ProposalRepository
 
 
         $builder->groupBy(['group']);
-        $subquery = Proposal::select('group', DB::raw('MAX(iteration) as max_iteration'))
+        $subquery = $base()->select('group', DB::raw('MAX(iteration) as max_iteration'))
             ->groupBy('group');
 
         $builder->joinSub($subquery, 'max_iterations', function ($join) {

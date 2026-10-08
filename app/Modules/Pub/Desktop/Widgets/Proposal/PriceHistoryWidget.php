@@ -88,6 +88,8 @@ class PriceHistoryWidget extends Widget
 
         return (string) (DB::table('proposals')
             ->selectRaw('`group`, MAX(updated_at) as changed')
+            // patch v45: мягко удалённые КП не участвуют
+            ->whereNull('proposals.deleted_at')
             // patch v33: по умолчанию второстепенное КП не выбираем (выбранное руками — показываем)
             ->whereRaw(ProposalLink::notSecondarySql('proposals.group'))
             ->groupBy('group')

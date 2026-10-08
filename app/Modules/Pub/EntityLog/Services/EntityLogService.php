@@ -377,6 +377,12 @@ class EntityLogService
         $data = EntityLogSnapshot::make($fresh);
         $last = static::lastLog($type, $id);
 
+        // patch v45: корень снова в базе после события «Удаление» — мягко удалённый восстановлен
+        $latest = EntityLog::where('type', $type)->where('model_id', $id)->orderByDesc('created_at')->orderByDesc('id')->first(['id', 'event']);
+        if ($latest && $latest->event === EntityLog::EVENT_DELETED) {
+            return static::store($fresh, EntityLog::EVENT_RESTORED, $data, $last ? EntityLogDiff::compare(static::overlayShared($fresh, $last), $data) : []);
+        }
+
         if (empty($last)) {
             $predecessor = $fresh->logPredecessor();
             $base = $predecessor ? static::lastLog($predecessor::logType(), $predecessor->getKey()) : null;

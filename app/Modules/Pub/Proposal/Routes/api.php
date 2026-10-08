@@ -4,6 +4,8 @@ Route::group(['prefix' => 'proposal', 'middleware' => ['ajax.api']], function ()
     Route::put('/store', [\App\Modules\Pub\Proposal\Controllers\Api\ApiProposalController::class, 'store'])->name('api.proposal.store');
     Route::post('/update/{proposal}/{iteration}', [\App\Modules\Pub\Proposal\Controllers\Api\ApiProposalController::class, 'update'])->name('api.proposal.update');
     Route::delete('/delete/{proposal}/{iteration}', [\App\Modules\Pub\Proposal\Controllers\Api\ApiProposalController::class, 'delete'])->name('api.proposal.delete');
+    // patch v45: восстановление мягко удалённого КП — по группе (привязка модели удалённое не найдёт)
+    Route::post('/restore/{group}', [\App\Modules\Pub\Proposal\Controllers\Api\ApiProposalController::class, 'restore'])->name('api.proposal.restore');
     Route::post('/convert/{proposal}/{iteration}', [\App\Modules\Pub\Proposal\Controllers\Api\ApiProposalController::class, 'convert'])->name('api.proposal.convert');
 
 

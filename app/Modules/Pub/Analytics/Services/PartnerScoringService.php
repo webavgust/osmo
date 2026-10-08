@@ -571,6 +571,8 @@ class PartnerScoringService
         return $rows = collect(DB::table('proposals as p')
             ->leftJoin('companies as cm', 'cm.id', '=', 'p.company_id')
             ->whereNotNull('p.partner_id')
+            // patch v45: мягко удалённые КП не участвуют
+            ->whereNull('p.deleted_at')
             ->whereIn('p.id', fn($query) => $query->selectRaw('MAX(id)')->from('proposals')->groupBy('group'))
             // patch v33: второстепенные КП в скоринге не участвуют
             ->whereRaw(ProposalLink::notSecondarySql('p.group'))

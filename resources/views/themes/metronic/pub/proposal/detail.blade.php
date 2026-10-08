@@ -107,6 +107,18 @@
 
     @endphp
     <div class="container-fluid" id="proposal" currency="RUB">
+        {{-- patch v45: удалённое КП видит только тот, кто может его восстановить --}}
+        @if($proposal->trashed())
+            <div class="alert alert-danger d-flex align-items-center justify-content-between gap-3 mt-3 mb-0">
+                <div>
+                    <i class="fa-light fa-trash-can fs-3 me-2"></i>
+                    <b>КП удалено</b> {{ $proposal->deleted_at?->format('d.m.Y H:i') }} — в списках и отчётах его нет.
+                </div>
+                <button type="button" class="btn btn-sm btn-success" onclick="proposal_restore()">
+                    <i class="fa-light fa-trash-arrow-up me-1"></i> Восстановить
+                </button>
+            </div>
+        @endif
         <div class="row">
             {{-- patch v35: колонка вариантов — 150px от md, на телефоне над КП (col-1 на 1920 давал ≈ 130px,
                  на 1440 сжимался до 87px, и суммы вариантов обрезались до «5 10…») --}}
@@ -934,6 +946,28 @@
     @parent
 
     <script src="/assets/libs/ckeditor/ckeditor.js"></script>
+    @if($proposal->trashed())
+        <script>
+            // patch v45: восстановление удалённого КП со всеми редакциями
+            function proposal_restore() {
+                if(!confirm("Восстановить КП со всеми редакциями?")) return;
+                body_block();
+                $.ajax({
+                    url: '{{ route('api.proposal.restore', $proposal->group) }}?_token=' + csrf_token(),
+                    type: "POST",
+                    dataType: "json",
+                    success: function () {
+                        toastr.success("КП восстановлено", "Это успех!");
+                        location.reload();
+                    },
+                    error: function (xhr) {
+                        body_unblock();
+                        toastr.error(xhr.responseJSON?.message || "Не получилось восстановить КП", "Это провал!");
+                    }
+                });
+            }
+        </script>
+    @endif
     <script>
         var variant_selected = {{ $proposal->variants->first()?->id ?? null}};
 

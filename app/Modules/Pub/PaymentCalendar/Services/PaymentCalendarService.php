@@ -176,7 +176,9 @@ class PaymentCalendarService
 
         if (!empty($params['q'])) {
             $like = '%' . trim($params['q']) . '%';
-            $proposalLike = fn($query) => $query->where('pr.number', 'like', $like)->orWhere('pr.name', 'like', $like);
+            // patch v45: мягко удалённые КП в поиске не участвуют
+            $proposalLike = fn($query) => $query->whereNull('pr.deleted_at')
+                ->where(fn($query) => $query->where('pr.number', 'like', $like)->orWhere('pr.name', 'like', $like));
             $specLinks = fn($query) => $query->from('contract_specification_proposals as l')
                 ->whereColumn('l.contract_specification_id', 's.id');
 

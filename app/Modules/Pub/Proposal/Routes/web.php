@@ -8,7 +8,8 @@ Route::group(['prefix' => 'proposals'], function () {
     Route::post('/edit/{proposal}/{iteration}', [\App\Modules\Pub\Proposal\Controllers\ProposalController::class, 'edit_save'])->name('proposal.edit_save');
 
     Route::get('/create', [\App\Modules\Pub\Proposal\Controllers\ProposalController::class, 'create'])->name('proposal.create');
-    Route::get('/detail/{proposal}/{iteration?}', [\App\Modules\Pub\Proposal\Controllers\ProposalController::class, 'detail'])->name('proposal.detail');
+    Route::get('/detail/{proposal}/{iteration?}', [\App\Modules\Pub\Proposal\Controllers\ProposalController::class, 'detail'])->name('proposal.detail')
+        ->withTrashed(); // patch v45: удалённое КП открывается только Proposal::canDelete(), остальным 404 (ProposalController::detail)
 
     // report
     Route::get('/report/{proposal}/{iteration?}', [\App\Modules\Pub\Proposal\Controllers\ProposalController::class, 'report_get'])->name('proposal.report_get');

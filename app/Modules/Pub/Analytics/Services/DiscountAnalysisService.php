@@ -358,6 +358,8 @@ class DiscountAnalysisService
         return collect(DB::table('proposals')
             ->selectRaw('YEAR(sended_at) as year')
             ->whereNotNull('sended_at')
+            // patch v45: мягко удалённые КП не участвуют
+            ->whereNull('deleted_at')
             ->groupBy('year')
             ->orderByDesc('year')
             ->pluck('year'))

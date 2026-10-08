@@ -105,6 +105,7 @@
                             'created' => ['success', 'fa-plus'],
                             'updated' => ['primary', 'fa-pen'],
                             'deleted' => ['danger', 'fa-trash-can'],
+                            'restored' => ['success', 'fa-trash-arrow-up'],
                             'baseline' => ['secondary', 'fa-camera'],
                         ];
                         // длинные значения обрезаются, полное — в подсказке
@@ -158,6 +159,8 @@
                                                 <div class="text-muted fs-7">Начальный слепок</div>
                                             @elseif($log->event === 'deleted')
                                                 <div class="text-muted fs-7">Объект удалён</div>
+                                            @elseif($log->event === 'restored')
+                                                <div class="text-muted fs-7">Объект восстановлен</div>
                                             @endif
                                         @else
                                             <div class="table-responsive">
