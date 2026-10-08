@@ -39,6 +39,18 @@
       },
       {
         "wait": 1200
+      },
+      {
+        "fill": [
+          "#deal_q",
+          "Softline"
+        ]
+      },
+      {
+        "eval": "$('#deal_q').trigger('keyup')"
+      },
+      {
+        "wait": 2000
       }
     ],
     "sidebar": "closed"

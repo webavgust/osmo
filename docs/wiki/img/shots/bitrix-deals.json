@@ -3,11 +3,10 @@
     "name": "bitrix-deals-03",
     "url": "/bitrix/deal",
     "viewport": [
-      1440,
+      1680,
       900
     ],
     "fullPage": false,
-    "clip": ".card:has(#table_data)",
     "highlight": [
       "#table_data th[data-field='project']",
       "#table_data th[data-field='proposal']"
