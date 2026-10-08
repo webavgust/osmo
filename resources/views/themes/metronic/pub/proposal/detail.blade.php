@@ -36,6 +36,13 @@
             border-top: 1px solid var(--table-summary-border);
             text-wrap:wrap;
         }
+        /* Metronic обнуляет отступ у крайних ячеек строки — текст прилипал к рамке */
+        table#table-summary tr > :first-child {
+            padding-left: .75rem;
+        }
+        table#table-summary tr > :last-child {
+            padding-right: .75rem;
+        }
 
         table#table-summary tr.caption  {
             background: var(--bs-primary-light);
