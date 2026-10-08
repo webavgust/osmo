@@ -265,6 +265,15 @@
                                                             <i class="fas fa-arrow-right-arrow-left text-primary me-2"></i> Конвертировать в валюту
                                                         </x-ui.a.box>
                                                         @endunless
+
+                                                        {{-- patch v45: мягкое удаление всего КП — только для тех, кто может (config/proposal.php) --}}
+                                                        @if(\App\Modules\Pub\Proposal\Models\Proposal::canDelete() && !$proposal->trashed())
+                                                        <div class="dropdown-divider"></div>
+
+                                                        <a class="btn dropdown-item" href="javascript:proposal_delete()">
+                                                            <i class="fas fa-trash text-danger me-2"></i> Удалить КП
+                                                        </a>
+                                                        @endif
                                                     </div>
                                                 </div>
                                             </div>
@@ -946,6 +955,28 @@
     @parent
 
     <script src="/assets/libs/ckeditor/ckeditor.js"></script>
+    @if(\App\Modules\Pub\Proposal\Models\Proposal::canDelete() && !$proposal->trashed())
+        <script>
+            // patch v45: мягкое удаление КП со всеми редакциями, после — в список КП
+            function proposal_delete() {
+                if(!confirm("Удалить КП со всеми редакциями? Его можно будет вернуть из фильтра «Показать удалённые»")) return;
+                body_block();
+                $.ajax({
+                    url: '{{ route('api.proposal.delete', [$proposal, $proposal->iteration]) }}?_token=' + csrf_token(),
+                    type: "DELETE",
+                    dataType: "json",
+                    success: function () {
+                        toastr.success("КП удалено", "Это успех!");
+                        location.href = '{{ route('proposal.index') }}';
+                    },
+                    error: function (xhr) {
+                        body_unblock();
+                        toastr.error(xhr.responseJSON?.message || "Не получилось удалить КП", "Это провал!");
+                    }
+                });
+            }
+        </script>
+    @endif
     @if($proposal->trashed())
         <script>
             // patch v45: восстановление удалённого КП со всеми редакциями
