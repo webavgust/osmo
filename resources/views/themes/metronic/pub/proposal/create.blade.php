@@ -36,6 +36,17 @@
         }
 
 
+        /* Сценарий и комментарий — две равные колонки, длинное название не раздвигает строку */
+        .scenario_selector > .d-flex > div {
+            flex: 1 1 0 !important;
+            width: auto !important;
+            min-width: 0;
+        }
+
+        .scenario_selector > .d-flex > div .flex-grow-1 {
+            min-width: 0;
+        }
+
         td[column] :not(input.active:checked) ~ .cell-active {
             visibility: hidden!important;
         }
@@ -1017,6 +1028,14 @@
 
     <script src="/assets/libs/ckeditor/ckeditor.js"></script>
     <script>
+        // В форме КП суммы выводятся без копеек: при пилоте на N месяцев цена за месяц дробная
+        window.cost_normalize = (function (original) {
+            return function (sum) {
+                const value = Number(sum);
+                return original(Number.isFinite(value) ? Math.round(value) : sum);
+            };
+        })(window.cost_normalize);
+
         var users = @json($users);
         var company_partner = @json($companies->pluck('partner_id', 'id'));
         var cost_rules = @json($cost_rules);
