@@ -22,7 +22,7 @@
 return [
 
     // Тема по умолчанию (если cookie не выставлена)
-    'default' => env('UI_THEME', 'materialpro'),
+    'default' => env('UI_THEME', 'metronic'),
 
     // Имя cookie с выбранной темой и её срок жизни в минутах
     'cookie' => 'ui_theme',

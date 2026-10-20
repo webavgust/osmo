@@ -33,7 +33,7 @@ class UiTheme
 
     public static function fallback(): string
     {
-        $default = (string) config('ui.default', 'materialpro');
+        $default = (string) config('ui.default', 'metronic');
 
         return static::exists($default) ? $default : (string) array_key_first(static::all());
     }

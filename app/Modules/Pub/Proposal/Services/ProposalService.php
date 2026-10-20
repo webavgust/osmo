@@ -273,12 +273,14 @@ class ProposalService
                     if($cell['count'] >= $ruleCount) $wearNum = $ruleCount;
                 }
 
+                // в базе цена за весь срок (лет / месяцев пилота), в форме — за год / месяц
+                $period_value = max(1, (int) $variant->period_value);
                 switch($mode) {
                     case 'y':
-                        $forceYear = $cell->cost;
+                        $forceYear = $cell->cost / $period_value;
                         break;
                     case 'p':
-                        $forceYear = $cell->cost * 12;
+                        $forceYear = $cell->cost / $period_value * 12;
                         break;
                     case 'u':
                         $forceYear = $cell->cost / 3;
@@ -313,12 +315,14 @@ class ProposalService
                     if($cell['count'] >= $ruleCount) $wearNum = $ruleCount;
                 }
 
+                // в базе цена за весь срок (лет / месяцев пилота), в форме — за год / месяц
+                $period_value = max(1, (int) $variant->period_value);
                 switch($mode) {
                     case 'y':
-                        $forceYear = $cell->cost;
+                        $forceYear = $cell->cost / $period_value;
                         break;
                     case 'p':
-                        $forceYear = $cell->cost * 12;
+                        $forceYear = $cell->cost / $period_value * 12;
                         break;
                     case 'u':
                         $forceYear = $cell->cost / 3;
