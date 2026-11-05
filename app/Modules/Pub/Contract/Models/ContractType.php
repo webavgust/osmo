@@ -7,6 +7,8 @@ enum ContractType: string
     case SERVICES = 'services';
     case PLATFORM = 'platform';
     case LICENSE = 'license';
+    case DEVELOPMENT = 'development';
+    case PARTNERSHIP = 'partnership';
     case UNKNOWN = 'unknown';
 
     public function data(): array
@@ -33,6 +35,22 @@ enum ContractType: string
                 'color' => 'danger',
                 'sort' => __LINE__,
                 'icon' => 'fa-brain-circuit',
+            ],
+            // patch v46: тип из таблицы договоров, пока не выбирается в формах
+            ContractType::DEVELOPMENT => [
+                'prefix' => 'D',
+                'label' => 'Разработка',
+                'color' => 'info',
+                'sort' => __LINE__,
+                'icon' => 'fa-code',
+                'hidden' => true,
+            ],
+            ContractType::PARTNERSHIP => [
+                'prefix' => 'PA',
+                'label' => 'Партнёрское соглашение',
+                'color' => 'success',
+                'sort' => __LINE__,
+                'icon' => 'fa-handshake',
             ],
             ContractType::UNKNOWN => [
                 'prefix' => 'U',

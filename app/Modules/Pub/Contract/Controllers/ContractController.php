@@ -8,6 +8,7 @@ use App\Modules\Pub\Contract\Models\ContractType;
 use App\Modules\Pub\Organization\Repositories\OrganizationRepository;
 use App\Modules\Pub\Partner\Models\Partner;
 use App\Modules\Pub\Proposal\Repositories\ProposalRepository;
+use App\Modules\Pub\User\Repositories\UserRepository;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\View;
@@ -22,6 +23,7 @@ class ContractController extends Controller
             'partner' => $partner,
             'organizations' => OrganizationRepository::getAll(),
             'prefixes' => ContractType::getPrefixes(),
+            'users' => UserRepository::getAll(),
         ]);
 
         return $template;
@@ -33,6 +35,8 @@ class ContractController extends Controller
             'title' => 'Редактирование договора',
             'contract' => $contract,
             'organizations' => OrganizationRepository::getAll(),
+            // менеджер договора остаётся в списке, даже если его скрыли (как Головина)
+            'users' => UserRepository::getAll()->when($contract->manager, fn ($users, $manager) => $users->put($manager->id, $manager)),
         ]);
 
         return $template;

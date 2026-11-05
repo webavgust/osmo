@@ -12,6 +12,7 @@ use App\Modules\Pub\Organization\Model\Organization;
 use App\Modules\Pub\Partner\Models\Partner;
 use App\Modules\Pub\Payment\Models\Payment;
 use App\Modules\Pub\Proposal\Models\Proposal;
+use App\Modules\Pub\User\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -47,6 +48,16 @@ class Contract extends ModuleModel
     public function organization()
     {
         return $this->belongsTo(Organization::class);
+    }
+
+    /**
+     * Ответственный менеджер (patch v46); имя не пропадает у мягко удалённого пользователя
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function manager()
+    {
+        return $this->belongsTo(User::class, 'manager_id')->withTrashed();
     }
 
     public function contract_specifications()
@@ -163,6 +174,7 @@ class Contract extends ModuleModel
     {
         return [
             'type' => ['label' => 'Тип', 'enum' => ContractType::class],
+            'manager_id' => ['label' => 'Менеджер', 'relation' => 'manager', 'title' => 'full_name'],
             'number' => ['label' => 'Номер договора'],
             'date' => ['label' => 'Дата договора', 'type' => 'date'],
             'cb_signed' => ['label' => 'Подписан', 'type' => 'bool'],

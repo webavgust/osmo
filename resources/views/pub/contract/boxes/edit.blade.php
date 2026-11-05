@@ -15,12 +15,7 @@
                     <select name="type" class="form-select select2 w-50" id="inp_type"></select>
                 </div>
             </div>
-            <div class="form-group mb-3 row pb-3">
-                <label for="inp_number" class="col-sm-3 text-end control-label col-form-label">Номер договора</label>
-                <div class="col-sm-9">
-                    <input name="number" type="text" min="0" class="form-control w-50 text-start" id="inp_number" value="{{ $contract->number }}">
-                </div>
-            </div>
+            @include('pub.contract.boxes._manager_number', ['manager_id' => $contract->manager_id, 'number' => $contract->number])
             <div class="form-group mb-3 row pb-3">
                 <label for="inp_date" class="col-sm-3 text-end control-label col-form-label">Дата договора</label>
                 <div class="col-sm-9">
@@ -95,7 +90,7 @@
                     if (response.result == 'success') {
                         location.reload();
                     } else {
-                        toastr.error("Не получилось сохранить данные", "Это провал!", {
+                        toastr.error(response.message || "Не получилось сохранить данные", "Это провал!", {
                             progressBar: true,
                             "timeOut": 3000,
                         });

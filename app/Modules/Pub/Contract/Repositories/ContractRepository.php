@@ -27,6 +27,7 @@ class ContractRepository
 
         ])
         ->partner()->associate($partner)
+        ->manager()->associate(($data['manager'] ?? null) ?: null)
         ->organization()->associate(OrganizationRepository::getOnce($data['organization']));
 
         $contract->save();
@@ -46,20 +47,26 @@ class ContractRepository
 
     public static function update(Contract $contract, array $data)
     {
-        // patch v33: договор к второстепенному КП не привязывается (403 с текстом, как abort() в контроллере)
-        $proposal = Proposal::find($data['proposal'] ?? 0);
-        if ($proposal) ProposalLinkService::assertEditable($proposal);
-
         $contract->fill([
             'type' => $data['type'],
-            'uuid' => empty($data['proposal']) ? Str::uuid() : null,
             'number' => $data['number'],
             'date' => $data['date'],
             'cb_signed' => $data['cb_signed'] ?? false,
         ])
-        ->proposal()->associate($proposal)
-        ->organization()->associate(OrganizationRepository::getOnce($data['organization']))
-        ->save();
+        ->manager()->associate(($data['manager'] ?? null) ?: null)
+        ->organization()->associate(OrganizationRepository::getOnce($data['organization']));
+
+        // patch v46: форма редактирования КП не передаёт — привязка и uuid остаются как были
+        if (array_key_exists('proposal', $data)) {
+            // patch v33: договор к второстепенному КП не привязывается (403 с текстом, как abort() в контроллере)
+            $proposal = Proposal::find($data['proposal'] ?? 0);
+            if ($proposal) ProposalLinkService::assertEditable($proposal);
+
+            $contract->uuid = empty($data['proposal']) ? Str::uuid() : null;
+            $contract->proposal()->associate($proposal);
+        }
+
+        $contract->save();
 
         return $contract;
     }
