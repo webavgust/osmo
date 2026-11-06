@@ -52,12 +52,13 @@
         .contract_card[data-closed='1'] .contract_head:hover { opacity: 1; }
         .contract_toggle .fa-chevron-down { transition: transform .15s; }
         .contract_toggle.collapsed .fa-chevron-down { transform: rotate(-90deg); }
-        .contract_table > :not(caption) > * > * { border-bottom: 1px solid var(--bs-gray-200); padding: .75rem .75rem; vertical-align: middle; }
-        .contract_table > thead > tr > th { font-size: .8rem; font-weight: 600; text-transform: uppercase; color: var(--bs-gray-500); border-top: 1px solid var(--bs-gray-200); }
-        .contract_table tr > :first-child { padding-left: 1.5rem; }
-        .contract_table tr > :last-child { padding-right: 1.25rem; }
-        .contract_table tr.contract_company > td { background: var(--bs-gray-100); font-weight: 600; }
-        .contract_table tbody tr:last-child > td { border-bottom: 0; }
+        /* префикс .contract_card .table — сильнее правил Metronic для .table:not(.table-bordered) */
+        .contract_card .table.contract_table > :not(caption) > * > * { border-bottom: 1px solid var(--bs-gray-200); padding: .75rem; vertical-align: middle; }
+        .contract_card .table.contract_table > thead > tr > th { font-size: .8rem; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; color: var(--bs-gray-500); border-top: 1px solid var(--bs-gray-200); }
+        .contract_card .table.contract_table tr > :first-child { padding-left: 1.5rem; }
+        .contract_card .table.contract_table tr > :last-child { padding-right: 1.25rem; }
+        .contract_card .table.contract_table tr.contract_company > td { background: var(--bs-gray-100); font-weight: 600; }
+        .contract_card .table.contract_table > tbody > tr:last-child > td { border-bottom: 0; }
         @media (prefers-reduced-motion: reduce) { .contract_toggle .fa-chevron-down { transition: none; } }
     </style>
 
