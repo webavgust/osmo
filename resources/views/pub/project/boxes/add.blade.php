@@ -10,7 +10,7 @@
                 </div>
             </div>
             <div class="form-group mb-3 row pb-3">
-                <label for="inp_number" class="col-sm-3 text-end control-label col-form-label">Название проекта</label>
+                <label for="inp_number" class="col-sm-3 text-end control-label col-form-label">Название группы</label>
                 <div class="col-sm-9">
                     <input name="name" type="text" min="0" class="form-control w-50 text-start" id="inp_number">
                 </div>

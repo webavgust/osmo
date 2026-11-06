@@ -20,7 +20,7 @@ class ProjectBoxController extends Controller
         $prefix = str_pad($nextId, 3, '0', STR_PAD_LEFT);
 
         $template = View::make('pub.project.boxes.add', [
-            'title' => 'Создание проекта',
+            'title' => 'Новая группа конфигураций',
             'company' => $company,
             'prefix' => $prefix,
         ]);
@@ -31,7 +31,7 @@ class ProjectBoxController extends Controller
     public function edit(Project $project)
     {
         $template = View::make('pub.project.boxes.edit', [
-            'title' => 'Редактирование проекта',
+            'title' => 'Группа конфигураций',
             'project' => $project,
         ]);
 

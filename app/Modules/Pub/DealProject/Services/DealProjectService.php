@@ -8,6 +8,7 @@ use App\Modules\Pub\Company\Models\Company;
 use App\Modules\Pub\Constant\Models\Constant;
 use App\Modules\Pub\ContractSpecification\Models\ContractSpecification;
 use App\Modules\Pub\ContractSpecification\Models\ContractSpecificationProposal;
+use App\Modules\Pub\ContractSpecification\Models\ContractSpecificationStatus;
 use App\Modules\Pub\DealProject\Models\DealProject;
 use App\Modules\Pub\DealProject\Models\DealProjectDeal;
 use App\Modules\Pub\DealProject\Models\DealProjectSpecification;
@@ -18,6 +19,7 @@ use App\Modules\Pub\Proposal\Models\ProposalCrmDeal;
 use App\Modules\Pub\Proposal\Services\ProposalDealService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -119,7 +121,8 @@ class DealProjectService
 
         $ids = collect($deal_ids)->map(fn($id) => (int) $id)->all();
 
-        return empty($ids) ? static::$projects : static::$projects->only($ids);
+        // toBase(): only() у Eloquent-коллекции фильтрует по id моделей, а не по ключам
+        return empty($ids) ? static::$projects : static::$projects->toBase()->only($ids);
     }
 
     /**
@@ -565,7 +568,9 @@ class DealProjectService
     }
 
     /**
-     * Вернуть проект из архива
+     * Вернуть проект из архива (в работу).
+     *
+     * Итог закрытия (patch v48) очищается: у действующего проекта итога нет.
      *
      * @param DealProject $project
      * @return DealProject
@@ -575,11 +580,329 @@ class DealProjectService
         $project->forceFill([
             'archived_at' => null,
             'archived_by' => null,
+            'result' => null,
+            'result_comment' => null,
         ])->save();
 
         static::flush();
 
         return $project;
+    }
+
+    /**
+     * Создать проект со страницы компании (patch v48).
+     *
+     * Партнёр — партнёр компании, компания фиксирована. Отмечать можно только
+     * спецификации компании, которые не входят ни в один действующий проект.
+     * Сделки Битрикса прикрепляются сами по цепочке спецификация → КП → сделка
+     * (dealIdsForSpecs()); сделка, у которой уже есть проект, пропускается и
+     * попадает в skipped — вызывающий показывает предупреждение. Проект без
+     * сделок допустим, параллельные проекты у компании — тоже.
+     *
+     * @param Company $company
+     * @param array $data date_start, is_pilot, deadline (только пилоту), comment, specs[]
+     * @return array ['project' => DealProject, 'deals' => int[] прикреплённые,
+     *               'skipped' => array<int, DealProject> сделка → её чужой проект]
+     * @throws ValidationException у компании нет партнёра, спецификация чужая или занята
+     */
+    public static function createForCompany(Company $company, array $data): array
+    {
+        $partner = $company->partner;
+        if (empty($partner)) {
+            static::fail('У компании не указан партнёр — проект завести нельзя.');
+        }
+
+        $spec_ids = static::idList($data['specs'] ?? []);
+
+        if (!empty($spec_ids)) {
+            // спецификация должна быть этой компании и этого партнёра
+            $allowed = static::availableSpecs($partner, $company)->pluck('id')->map(fn($id) => (int) $id)->all();
+            $alien = array_diff($spec_ids, $allowed);
+            if (!empty($alien)) {
+                static::fail('Спецификации не относятся к компании: ' . implode(', ', $alien));
+            }
+
+            // и не входить ни в один действующий проект
+            $busy = array_intersect($spec_ids, static::activeSpecIds());
+            if (!empty($busy)) {
+                static::fail('Спецификации уже входят в действующий проект: ' . implode(', ', $busy));
+            }
+        }
+
+        try {
+            return DB::transaction(function () use ($partner, $company, $data, $spec_ids) {
+                $project = new DealProject([
+                    'partner_id' => $partner->id,
+                    'company_id' => $company->id,
+                    'date_start' => static::dateOrNull($data['date_start'] ?? null) ?? now()->toDateString(),
+                    'is_pilot' => !empty($data['is_pilot']),
+                    // срок ставится только пилоту (правка владельца 11.09.2026)
+                    'deadline' => !empty($data['is_pilot']) ? static::dateOrNull($data['deadline'] ?? null) : null,
+                    'comment' => static::text($data['comment'] ?? null),
+                    'created_by' => auth()->id(),
+                ]);
+                $project->save();
+
+                $attached = [];
+                $skipped = [];
+
+                foreach (static::dealIdsForSpecs($spec_ids) as $deal_id) {
+                    $other = static::forDeal($deal_id);
+                    if ($other) {
+                        // у сделки один проект (UNIQUE) — чужую не перетаскиваем
+                        $skipped[$deal_id] = $other;
+                        continue;
+                    }
+
+                    DealProjectDeal::create([
+                        'deal_project_id' => $project->id,
+                        'crm_deal_id' => $deal_id,
+                        'attached_at' => now(),
+                        'attached_by' => auth()->id(),
+                    ]);
+                    $attached[] = $deal_id;
+                }
+
+                static::flush();
+
+                // спецификации из КП прикреплённых сделок станут from_proposal — так и задумано
+                static::syncSpecs($project, $spec_ids);
+
+                return [
+                    'project' => $project->fresh(),
+                    'deals' => $attached,
+                    'skipped' => $skipped,
+                ];
+            });
+        } finally {
+            // при откате в кэше могли остаться несуществующие привязки
+            static::flush();
+        }
+    }
+
+    /**
+     * Сделки Битрикса по спецификациям — обратная цепочка lockedSpecsForDeals():
+     * спецификация → КП (contract_specification_proposals) → сделка
+     * (proposal_crm_deals). Сделки, которых нет в зеркале Битрикса, отбрасываются.
+     *
+     * @param array $spec_ids
+     * @return int[] id сделок по возрастанию
+     */
+    public static function dealIdsForSpecs(array $spec_ids): array
+    {
+        $spec_ids = static::idList($spec_ids);
+        if (empty($spec_ids)) return [];
+
+        $groups = ContractSpecificationProposal::whereIn('contract_specification_id', $spec_ids)
+            ->pluck('proposal_group')
+            ->unique()
+            ->values()
+            ->all();
+        if (empty($groups)) return [];
+
+        $deal_ids = ProposalCrmDeal::whereIn('proposal_group', $groups)
+            ->pluck('crm_deal_id')
+            ->map(fn($id) => (int) $id)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+        if (empty($deal_ids)) return [];
+
+        // зеркало Битрикса — другая база: проверяем отдельным запросом
+        return CrmDeal::whereIn('id', $deal_ids)
+            ->pluck('id')
+            ->map(fn($id) => (int) $id)
+            ->sort()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Закрыть проект (patch v48): архив + итог.
+     *
+     * Итог обязателен (DealProject::RESULT_SUCCESS / RESULT_FAIL). Если проект
+     * уже в архиве, дата и автор архивации сохраняются, меняется только итог.
+     * Спецификации закрываются ТОЛЬКО из явного списка $close_spec_ids и только
+     * те, что входят в этот проект; уже закрытые и отменённые не трогаются.
+     * Всё — в одной транзакции.
+     *
+     * @param DealProject $project
+     * @param string $result success|fail
+     * @param string|null $comment комментарий итога
+     * @param array $close_spec_ids спецификации, которые пользователь отметил к закрытию
+     * @return array ['project' => DealProject, 'closed' => int[] закрытые спецификации]
+     * @throws ValidationException нет итога либо спецификация не из проекта
+     */
+    public static function close(DealProject $project, string $result, ?string $comment, array $close_spec_ids): array
+    {
+        if (!array_key_exists($result, DealProject::RESULTS)) {
+            static::fail('Укажите итог проекта: успешно или нет.');
+        }
+
+        $close_ids = static::idList($close_spec_ids);
+
+        $own = DealProjectSpecification::where('deal_project_id', $project->id)
+            ->pluck('contract_specification_id')
+            ->map(fn($id) => (int) $id)
+            ->all();
+
+        $alien = array_diff($close_ids, $own);
+        if (!empty($alien)) {
+            static::fail('Спецификации не входят в проект: ' . implode(', ', $alien));
+        }
+
+        try {
+            return DB::transaction(function () use ($project, $result, $comment, $close_ids) {
+                $project->forceFill([
+                    'archived_at' => $project->archived_at ?? now(),
+                    'archived_by' => $project->archived_at ? $project->archived_by : auth()->id(),
+                    'result' => $result,
+                    'result_comment' => static::text($comment),
+                ])->save();
+
+                $closed = [];
+
+                if (!empty($close_ids)) {
+                    $specs = ContractSpecification::whereIn('id', $close_ids)->get();
+
+                    foreach ($specs as $spec) {
+                        if (in_array($spec->status, [ContractSpecificationStatus::CLOSED->value, ContractSpecificationStatus::CANCELED->value], true)) {
+                            continue;
+                        }
+
+                        // по одной через модель — чтобы изменение попало в журнал спецификации
+                        $spec->status = ContractSpecificationStatus::CLOSED->value;
+                        $spec->save();
+                        $closed[] = (int) $spec->id;
+                    }
+                }
+
+                return ['project' => $project->fresh(), 'closed' => $closed];
+            });
+        } finally {
+            static::flush();
+        }
+    }
+
+    /**
+     * Подсказка для формы закрытия проекта (patch v48): по каждой спецификации
+     * проекта — сумма, оплачено по факту, остаток, статус и признак
+     * «предложить закрыть» (оплачена полностью и не закрыта/не отменена).
+     *
+     * Сумма — amount спецификации, а если она не заполнена — сумма плановых
+     * платежей. Оплачено — amount_fact платежей с датой факта. Сама подсказка
+     * ничего не закрывает.
+     *
+     * @param DealProject $project
+     * @return Collection строки: spec, id, name, from_proposal, currency (символ),
+     *                    amount, paid, rest, status, status_label, status_color, suggest_close
+     */
+    public static function closeHints(DealProject $project): Collection
+    {
+        return static::specifications($project)->map(function (array $row) {
+            /** @var ContractSpecification $spec */
+            $spec = $row['spec'];
+
+            $amount = (float) $spec->amount;
+            if ($amount <= 0) $amount = (float) $spec->payments->sum('amount_plan');
+
+            $paid = (float) $spec->payments
+                ->filter(fn($payment) => !empty($payment->date_fact))
+                ->sum('amount_fact');
+
+            $status = ContractSpecificationStatus::tryFrom((string) $spec->status);
+            $finished = in_array($status, [ContractSpecificationStatus::CLOSED, ContractSpecificationStatus::CANCELED], true);
+
+            return [
+                'spec' => $spec,
+                'id' => (int) $spec->id,
+                'name' => $spec->name,
+                'from_proposal' => $row['from_proposal'],
+                'currency' => $spec->currency?->symbol ?: $spec->currency_slug,
+                'amount' => $amount,
+                'paid' => $paid,
+                'rest' => max(0.0, round($amount - $paid, 2)),
+                'status' => $status?->value,
+                'status_label' => $status?->data()['label'],
+                'status_color' => $status?->data()['color'],
+                // копейки округления не мешают считать спецификацию оплаченной
+                'suggest_close' => !$finished && $amount > 0 && $paid >= $amount - 0.01,
+            ];
+        })->values();
+    }
+
+    /**
+     * Проекты компании (patch v48): действующие сверху, затем архив;
+     * внутри — свежие по дате начала.
+     *
+     * @param Company $company
+     * @return Collection
+     */
+    public static function forCompany(Company $company): Collection
+    {
+        return DealProject::query()
+            ->where('company_id', $company->id)
+            ->with(['deals', 'specifications', 'author', 'archiver'])
+            ->orderByRaw('archived_at IS NOT NULL')
+            ->orderByDesc('date_start')
+            ->orderByDesc('id')
+            ->get();
+    }
+
+    /**
+     * Карта «id спецификации компании → проект» для колонки «Проект»
+     * в таблице спецификаций (patch v48).
+     *
+     * Если спецификация попала в несколько проектов (действующий и архивные),
+     * берётся действующий, затем самый свежий.
+     *
+     * @param Company $company
+     * @return Collection ключ — id спецификации, значение — DealProject
+     */
+    public static function specProjectMap(Company $company): Collection
+    {
+        $spec_ids = ContractSpecification::where('company_id', $company->id)->pluck('id')->all();
+        if (empty($spec_ids)) return collect();
+
+        $links = DealProjectSpecification::whereIn('contract_specification_id', $spec_ids)->get();
+        if ($links->isEmpty()) return collect();
+
+        $projects = DealProject::whereIn('id', $links->pluck('deal_project_id')->unique()->all())
+            ->get()
+            ->keyBy('id');
+
+        return $links
+            ->groupBy('contract_specification_id')
+            ->map(fn(Collection $group) => $group
+                ->map(fn($link) => $projects->get($link->deal_project_id))
+                ->filter()
+                ->sortBy([
+                    fn($a, $b) => (int) $a->is_archived <=> (int) $b->is_archived,
+                    fn($a, $b) => $b->date_start <=> $a->date_start,
+                    fn($a, $b) => $b->id <=> $a->id,
+                ])
+                ->first())
+            ->filter()
+            ->mapWithKeys(fn($project, $spec_id) => [(int) $spec_id => $project]);
+    }
+
+    /**
+     * Спецификации, входящие в действующие проекты
+     *
+     * @param int|null $except_project проект, который не учитывать
+     * @return int[]
+     */
+    public static function activeSpecIds(?int $except_project = null): array
+    {
+        return DealProjectSpecification::query()
+            ->whereHas('deal_project', fn($builder) => $builder->whereNull('archived_at'))
+            ->when($except_project, fn($builder) => $builder->where('deal_project_id', '!=', $except_project))
+            ->pluck('contract_specification_id')
+            ->map(fn($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
     }
 
     /**
@@ -755,6 +1078,23 @@ class DealProjectService
         } catch (\Throwable $e) {
             return null;
         }
+    }
+
+    /**
+     * Список id из запроса: только числа, без повторов и нулей
+     *
+     * @param mixed $ids
+     * @return int[]
+     */
+    protected static function idList($ids): array
+    {
+        return collect((array) $ids)
+            ->filter(fn($id) => is_numeric($id))
+            ->map(fn($id) => (int) $id)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
     }
 
     /**

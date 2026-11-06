@@ -97,10 +97,10 @@
 
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h3 class="m-0">Проекты</h3>
+                        <h3 class="m-0">Конфигурации</h3>
 
                         <div class="btn-toolbar" role="toolbar" aria-label="Toolbar with button groups">
-                            <x-ui.a.box_clear btn_type="success" href="{{ route('project.box.add', $company) }}" class="fs-2" title="Добавить проект">
+                            <x-ui.a.box_clear btn_type="success" href="{{ route('project.box.add', $company) }}" class="fs-2" title="Добавить группу конфигураций">
                                 <x-ui.icon.regular icon="fa-plus-circle"/>
                             </x-ui.a.box_clear>
                         </div>
@@ -170,7 +170,7 @@
                         </div>
                     @else
                         <div class="p-2">
-                            Ни одного проекта пока не создано!
+                            Ни одной конфигурации пока не создано!
                         </div>
                         @endforelse
 
@@ -355,14 +355,15 @@
             </div>
             <div class="col-12 col-lg-8">
 
+                {{-- patch v48: проекты компании --}}
+                @include('pub.company._deal_projects')
+
                 @if($company->specifications->isNotEmpty())
                     @php
-                        // сверка сумм и привязанные КП — одним заходом на всю таблицу (patch v16)
+                        // сверка сумм — одним заходом на всю таблицу (patch v16);
+                        // привязанные КП ($spec_links / $spec_proposals) собирает контроллер (patch v48)
                         $reconcile = \App\Modules\Pub\ContractSpecification\Services\SpecReconcileService::map($company->specifications);
                         $reconcile_alerts = \App\Modules\Pub\ContractSpecification\Services\SpecReconcileService::alerts($reconcile);
-
-                        $spec_links = \App\Modules\Pub\ContractSpecification\Models\ContractSpecificationProposal::whereIn('contract_specification_id', $company->specifications->pluck('id'))->get();
-                        $spec_proposals = \App\Modules\Pub\Proposal\Models\Proposal::latestIteration()->whereIn('group', $spec_links->pluck('proposal_group'))->get()->keyBy('group');
                     @endphp
 
                     <div class="card">
@@ -403,6 +404,7 @@
                                 </th>
                                 <th>Конфиг.</th>
                                 <th>КП</th>
+                                <th>Проект</th>{{-- patch v48 --}}
                                 <th class="text-end">Сумма оплат</th>
                             </tr>
 
@@ -414,7 +416,7 @@
 
                                 @foreach($group as $instance)
                                     @foreach($instance['specs'] as $spec)
-                                        <tr>
+                                        <tr id="spec-row-{{ $spec->id }}">{{-- patch v48: якорь для блока «Проекты» --}}
 
                                             @if($loop->first)
                                                 <td class="px-2" rowspan="{{ $group->sum(fn($group) => $group['specs']->count()) }}">
@@ -546,6 +548,20 @@
                                                     <x-ui.a.box_clear href="{{ route('contract_spec.box_proposal', $spec) }}">
                                                         Прикрепить
                                                     </x-ui.a.box_clear>
+                                                @endif
+                                            </td>
+                                            {{-- patch v48: проект спецификации --}}
+                                            <td @class(['bg-light-danger' => $spec->status == \App\Modules\Pub\ContractSpecification\Models\ContractSpecificationStatus::CANCELED->value])>
+                                                @php $spec_project = $spec_project_map->get((int) $spec->id); @endphp
+                                                @if($spec_project)
+                                                    <a href="javascript:void(0)" onclick="javascript:box({href:'{{ route('deal_project.box_info', $spec_project) }}'})"
+                                                       title="{{ $spec_project->is_archived ? 'Проект закрыт' : 'Проект в работе' }}">
+                                                        <x-ui.badge.light :type="$spec_project->is_archived ? 'secondary' : 'primary'" class="text-nowrap">
+                                                            {{ $spec_project->label }}
+                                                        </x-ui.badge.light>
+                                                    </a>
+                                                @else
+                                                    <span class="text-muted">—</span>
                                                 @endif
                                             </td>
                                             <td @class(['bg-light-danger' => $spec->status == \App\Modules\Pub\ContractSpecification\Models\ContractSpecificationStatus::CANCELED->value])>

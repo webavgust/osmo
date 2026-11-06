@@ -10,4 +10,7 @@ Route::group(['prefix' => 'deal-projects'], function () {
     Route::get('/box/form/{deal}', [DealProjectController::class, 'box_form'])->name('deal_project.box_form');
     Route::get('/box/edit/{project}', [DealProjectController::class, 'box_edit'])->name('deal_project.box_edit');
     Route::get('/box/info/{project}', [DealProjectController::class, 'box_info'])->name('deal_project.box_info');
+    // patch v48: проект со страницы компании и закрытие с итогом
+    Route::get('/box/company/{company}', [DealProjectController::class, 'box_company'])->name('deal_project.box_company');
+    Route::get('/box/close/{project}', [DealProjectController::class, 'box_close'])->name('deal_project.box_close');
 });

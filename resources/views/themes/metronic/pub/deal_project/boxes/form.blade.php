@@ -445,14 +445,15 @@
         @if($partner)
             <div class="d-flex gap-2">
                 @if($project && !$project->is_archived)
-                    <x-ui.button.default btn_type="light-dark" onclick="javascript:deal_project_archive(false);">
-                        <i class="fa-light fa-box-archive me-2"></i>
-                        <span>Отправить в архив</span>
+                    <x-ui.button.default btn_type="light-danger" onclick="javascript:box({href: '{{ route('deal_project.box_close', $project) }}'});">
+                        {{-- закрытие с итогом «успешно / нет» (patch v48) вместо простого архива --}}
+                        <i class="fa-light fa-flag-checkered me-2"></i>
+                        <span>Закрыть проект</span>
                     </x-ui.button.default>
                 @elseif($project)
                     <x-ui.button.default btn_type="light-primary" onclick="javascript:deal_project_archive(true);">
                         <i class="fa-light fa-box-open me-2"></i>
-                        <span>Вернуть из архива</span>
+                        <span>Вернуть в работу</span>
                     </x-ui.button.default>
                 @endif
 

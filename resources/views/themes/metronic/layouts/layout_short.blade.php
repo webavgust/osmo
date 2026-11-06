@@ -5,14 +5,14 @@
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="AVG" />
+    <meta name="description" content="OSMO CRM" />
     <meta name="robots" content="noindex,nofollow" />
     @php $sidebar_mode = auth()->id() ? (auth()->user()?->setting?->read('sidebar_mode') ?? 'full') : 'full'; @endphp
     {{-- Гостю не выводим: app.js сохранил бы режим меню без токена и получил 500 --}}
     @if(auth()->check())<meta name="sidebar_mode" content="{{ $sidebar_mode }}" />@endif
     @if(auth()->check())<meta name="_token" content="{{ auth()->user()->ajax_token }}" />@endif
     <title>
-        @section('title') {{ $title_force ?? "OSMO AVG: " . ($title ?? '') }} @show
+        @section('title') {{ $title_force ?? "OSMO CRM: " . ($title ?? '') }} @show
     </title>
 
     <link rel="icon" type="image/svg+xml" href="/images/logo/logo_letter.svg" />

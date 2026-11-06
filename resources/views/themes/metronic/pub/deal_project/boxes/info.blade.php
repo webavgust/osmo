@@ -61,8 +61,17 @@
                             @if($project->is_archived)
                                 <span class="badge badge-light-dark fs-8">
                                     <i class="fa-light fa-box-archive me-1"></i>
-                                    в архиве с {{ $project->archived_at?->format('d.m.Y') }}
+                                    закрыт {{ $project->archived_at?->format('d.m.Y') }}
                                 </span>
+                                {{-- итог закрытия (patch v48) --}}
+                                @if($project->result)
+                                    <span class="badge badge-light-{{ $project->result === \App\Modules\Pub\DealProject\Models\DealProject::RESULT_SUCCESS ? 'success' : 'danger' }} fs-8 ms-1">
+                                        {{ $project->result_label }}
+                                    </span>
+                                @endif
+                                @if($project->result_comment)
+                                    <div class="text-muted fs-7 mt-1">{{ $project->result_comment }}</div>
+                                @endif
                             @else
                                 <span class="badge badge-light-success fs-8">действующий</span>
                             @endif
@@ -312,12 +321,13 @@
             @if($project->is_archived)
                 <x-ui.button.default btn_type="light-primary" onclick="javascript:deal_project_info_archive(true);">
                     <i class="fa-light fa-box-open me-2"></i>
-                    <span>Вернуть из архива</span>
+                    <span>Вернуть в работу</span>
                 </x-ui.button.default>
             @else
-                <x-ui.button.default btn_type="light-dark" onclick="javascript:deal_project_info_archive(false);">
-                    <i class="fa-light fa-box-archive me-2"></i>
-                    <span>Отправить в архив</span>
+                <x-ui.button.default btn_type="light-danger" onclick="javascript:box({href: '{{ route('deal_project.box_close', $project) }}'});">
+                    {{-- закрытие с итогом «успешно / нет» (patch v48) вместо простого архива --}}
+                    <i class="fa-light fa-flag-checkered me-2"></i>
+                    <span>Закрыть проект</span>
                 </x-ui.button.default>
             @endif
 

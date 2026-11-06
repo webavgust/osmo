@@ -14,4 +14,7 @@ Route::group(['prefix' => 'deal-project', 'middleware' => ['ajax.api']], functio
     Route::post('/detach/{deal}', [ApiDealProjectController::class, 'detach'])->name('api.deal_project.detach');
     Route::post('/archive/{project}', [ApiDealProjectController::class, 'archive'])->name('api.deal_project.archive');
     Route::post('/unarchive/{project}', [ApiDealProjectController::class, 'unarchive'])->name('api.deal_project.unarchive');
+    // patch v48: проект со страницы компании и закрытие с итогом
+    Route::post('/store-company/{company}', [ApiDealProjectController::class, 'store_company'])->name('api.deal_project.store_company');
+    Route::post('/close/{project}', [ApiDealProjectController::class, 'close'])->name('api.deal_project.close');
 });

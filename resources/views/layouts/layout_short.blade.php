@@ -5,12 +5,12 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <!-- Tell the browser to be responsive to screen width -->
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="AVG" />
+    <meta name="description" content="OSMO CRM" />
     <meta name="robots" content="noindex,nofollow" />
     <meta name="sidebar_mode" content="{{ auth()->id() ? auth()->user()?->setting?->read('sidebar_mode') ?? 'full' : 'full'}}" />
     @if(auth()->check())<meta name="_token" content="{{ auth()->user()->ajax_token }}" />@endif
     <title>
-        @section('title') {{ $title_force ?? "OSMO AVG: " . ($title ?? '') }} @show
+        @section('title') {{ $title_force ?? "OSMO CRM: " . ($title ?? '') }} @show
     </title>
 
     <!-- Favicon icon -->

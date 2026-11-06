@@ -27,9 +27,21 @@ class DealProject extends ModuleModel
 
     protected $table = 'deal_projects';
 
+    /** Итог закрытого проекта (patch v48): успешно */
+    public const RESULT_SUCCESS = 'success';
+
+    /** Итог закрытого проекта (patch v48): неуспешно */
+    public const RESULT_FAIL = 'fail';
+
+    /** Подписи итогов */
+    public const RESULTS = [
+        self::RESULT_SUCCESS => 'Успешно',
+        self::RESULT_FAIL => 'Неуспешно',
+    ];
+
     protected $fillable = [
         'partner_id', 'company_id', 'date_start', 'is_pilot', 'deadline',
-        'comment', 'archived_at', 'archived_by', 'created_by',
+        'comment', 'archived_at', 'archived_by', 'result', 'result_comment', 'created_by',
     ];
 
     protected $casts = [
@@ -107,6 +119,16 @@ class DealProject extends ModuleModel
     public function getIsArchivedAttribute(): bool
     {
         return !empty($this->archived_at);
+    }
+
+    /**
+     * Подпись итога закрытого проекта: «Успешно» / «Неуспешно», без итога — null
+     *
+     * @return string|null
+     */
+    public function getResultLabelAttribute(): ?string
+    {
+        return static::RESULTS[$this->result] ?? null;
     }
 
     /**
@@ -204,6 +226,8 @@ class DealProject extends ModuleModel
             'comment' => ['label' => 'Комментарий'],
             'archived_at' => ['label' => 'В архиве с', 'type' => 'datetime'],
             'archived_by' => ['label' => 'Отправил в архив', 'relation' => 'archiver', 'title' => 'full_name'],
+            'result' => ['label' => 'Итог', 'options' => static::RESULTS],
+            'result_comment' => ['label' => 'Комментарий итога'],
         ];
     }
 }

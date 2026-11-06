@@ -4,6 +4,7 @@ namespace App\Modules\Pub\DealProject\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Bitrix\CrmDeal\Models\CrmDeal;
+use App\Modules\Pub\Company\Models\Company;
 use App\Modules\Pub\DealProject\Models\DealProject;
 use App\Modules\Pub\DealProject\Services\DealProjectService;
 use App\Modules\Pub\Partner\Models\Partner;
@@ -114,6 +115,68 @@ class ApiDealProjectController extends Controller
             DealProjectService::unarchive($project);
 
             return ['message' => 'Проект возвращён из архива', 'id' => $project->id];
+        });
+    }
+
+    /**
+     * Создать проект со страницы компании (patch v48).
+     *
+     * Сделки прикрепляются сами по цепочке спецификация → КП → сделка;
+     * сделки, уже прикреплённые к другим проектам, пропускаются — об этом
+     * поле warning (и массив skipped: id сделки → id её проекта).
+     *
+     * @param Request $request date_start, is_pilot, deadline, comment, specs[]
+     * @param Company $company
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function store_company(Request $request, Company $company)
+    {
+        return $this->run(function () use ($request, $company) {
+            $data = $this->input($request);
+            unset($data['company_id']); // компания фиксирована маршрутом
+
+            $created = DealProjectService::createForCompany($company, $data);
+
+            $skipped = collect($created['skipped']);
+            $warning = $skipped->isEmpty() ? null
+                : 'Сделки уже в других проектах и не прикреплены: '
+                    . $skipped->map(fn(DealProject $project, $deal_id) => '#' . $deal_id . ' (' . $project->label . ')')->implode(', ');
+
+            return [
+                'message' => 'Проект создан'
+                    . (count($created['deals']) ? ', прикреплено сделок: ' . count($created['deals']) : ', без сделок'),
+                'id' => $created['project']->id,
+                'deals' => $created['deals'],
+                'skipped' => $skipped->map(fn(DealProject $project) => $project->id)->all(),
+                'warning' => $warning,
+            ];
+        });
+    }
+
+    /**
+     * Закрыть проект (patch v48): архив + итог, по желанию — закрыть
+     * отмеченные спецификации проекта
+     *
+     * @param Request $request result (success|fail), result_comment, close_specs[]
+     * @param DealProject $project
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function close(Request $request, DealProject $project)
+    {
+        return $this->run(function () use ($request, $project) {
+            $closed = DealProjectService::close(
+                $project,
+                (string) $request->input('result'),
+                $request->input('result_comment'),
+                (array) $request->input('close_specs', []),
+            );
+
+            return [
+                'message' => 'Проект закрыт'
+                    . (count($closed['closed']) ? ', закрыто спецификаций: ' . count($closed['closed']) : ''),
+                'id' => $project->id,
+                'closed' => $closed['closed'],
+            ];
         });
     }
 

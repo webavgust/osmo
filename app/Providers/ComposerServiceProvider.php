@@ -30,7 +30,7 @@ class ComposerServiceProvider extends ServiceProvider
         View::composer('layouts.layout', function(\Illuminate\View\View $view) {
             // ТАЙТЛ
             $data = $view->getData();
-            $title = $data['title'] ?? (!empty($data['breadcrumbs']) ? $data['breadcrumbs']->forTitle() : 'OSMO AVG');
+            $title = $data['title'] ?? (!empty($data['breadcrumbs']) ? $data['breadcrumbs']->forTitle() : 'OSMO CRM');
 
             // МЕНЮ
             $menu = App(MenuService::class);
