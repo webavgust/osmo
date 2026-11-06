@@ -11,8 +11,15 @@
     {{-- Логотип --}}
     <div class="app-sidebar-logo px-5" id="kt_app_sidebar_logo">
         <a href="{{ route('desktop.index') }}" class="app-sidebar-logo-link h-100 d-flex align-items-center">
-            <img alt="OSMO" src="/images/logo/logo_letter.svg" class="h-32px app-sidebar-logo-default h-75" />
-            <img alt="OSMO" src="/images/logo/logo_letter.svg" class="h-28px app-sidebar-logo-minimize h-50" />
+            {{-- логотип ОСМОВЬЮ: полный в развёрнутом меню, знак — в свёрнутом; белый вариант для тёмной темы --}}
+            <span class="app-sidebar-logo-default">
+                <img alt="OSMO" src="/images/logo/osmo_full.svg" class="h-30px theme-light-show" />
+                <img alt="OSMO" src="/images/logo/osmo_full_white.svg" class="h-30px theme-dark-show" />
+            </span>
+            <span class="app-sidebar-logo-minimize">
+                <img alt="OSMO" src="/images/logo/osmo_mark.svg" class="h-28px theme-light-show" />
+                <img alt="OSMO" src="/images/logo/osmo_mark_white.svg" class="h-28px theme-dark-show" />
+            </span>
         </a>
 
         <div id="kt_app_sidebar_toggle"

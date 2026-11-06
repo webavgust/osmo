@@ -33,6 +33,11 @@ yarn-error.log
 !/public/metronic/css/
 !/public/metronic/js/
 
+# Логотипы портала (ОСМОВЬЮ, 06.11.2026)
+!/public/images/
+/public/images/*
+!/public/images/logo/
+
 /resources/assets
 /resources/dist
 /storage/logs/

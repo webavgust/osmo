@@ -15,7 +15,7 @@
         @section('title') {{ $title_force ?? "OSMO CRM: " . ($title ?? '') }} @show
     </title>
 
-    <link rel="icon" type="image/svg+xml" href="/images/logo/logo_letter.svg" />
+    <link rel="icon" type="image/svg+xml" href="/images/logo/osmo_favicon.svg" />
 
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,400,500,600,700" />
 

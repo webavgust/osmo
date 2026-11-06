@@ -13,7 +13,8 @@
         {{-- Логотип (мобильные — в сайдбаре он скрыт за drawer) --}}
         <div class="d-flex align-items-center flex-grow-1 flex-lg-grow-0 d-lg-none">
             <a href="{{ route('desktop.index') }}">
-                <img alt="OSMO" src="/images/logo/logo_letter.svg" class="h-30px" />
+                <img alt="OSMO" src="/images/logo/osmo_full.svg" class="h-30px theme-light-show" />
+                    <img alt="OSMO" src="/images/logo/osmo_full_white.svg" class="h-30px theme-dark-show" />
             </a>
         </div>
 

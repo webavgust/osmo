@@ -12,7 +12,8 @@
                             @csrf
 
                             <div class="text-center mb-11">
-                                <img src="/images/logo/logo_letter.svg" alt="OSMO" class="h-60px mb-5" />
+                                <img src="/images/logo/osmo_full.svg" alt="OSMO" class="h-50px mb-8 theme-light-show" />
+                                <img src="/images/logo/osmo_full_white.svg" alt="OSMO" class="h-50px mb-8 theme-dark-show" />
                                 <h1 class="text-gray-900 fw-bolder mb-3">{{ __('auth.block_title') }}</h1>
                             </div>
 

@@ -10,7 +10,8 @@
                     <i class="fa-light fa-bars fs-2"></i>
                 </div>
                 <a href="{{ route('desktop.index') }}" class="ms-2">
-                    <img alt="OSMO" src="/images/logo/logo_letter.svg" class="h-30px" />
+                    <img alt="OSMO" src="/images/logo/osmo_full.svg" class="h-30px theme-light-show" />
+                    <img alt="OSMO" src="/images/logo/osmo_full_white.svg" class="h-30px theme-dark-show" />
                 </a>
             </div>
 
