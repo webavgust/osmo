@@ -137,7 +137,8 @@ class LicenseRenewalService
         // если по спецификации выдано несколько ключей — делим сумму между ними
         $keys_count = max(1, $spec->license_keys()->count());
 
-        return round((float) ($spec->amount ?? 0) / $keys_count, 2);
+        // patch v49: пустая сумма спецификации = её плановые платежи
+        return round($spec->amount_total / $keys_count, 2);
     }
 
     /**

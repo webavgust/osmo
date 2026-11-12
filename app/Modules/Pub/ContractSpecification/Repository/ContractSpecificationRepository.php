@@ -27,11 +27,16 @@ class ContractSpecificationRepository
 //            'amount' => (double)$data['amount'],
             'status' => $data['status'],
             'is_signed' => !empty($data['cb_signed']) && $data['cb_signed'] ? 1 : 0,
-        ])
-        ->contract()->associate($contract)
-        ->company()->associate($company)
-        ->currency()->associate(CurrencyRepository::get($data['currency']))
-        ->save();
+        ]);
+
+        // patch v49: save() возвращает bool — модель держим отдельно
+        $spec->contract()->associate($contract)
+            ->company()->associate($company)
+            ->currency()->associate(CurrencyRepository::get($data['currency']))
+            ->save();
+
+        // patch v49: сценарии при создании раньше терялись
+        static::syncScenarios($spec, $data);
 
         return $spec;
     }
@@ -52,37 +57,54 @@ class ContractSpecificationRepository
         ->currency()->associate(CurrencyRepository::get($data['currency']))
         ->save();
 
+        static::syncScenarios($spec, $data);
+
+        return $spec;
+    }
+
+    /**
+     * Пересоздать сценарии спецификации из формы (patch v49: вынесено из update(),
+     * вызывается и при создании).
+     *
+     * $data['scenario'] — uuid строки => id сценария из справочника (0 — ручной),
+     * $data['scenario_manual'] — uuid строки => название.
+     *
+     * @param ContractSpecification $spec
+     * @param array $data
+     * @return void
+     */
+    public static function syncScenarios(ContractSpecification $spec, array $data): void
+    {
         // patch v29: удаление через Eloquent — события deleting дают baseline журналу изменений
         $spec->contract_specification_scenarios()->get()->each->delete();
-        if(!empty($data['scenario'])) {
-            $sort = 0;
-            foreach($data['scenario'] as $uuid => $scenario_id) {
-                if($scenario_id > 0) {
-                    $scenario = ScenarioRepository::getByID($scenario_id);
-                    if(!empty($scenario)) {
-                        ContractSpecificationScenario::create([
-                            'name' => $data['scenario_manual'][$uuid]
-                        ])
-                        ->contract_specification()->associate($spec)
-                        ->scenario()->associate($scenario)
-                        ->save();
-                    }
+        if(empty($data['scenario']) || !is_array($data['scenario'])) return;
 
-                    $sort += 100;
-                } elseif(!empty($data['scenario_manual'][$uuid])) {
+        $sort = 0;
+        foreach($data['scenario'] as $uuid => $scenario_id) {
+            if($scenario_id > 0) {
+                $scenario = ScenarioRepository::getByID($scenario_id);
+                if(!empty($scenario)) {
                     ContractSpecificationScenario::create([
-                        'name' => $data['scenario_manual'][$uuid],
+                        'name' => $data['scenario_manual'][$uuid] ?? null,
                         'sort' => $sort,
                     ])
                     ->contract_specification()->associate($spec)
+                    ->scenario()->associate($scenario)
                     ->save();
-
-                    $sort += 100;
                 }
+
+                $sort += 100;
+            } elseif(!empty($data['scenario_manual'][$uuid])) {
+                ContractSpecificationScenario::create([
+                    'name' => $data['scenario_manual'][$uuid],
+                    'sort' => $sort,
+                ])
+                ->contract_specification()->associate($spec)
+                ->save();
+
+                $sort += 100;
             }
         }
-
-        return $spec;
     }
 
     public static function delete(ContractSpecification $spec)

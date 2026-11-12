@@ -3,6 +3,7 @@
 namespace App\Modules\Pub\Analytics\Services;
 
 use App\Modules\Pub\Constant\Models\Constant;
+use App\Modules\Pub\ContractSpecification\Models\ContractSpecification;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -69,7 +70,9 @@ class LicenseRegistryService
             ->select([
                 'k.id', 'k.key', 'k.active', 'k.active_from', 'k.active_to',
                 'cm.id as company_id', 'cm.name as company_name',
-                's.id as spec_id', 's.name as spec_name', 's.amount as spec_amount',
+                's.id as spec_id', 's.name as spec_name',
+                // patch v49: сумма спецификации — amount, а если пуст, плановые платежи
+                DB::raw(ContractSpecification::amountTotalSql('s') . ' as spec_amount'),
                 // сколько ключей выдано по спецификации: её сумма делится между ними
                 DB::raw('(select count(*) from license_keys k2 where k2.contract_specification_id = s.id) as spec_keys'),
                 's.status as spec_status', 's.currency_slug',

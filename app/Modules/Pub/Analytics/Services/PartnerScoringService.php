@@ -3,6 +3,7 @@
 namespace App\Modules\Pub\Analytics\Services;
 
 use App\Modules\Pub\Constant\Models\Constant;
+use App\Modules\Pub\ContractSpecification\Models\ContractSpecification;
 use App\Modules\Pub\ContractSpecification\Services\SpecProposalService;
 use App\Modules\Pub\Currency\Services\CurrencyService;
 use App\Modules\Pub\Partner\Models\Partner;
@@ -667,7 +668,9 @@ class PartnerScoringService
             ->leftJoin('contract_specification_proposals as l', 'l.contract_specification_id', '=', 's.id')
             ->whereNotNull('c.partner_id')
             ->select([
-                's.id', 's.name', 's.date_create', 's.amount', 's.is_signed', 's.status',
+                's.id', 's.name', 's.date_create', 's.is_signed', 's.status',
+                // patch v49: сумма спецификации — amount, а если пуст, плановые платежи
+                DB::raw(ContractSpecification::amountTotalSql('s') . ' as amount'),
                 's.currency_slug', 's.company_id',
                 'c.id as contract_id', 'c.number as contract_number', 'c.type as contract_type',
                 'c.date as contract_date', 'c.cb_signed as contract_signed', 'c.partner_id',

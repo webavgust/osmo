@@ -340,6 +340,22 @@
                                                 {{ $key->active_to->format("d.m.Y") }}
                                             </span>
                                             @endif
+
+                                            {{-- patch v49: ключ продлевали — срок выше текущий, в подсказке все периоды --}}
+                                            @if($key->periods->count() > 1)
+                                                @php
+                                                    $periods_hint = $key->periods
+                                                        ->map(fn($period) => '<div>' . $period->active_from->format('d.m.Y') . ' – ' . $period->active_to->format('d.m.Y')
+                                                            . ' · ' . e($period->specification->name ?? 'без спецификации') . '</div>')
+                                                        ->implode('');
+                                                @endphp
+                                                <div class="text-end mt-1">
+                                                    <x-ui.badge.light type="info" class="cursor-help" data-bs-toggle="tooltip" data-bs-html="true"
+                                                                      title="{{ $periods_hint }}">
+                                                        продлён, {{ tools()->num_rus($key->periods->count(), ['периода', 'период', 'периодов'], 1) }}
+                                                    </x-ui.badge.light>
+                                                </div>
+                                            @endif
                                         </div>
                                     </div>
                                 </div>
@@ -445,26 +461,40 @@
                                             </td>
                                             <td width="400"  @class(['p-0', 'bg-light-danger' => $spec->status == \App\Modules\Pub\ContractSpecification\Models\ContractSpecificationStatus::CANCELED->value])>
                                                 @foreach($spec->license_keys as $key)
+                                                    @php
+                                                        // patch v49: срок периода этой спецификации, а не текущий срок ключа;
+                                                        // период закончился, а ключ продлён дальше — не «просрочен», а «продлён»
+                                                        $p_from = \Illuminate\Support\Carbon::parse($key->pivot->active_from);
+                                                        $p_to = \Illuminate\Support\Carbon::parse($key->pivot->active_to);
+                                                        $p_renewed = $p_to->lessThan($key->active_to);
+                                                    @endphp
                                                     <div @class(["border-top border-1 p-1 position-relative key_row", "d-none" => !$key->active])>
                                                         <div @class(["d-flex justify-content-between", "text-danger" => !$key->active, "text-dark" => $key->active])>
                                                             <div class="fw-bold">
-                                                                @if($key->active && $key->active_to->lessThan(now()))
-                                                                    <span style="color: #dc0404">
-                                                                    {{ $key->active_from->format("d.m.Y") }}
+                                                                @if($key->active && $p_renewed)
+                                                                    <span class="text-muted">
+                                                                    {{ $p_from->format("d.m.Y") }}
                                                                     <x-ui.icon.regular icon="fa-dash"/>
-                                                                    {{ $key->active_to->format("d.m.Y") }}
+                                                                    {{ $p_to->format("d.m.Y") }}
                                                                 </span>
-                                                                @elseif($key->active && $key->active_to->greaterThan(now()) && $key->active_to->subMonths(3)->lessThan(now()))
-                                                                    <span style="color: #ff6c00">
-                                                                    {{ $key->active_from->format("d.m.Y") }}
+                                                                    <x-ui.badge.light type="info" class="ms-1">продлён до {{ $key->active_to->format("d.m.Y") }}</x-ui.badge.light>
+                                                                @elseif($key->active && $p_to->lessThan(now()))
+                                                                    <span style="color: #dc0404">
+                                                                    {{ $p_from->format("d.m.Y") }}
                                                                     <x-ui.icon.regular icon="fa-dash"/>
-                                                                    {{ $key->active_to->format("d.m.Y") }}
+                                                                    {{ $p_to->format("d.m.Y") }}
+                                                                </span>
+                                                                @elseif($key->active && $p_to->greaterThan(now()) && $p_to->copy()->subMonths(3)->lessThan(now()))
+                                                                    <span style="color: #ff6c00">
+                                                                    {{ $p_from->format("d.m.Y") }}
+                                                                    <x-ui.icon.regular icon="fa-dash"/>
+                                                                    {{ $p_to->format("d.m.Y") }}
                                                                 </span>
                                                                 @else
                                                                     <span>
-                                                                    {{ $key->active_from->format("d.m.Y") }}
+                                                                    {{ $p_from->format("d.m.Y") }}
                                                                     <x-ui.icon.regular icon="fa-dash"/>
-                                                                    {{ $key->active_to->format("d.m.Y") }}
+                                                                    {{ $p_to->format("d.m.Y") }}
                                                                 </span>
                                                                 @endif
                                                             </div>
@@ -483,10 +513,10 @@
                                                     </div>
                                                 @endforeach
 
-                                                @if($spec->license_keys()->where('active', 0)->count() > 0)
+                                                @if($spec->license_keys()->where('license_keys.active', 0)->count() > 0)
                                                     <div class="p-2 cursor-pointer text-info"
                                                          onclick="$(this).parents('td').find('.d-none').removeClass('d-none');$(this).remove();">
-                                                        + {{ tools()->num_rus($spec->license_keys()->where('active', 0)->count(), ["неактивных ключа", "неактивный ключ", "неактивных ключей"], 1) }}
+                                                        + {{ tools()->num_rus($spec->license_keys()->where('license_keys.active', 0)->count(), ["неактивных ключа", "неактивный ключ", "неактивных ключей"], 1) }}
                                                     </div>
                                                 @endif
                                             </td>
@@ -567,7 +597,8 @@
                                             <td @class(['bg-light-danger' => $spec->status == \App\Modules\Pub\ContractSpecification\Models\ContractSpecificationStatus::CANCELED->value])>
                                                 @php $check = $reconcile->get($spec->id); @endphp
 
-                                                <div class="fw-bold text-end text-nowrap">{{ tools()->cost_normalize($spec->amount) }} ₽</div>
+                                                {{-- patch v49: сумма спецификации, а если поле пусто — плановые платежи --}}
+                                                <div class="fw-bold text-end text-nowrap">{{ tools()->cost_normalize($spec->amount_total) }} {{ $spec->currency->symbol ?? '₽' }}</div>
 
                                                 @if(!empty($check) && empty($check['skip']) && empty($check['ok']))
                                                     @php
@@ -576,6 +607,7 @@
                                                             ->map(fn($reason) => '<div class="mb-1">' . e($reason) . '</div>')
                                                             ->implode('')
                                                             . '<div class="text-muted mt-2">платежи =' . tools()->cost_normalize(round($check['payments']))
+                                                            . (!empty($check['shared']) ? '<br/>спецификации (' . count($check['shared']) . ') = ' . tools()->cost_normalize(round($check['specs_total'])) : '')
                                                             . ($check['proposals'] !== null ? '<br/>КП = ' . tools()->cost_normalize(round($check['proposals'])) : '')
                                                             . '</div>';
                                                     @endphp

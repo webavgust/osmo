@@ -393,6 +393,72 @@ class CrmDealRegistryService
     }
 
     /**
+     * Строки вкладок «Проекты» и «Архив проектов»: одна строка — один проект (patch v49).
+     *
+     * На вход — сделки, уже прошедшие отбор реестра (rows() в том же режиме):
+     * проект попадает в список, если прошла хотя бы одна его сделка. Внутри
+     * строки — все сделки проекта, включая не прошедшие отбор и созданные до
+     * since(): проект показывается целиком, иначе сумма и КП врали бы.
+     *
+     * Порядок строк — как у сделок на входе (свежая сделка выше).
+     *
+     * Поля строки (object):
+     *  - id        — id проекта (ключ сортировки колонки «Проект»);
+     *  - project   — DealProject;
+     *  - deals     — Collection сделок проекта в виде строк rows(), свежие выше;
+     *  - managers  — уникальные менеджеры сделок («[83] Имя Фамилия»);
+     *  - companies — уникальные партнёры (компании Битрикса) сделок;
+     *  - customers — уникальные конечные заказчики;
+     *  - countries — уникальные страны;
+     *  - amounts   — [валюта => сумма opportunity сделок], только ненулевые;
+     *  - proposals — КП всех сделок проекта без повторов, порядок — по сделкам.
+     *
+     * @param Collection $rows Сделки из rows() в режиме $mode
+     * @param string $mode projects|archive; для all строки возвращаются как есть
+     * @return Collection
+     */
+    public static function projectRows(Collection $rows, string $mode): Collection
+    {
+        $mode = static::mode($mode);
+        if ($mode === static::MODE_ALL) return $rows;
+
+        // проекты, у которых хотя бы одна сделка прошла отбор, — в порядке сделок
+        $project_ids = $rows->map(fn($row) => $row->project?->id)->filter()->unique()->values();
+        if ($project_ids->isEmpty()) return collect();
+
+        // все сделки проектов этого режима, без отбора и без отсечки по дате
+        $groups = static::rows(['all_dates' => '1'], null, $mode)
+            ->toBase()
+            ->filter(fn($row) => $row->project)
+            ->groupBy(fn($row) => (int) $row->project->id);
+
+        return $project_ids->map(function ($id) use ($groups) {
+            $deals = $groups->get($id, collect())->sortByDesc('date_create')->values();
+            $unique = fn(string $field) => $deals->pluck($field)
+                ->map(fn($value) => trim((string) $value))
+                ->filter()
+                ->unique()
+                ->values();
+
+            return (object) [
+                'id' => $id,
+                'project' => $deals->first()?->project ?? DealProjectService::forDeals()->first(fn($item) => $item->id === $id),
+                'deals' => $deals,
+                'managers' => $unique('manager'),
+                'companies' => $unique('company_name'),
+                'customers' => $unique('customer_name'),
+                'countries' => $unique('country'),
+                'amounts' => $deals->filter(fn($deal) => (float) $deal->opportunity > 0)
+                    ->groupBy('currency_id')
+                    ->map(fn($list) => $list->sum(fn($deal) => (float) $deal->opportunity)),
+                'proposals' => $deals->flatMap(fn($deal) => $deal->proposals ?? collect())
+                    ->unique('id')
+                    ->values(),
+            ];
+        })->filter(fn($item) => $item->project)->values();
+    }
+
+    /**
      * Подзапрос id сделок, у которых менялся статус (patch v42).
      *
      * Источник — crm_deal_stage_history (история стадий из BI-коннектора, база
@@ -453,6 +519,10 @@ class CrmDealRegistryService
      * Одним лёгким запросом на все три числа: тянем только id сделок,
      * остальное считается по картам, которые и так собраны на запрос.
      *
+     * У вкладок проектов число — проекты, а не сделки (patch v49): проект
+     * идёт в счёт, если хотя бы одна его сделка создана не раньше since()
+     * и входит в область партнёра — так же отбирает строки projectRows().
+     *
      * @param Partner|null $partner Область партнёра — только его сделки
      * @param array $defaults Значения по умолчанию поверх DEFAULTS (карточка партнёра свои)
      * @return array ['all' => int, 'projects' => int, 'archive' => int]
@@ -475,6 +545,7 @@ class CrmDealRegistryService
         $taken = static::proposals()->keys()->map(fn($id) => (int) $id)->all();
         $projects = array_flip(DealProjectService::dealIdsByMode(static::MODE_PROJECTS));
         $archive = array_flip(DealProjectService::dealIdsByMode(static::MODE_ARCHIVE));
+        $map = DealProjectService::forDeals();
 
         $counts = [];
 
@@ -491,7 +562,11 @@ class CrmDealRegistryService
             if ($has_proposal === 'no') $rows = $rows->reject(fn($id) => in_array($id, $taken, true));
             if ($has_proposal === 'yes') $rows = $rows->filter(fn($id) => in_array($id, $taken, true));
 
-            $counts[$mode] = $rows->count();
+            // вкладки проектов показывают проекты, а не сделки (patch v49):
+            // проект считается, если в отбор попала хоть одна его сделка
+            $counts[$mode] = $mode === static::MODE_ALL
+                ? $rows->count()
+                : $rows->map(fn($id) => $map->get($id)?->id)->filter()->unique()->count();
         }
 
         return $counts;

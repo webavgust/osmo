@@ -30,6 +30,9 @@ class ApiContractSpecificationController
             'name' => 'required',
             'date_create' => 'nullable|date',
 //            'amount' => 'nullable|int',
+            // patch v49: сценарии уходят из попапа создания так же, как из редактирования
+            'scenario' => 'nullable|array',
+            'scenario_manual' => 'nullable|array',
             'cb_signed' => 'nullable|boolean',
             'currency' => 'required|exists:currencies,slug',
         ]);

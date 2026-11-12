@@ -3,6 +3,7 @@
 namespace App\Modules\Pub\Desktop\Widgets\Finance;
 
 use App\Modules\Pub\Contract\Models\ContractType;
+use App\Modules\Pub\ContractSpecification\Models\ContractSpecification;
 use App\Modules\Pub\ContractSpecification\Models\ContractSpecificationStatus;
 use App\Modules\Pub\Currency\Services\CurrencyService;
 use App\Modules\Pub\Desktop\Services\DesktopContext;
@@ -14,7 +15,8 @@ use Illuminate\Support\Facades\DB;
  * Спецификации по статусам (patch v30) — сколько спецификаций в работе, закрыто
  * и отменено, и на какую сумму.
  *
- * Считаются сами спецификации (`contract_specifications.amount`), а не их платежи —
+ * Считаются сами спецификации (`contract_specifications.amount`, а если он пуст —
+ * плановые платежи, patch v49: ContractSpecification::amountTotalSql()) —
  * все спецификации портала, любого типа договора и организации. Год берётся по дате
  * спецификации, а если своей даты нет — по дате рамочного договора (как у ContractSpecification::date).
  *
@@ -153,7 +155,8 @@ class SpecsStatusWidget extends Widget
         $builder = DB::table('contract_specifications as s')
             ->leftJoin('contracts as c', 'c.id', '=', 's.contract_id')
             ->groupBy('s.status', 's.is_signed', 's.currency_slug')
-            ->selectRaw('s.status, s.is_signed, s.currency_slug, COUNT(*) as cnt, SUM(s.amount) as amount');
+            // patch v49: сумма спецификации — amount, а если пуст, плановые платежи
+            ->selectRaw('s.status, s.is_signed, s.currency_slug, COUNT(*) as cnt, SUM(' . ContractSpecification::amountTotalSql('s') . ') as amount');
 
         if ($year !== 'all') {
             $builder->whereRaw('YEAR(COALESCE(s.date_create, c.date)) = ?', [(int) $year]);

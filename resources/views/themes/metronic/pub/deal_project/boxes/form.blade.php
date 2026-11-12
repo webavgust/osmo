@@ -145,22 +145,34 @@
 
             {{-- Новый проект или прикрепить к существующему (только при создании) --}}
             @if($is_new && $projects->isNotEmpty())
+                @php
+                    // patch v49: у компании сделки уже есть действующий проект — по умолчанию
+                    // предлагаем прикрепиться к нему, иначе легко завести дубль проекта
+                    $suggested = $company ? $projects->firstWhere('company_id', $company->id) : null;
+                @endphp
                 <div class="mb-5">
                     <div class="d-flex flex-wrap gap-6 mb-3">
                         <label class="form-check form-check-custom form-check-sm">
-                            <input class="form-check-input" type="radio" name="target" value="new" checked/>
+                            <input class="form-check-input" type="radio" name="target" value="new" @checked(!$suggested)/>
                             <span class="form-check-label fw-semibold">Новый проект</span>
                         </label>
                         <label class="form-check form-check-custom form-check-sm">
-                            <input class="form-check-input" type="radio" name="target" value="existing"/>
+                            <input class="form-check-input" type="radio" name="target" value="existing" @checked($suggested)/>
                             <span class="form-check-label fw-semibold">Прикрепить к существующему</span>
                         </label>
                     </div>
 
+                    @if($suggested)
+                        <div class="text-gray-600 fs-7 mb-3">
+                            <i class="fa-light fa-circle-info me-1"></i>
+                            У компании {{ $company->name }} уже есть действующий проект — сделка обычно прикрепляется к нему.
+                        </div>
+                    @endif
+
                     <div id="deal_project_existing" class="d-none">
                         <select name="deal_project_id" id="deal_project_id" class="form-select">
                             @foreach($projects as $item)
-                                <option value="{{ $item->id }}" data-company="{{ (int) $item->company_id }}">
+                                <option value="{{ $item->id }}" data-company="{{ (int) $item->company_id }}" @selected($suggested && $suggested->id === $item->id)>
                                     Проект от {{ $item->date_start?->format('d.m.Y') }}
                                     @if($item->is_pilot) · пилот @endif
                                     · {{ $item->company?->name ?: 'без компании' }}
@@ -260,7 +272,8 @@
                                             {{ $spec->company?->name ?: 'без компании' }}
                                             @if($spec->contract) · договор {{ $spec->contract->number }} @endif
                                             @if($date) · {{ \Carbon\Carbon::parse($date)->format('d.m.Y') }} @endif
-                                            @if($spec->amount) · {{ tools()->cost_normalize(round($spec->amount)) }} {{ $spec->currency_slug }} @endif
+                                            {{-- patch v49: пустая сумма = плановые платежи --}}
+                                            @if($spec->amount_total) · {{ tools()->cost_normalize(round($spec->amount_total)) }} {{ $spec->currency_slug }} @endif
                                         </div>
                                     </div>
                                 </div>

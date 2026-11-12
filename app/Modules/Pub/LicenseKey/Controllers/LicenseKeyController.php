@@ -37,6 +37,8 @@ class LicenseKeyController extends Controller
             'title' => 'Редактирование ключа',
             'key' => $license_key,
             'specs' => $specs,
+            // patch v49: периоды действия (продления) ключа
+            'periods' => $license_key->periods()->get(),
         ]);
 
         return $template;

@@ -108,6 +108,10 @@ class EntityLogDiff
         ));
 
         foreach ($relations as $relation) {
+            // связи нет в старом слепке — её добавили в logChildren() позже (периоды ключа, v49):
+            // иначе все её строки показались бы «добавленными» при первой же правке
+            if ($old !== null && !array_key_exists($relation, (array) ($old['children'] ?? []))) continue;
+
             $old_kids = static::keyed((array) ($old['children'][$relation] ?? []));
             $new_kids = static::keyed((array) ($new['children'][$relation] ?? []));
 

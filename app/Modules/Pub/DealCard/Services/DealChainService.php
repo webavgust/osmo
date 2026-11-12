@@ -3,6 +3,7 @@
 namespace App\Modules\Pub\DealCard\Services;
 
 use App\Modules\Bitrix\CrmDeal\Models\CrmDeal;
+use App\Modules\Pub\ContractSpecification\Models\ContractSpecification;
 use App\Modules\Pub\Proposal\Models\Proposal;
 use App\Modules\Pub\Proposal\Services\ProposalDealService;
 use Illuminate\Support\Carbon;
@@ -175,6 +176,8 @@ class DealChainService
                 's.company_id', 'co.name as company_name',
                 // то же, что ContractSpecification::amount_all — сумма плана всех платежей
                 DB::raw('(SELECT COALESCE(SUM(p.amount_plan), 0) FROM payments p WHERE p.contract_specification_id = s.id) as amount_all'),
+                // patch v49: сумма спецификации — amount, а если пуст, плановые платежи
+                DB::raw(ContractSpecification::amountTotalSql('s') . ' as amount_total'),
             ])
             ->orderBy('s.id')
             ->get())
@@ -229,9 +232,13 @@ class DealChainService
     {
         if ($specIds->isEmpty()) return collect();
 
-        return collect(DB::table('license_keys')
-            ->whereIn('contract_specification_id', $specIds)
-            ->orderBy('active_to')
+        // patch v49: строка — период ключа (продлённый ключ виден в каждой своей спецификации
+        // со сроком этой спецификации); contract_specification_id и даты — из периода
+        return collect(DB::table('license_key_periods as kp')
+            ->join('license_keys as k', 'k.id', '=', 'kp.license_key_id')
+            ->whereIn('kp.contract_specification_id', $specIds)
+            ->select(['k.*', 'kp.id as period_id', 'kp.contract_specification_id', 'kp.active_from', 'kp.active_to'])
+            ->orderBy('kp.active_to')
             ->get())
             ->map(function ($row) {
                 $row->active_from = $row->active_from ? Carbon::parse($row->active_from) : null;
@@ -266,6 +273,11 @@ class DealChainService
         $unsigned_specs = $live_specs->where('is_signed', '!=', 1);
 
         $live_payments = $payments->where('state', '!=', 'canceled');
+
+        // patch v49: $keys — периоды ключей; для оценки берём у каждого ключа последний период,
+        // иначе закончившийся, но продлённый период считался бы просрочкой
+        $current_keys = $keys->sortBy(fn($row) => $row->active_to?->timestamp ?? 0)->keyBy('id')
+            ->sortBy(fn($row) => $row->active_to?->timestamp ?? 0)->values();
         $paid = $live_payments->where('state', 'paid');
         $overdue = $live_payments->where('state', 'overdue');
 
@@ -359,7 +371,7 @@ class DealChainService
                     $unsigned_specs->isNotEmpty() => 'Не подписаны: '
                         . $unsigned_specs->map(fn($row) => $row->name ?: 'без названия')->take(3)->implode(', ')
                         . ($canceled_specs->isNotEmpty() ? ' · отменено: ' . $canceled_specs->count() : ''),
-                    default => 'Сумма: ' . tools()->cost_normalize(round((float) $live_specs->sum('amount')))
+                    default => 'Сумма: ' . tools()->cost_normalize(round((float) $live_specs->sum('amount_total')))
                         . ($canceled_specs->isNotEmpty() ? ' · отменено: ' . $canceled_specs->count() : ''),
                 },
                 'url' => null,
@@ -389,14 +401,14 @@ class DealChainService
                 'title' => 'Лицензии',
                 'icon' => 'fa-key',
                 'state' => match (true) {
-                    $keys->isEmpty() => 'empty',
-                    $keys->where('days_left', '<', 0)->isNotEmpty() => 'warn',
+                    $current_keys->isEmpty() => 'empty',
+                    $current_keys->where('days_left', '<', 0)->isNotEmpty() => 'warn',
                     default => 'ok',
                 },
-                'value' => $keys->isEmpty() ? 'Ключей нет' : $keys->count() . ' ключ(ей)',
-                'hint' => $keys->isEmpty()
+                'value' => $current_keys->isEmpty() ? 'Ключей нет' : $current_keys->count() . ' ключ(ей)',
+                'hint' => $current_keys->isEmpty()
                     ? 'Лицензии по этой сделке не выдавались'
-                    : 'Ближайшее окончание: ' . ($keys->first()?->active_to?->format('d.m.Y') ?? '—'),
+                    : 'Ближайшее окончание: ' . ($current_keys->first()?->active_to?->format('d.m.Y') ?? '—'),
                 'url' => null,
             ],
         ];
@@ -412,13 +424,14 @@ class DealChainService
         $live_specs = $specs->where('is_canceled', false);
         $live_payments = $payments->where('state', '!=', 'canceled');
 
-        $spec_sum = (float) $live_specs->sum('amount');
+        // patch v49: пустая сумма спецификации = её плановые платежи (amount_total)
+        $spec_sum = (float) $live_specs->sum('amount_total');
         $plan = (float) $live_payments->sum('amount_plan');
         $fact = (float) $live_payments->sum('amount_fact');
 
         return [
             'spec' => $spec_sum,
-            'canceled' => (float) $specs->where('is_canceled', true)->sum('amount'),
+            'canceled' => (float) $specs->where('is_canceled', true)->sum('amount_total'),
             'plan' => $plan,
             'fact' => $fact,
             'left' => max(0, $plan - $fact),

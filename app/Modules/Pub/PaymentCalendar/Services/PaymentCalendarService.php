@@ -3,6 +3,7 @@
 namespace App\Modules\Pub\PaymentCalendar\Services;
 
 use App\Modules\Pub\Constant\Models\Constant;
+use App\Modules\Pub\ContractSpecification\Models\ContractSpecification;
 use App\Modules\Pub\ContractSpecification\Models\ContractSpecificationStatus;
 use App\Modules\Pub\Currency\Models\Currency;
 use App\Modules\Pub\Currency\Services\CurrencyService;
@@ -129,7 +130,8 @@ class PaymentCalendarService
                 'p.is_unknown',
                 's.id as spec_id',
                 's.name as spec_name',
-                's.amount as spec_amount',
+                // patch v49: сумма спецификации — amount, а если пуст, плановые платежи
+                DB::raw(ContractSpecification::amountTotalSql('s') . ' as spec_amount'),
                 's.currency_slug',
                 's.is_signed',
                 's.status as spec_status',

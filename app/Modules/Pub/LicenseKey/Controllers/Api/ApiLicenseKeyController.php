@@ -29,7 +29,7 @@ class ApiLicenseKeyController
             'active' => 'nullable|boolean',
             'key' => 'required|string',
             'active_from' => 'required|date',
-            'active_to' => 'required|date',
+            'active_to' => 'required|date|after_or_equal:active_from',
             'specification' => 'nullable|exists:contract_specifications,id',
         ]);
 
@@ -45,10 +45,12 @@ class ApiLicenseKeyController
         $request->validate([
             'active' => 'nullable|boolean',
             'key' => 'required|string',
-            'active_from' => 'required|date',
-            'active_to' => 'required|date',
-            'specification' => 'nullable|exists:contract_specifications,id',
-
+            // patch v49: периоды действия ключа (продление — новый период по новой спецификации)
+            'periods' => 'required|array|min:1',
+            'periods.*.id' => 'nullable|integer',
+            'periods.*.active_from' => 'required|date',
+            'periods.*.active_to' => 'required|date|after_or_equal:periods.*.active_from',
+            'periods.*.specification' => 'nullable|exists:contract_specifications,id',
         ]);
 
         $data = $request->all();

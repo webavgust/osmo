@@ -2,6 +2,7 @@
 
 namespace App\Modules\Pub\Desktop\Widgets\Partner;
 
+use App\Modules\Pub\ContractSpecification\Models\ContractSpecification;
 use App\Modules\Pub\Currency\Services\CurrencyService;
 use App\Modules\Pub\Desktop\Services\DesktopContext;
 use App\Modules\Pub\Desktop\Widgets\Widget;
@@ -208,7 +209,9 @@ class CompaniesGeoWidget extends Widget
             ->leftJoin('contracts as c', 'c.id', '=', 's.contract_id')
             ->where(fn($query) => $query->whereNull('s.status')->orWhere('s.status', '!=', 'canceled'))
             ->whereRaw('COALESCE(s.company_id, c.company_id) IS NOT NULL')
-            ->get([DB::raw('COALESCE(s.company_id, c.company_id) as company_id'), 's.amount', 's.currency_slug', 's.date_create']);
+            // patch v49: сумма спецификации — amount, а если пуст, плановые платежи
+            ->get([DB::raw('COALESCE(s.company_id, c.company_id) as company_id'),
+                DB::raw(ContractSpecification::amountTotalSql('s') . ' as amount'), 's.currency_slug', 's.date_create']);
 
         foreach ($specs as $spec) {
             $date = $spec->date_create ? Carbon::parse($spec->date_create) : now();

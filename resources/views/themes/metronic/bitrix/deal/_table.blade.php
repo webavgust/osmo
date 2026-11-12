@@ -19,6 +19,7 @@
       $table_id — id таблицы (во вкладке партнёра он будет свой, patch v23);
       $ajax     — во вкладке: поиск перерисовывает вкладку, а не страницу;
       $mode     — вкладка реестра: all | projects | archive (patch v24);
+                  на projects/archive строка — проект (_table_projects, patch v49);
       $partner  — область партнёра, если таблица живёт во вкладке карточки;
       $toolbar  — забирать в панель таблицы тулбар _filter (по умолчанию да;
                   на странице реестра false — кнопки и поиск в шапке страницы).
@@ -40,6 +41,12 @@
 
     // поиск уходит на сервер: собираем адрес страницы без q, q допишет скрипт
     $search_base = \App\Modules\Bitrix\CrmDeal\Services\CrmDealRegistryService::searchBase($action, $params, $mode);
+
+    // вкладки «Проекты» и «Архив проектов»: строка — проект, сделки внутри (patch v49)
+    $project_mode = in_array($mode, [
+        \App\Modules\Bitrix\CrmDeal\Services\CrmDealRegistryService::MODE_PROJECTS,
+        \App\Modules\Bitrix\CrmDeal\Services\CrmDealRegistryService::MODE_ARCHIVE,
+    ], true);
 @endphp
 
 {{-- Плотность строк как в списке КП. Специфичность важна: у самого
@@ -71,6 +78,11 @@
        data-locale="ru-RU"
        data-sort-name="id"
        data-sort-order="desc">
+    @if($project_mode)
+        @include('bitrix.deal._table_projects', [
+            'items' => \App\Modules\Bitrix\CrmDeal\Services\CrmDealRegistryService::projectRows($rows, $mode),
+        ])
+    @else
     <thead>
     <tr>
         <th data-field="id" data-align="center" data-width="70"
@@ -278,6 +290,7 @@
         </tr>
     @endforeach
     </tbody>
+    @endif
 </table>
 
 <script>
@@ -324,6 +337,23 @@
         };
 
         return text(a).localeCompare(text(b), 'ru');
+    };
+
+    /** Сортировка по ключу из data-key ячейки (строки проектов, patch v49): число — как число, иначе текст */
+    window.dealKeySort = function (a, b) {
+        var key = function (value) {
+            var m = String(value === null || value === undefined ? '' : value).match(/data-key="([^"]*)"/);
+            return m ? m[1] : '';
+        };
+
+        var x = key(a), y = key(b);
+        var nx = parseFloat(x), ny = parseFloat(y);
+
+        if (!isNaN(nx) && !isNaN(ny) && String(nx) === x && String(ny) === y) {
+            return nx === ny ? 0 : (nx > ny ? 1 : -1);
+        }
+
+        return x.toLowerCase().localeCompare(y.toLowerCase(), 'ru');
     };
 
     // Таблица приезжает и вместе со страницей, и ajax'ом во вкладку

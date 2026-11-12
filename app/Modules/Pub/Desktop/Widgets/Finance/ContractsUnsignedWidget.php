@@ -4,6 +4,7 @@ namespace App\Modules\Pub\Desktop\Widgets\Finance;
 
 use App\Facades\Tools;
 use App\Modules\Pub\Contract\Models\ContractType;
+use App\Modules\Pub\ContractSpecification\Models\ContractSpecification;
 use App\Modules\Pub\ContractSpecification\Models\ContractSpecificationStatus;
 use App\Modules\Pub\Currency\Services\CurrencyService;
 use App\Modules\Pub\Desktop\Services\DesktopContext;
@@ -248,11 +249,12 @@ class ContractsUnsignedWidget extends Widget
     {
         if (empty($ids)) return collect();
 
-        return collect(DB::table('contract_specifications')
-            ->whereIn('contract_id', $ids)
-            ->where('status', '!=', ContractSpecificationStatus::CANCELED->value)
-            ->groupBy('contract_id', 'currency_slug')
-            ->selectRaw('contract_id, currency_slug, COUNT(*) as cnt, SUM(amount) as amount')
+        return collect(DB::table('contract_specifications as s')
+            ->whereIn('s.contract_id', $ids)
+            ->where('s.status', '!=', ContractSpecificationStatus::CANCELED->value)
+            ->groupBy('s.contract_id', 's.currency_slug')
+            // patch v49: сумма спецификации — amount, а если пуст, плановые платежи
+            ->selectRaw('s.contract_id, s.currency_slug, COUNT(*) as cnt, SUM(' . ContractSpecification::amountTotalSql('s') . ') as amount')
             ->get())
             ->groupBy('contract_id');
     }

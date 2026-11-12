@@ -33,6 +33,47 @@ class LicenseKey extends ModuleModel
         return $this->belongsTo(ContractSpecification::class, 'contract_specification_id');
     }
 
+    /**
+     * Периоды действия ключа: продление = новый период по новой спецификации (patch v49)
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function periods()
+    {
+        return $this->hasMany(LicenseKeyPeriod::class)->orderBy('active_to')->orderBy('id');
+    }
+
+    /**
+     * Текущий период — последний по дате окончания
+     *
+     * @return LicenseKeyPeriod|null
+     */
+    public function currentPeriod(): ?LicenseKeyPeriod
+    {
+        return $this->periods()->get()->last();
+    }
+
+    /**
+     * Свести поля ключа (спецификация, даты) к текущему периоду.
+     * Вызывается после любого изменения периодов: все потребители
+     * (виджеты, отчёты, реестр) читают поля ключа и видят продлённый срок.
+     *
+     * @return $this
+     */
+    public function syncFromPeriods(): static
+    {
+        $period = $this->currentPeriod();
+        if (empty($period)) return $this;
+
+        $this->contract_specification_id = $period->contract_specification_id;
+        $this->active_from = $period->active_from;
+        $this->active_to = $period->active_to;
+
+        if ($this->isDirty()) $this->save();
+
+        return $this;
+    }
+
     /*** ЖУРНАЛ ИЗМЕНЕНИЙ (patch v29) ***/
 
     public static function logParentRelation(): ?string
@@ -43,6 +84,13 @@ class LicenseKey extends ModuleModel
     public static function logLabel(): string
     {
         return 'Лицензионный ключ';
+    }
+
+    public static function logChildren(): array
+    {
+        return [
+            'periods' => LicenseKeyPeriod::class,
+        ];
     }
 
     public function logTitle(?int $index = null): string

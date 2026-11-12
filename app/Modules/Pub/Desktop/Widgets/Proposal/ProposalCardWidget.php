@@ -281,7 +281,8 @@ class ProposalCardWidget extends Widget
         $rows = $specs->map(fn($spec) => [
             // name_full строит подпись через ContractType — в виджете обходимся номером договора
             'name' => trim(($spec->contract?->number ? '№ ' . $spec->contract->number . ' · ' : '') . $spec->name),
-            'amount' => $spec->amount !== null ? (float) $spec->amount : null,
+            // patch v49: пустая сумма спецификации = её плановые платежи; нет ни того ни другого — «—»
+            'amount' => $spec->amount !== null || $spec->amount_total > 0 ? $spec->amount_total : null,
             'symbol' => (string) ($currencies[(string) $spec->currency_slug]->symbol ?? $spec->currency_slug ?? '₽'),
             'signed' => (bool) $spec->is_signed,
         ])->all();
@@ -289,7 +290,7 @@ class ProposalCardWidget extends Widget
         // суммы спецификаций бывают в разных валютах — итог считаем только по валюте КП
         $sum = $specs
             ->filter(fn($spec) => (string) $spec->currency_slug === (string) $proposal->currency_slug)
-            ->sum(fn($spec) => (float) $spec->amount);
+            ->sum(fn($spec) => $spec->amount_total);
 
         return ['specs' => $rows, 'specs_count' => count($rows), 'specs_sum' => (float) $sum];
     }

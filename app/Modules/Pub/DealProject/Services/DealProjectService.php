@@ -357,7 +357,8 @@ class DealProjectService
         return ContractSpecification::query()
             ->whereHas('contract', fn($builder) => $builder->where('partner_id', $partner->id))
             ->when($company, fn($builder) => $builder->where('company_id', $company->id))
-            ->with(['contract', 'company', 'currency'])
+            // payments — для суммы спецификации (amount_total, patch v49) без запроса на строку
+            ->with(['contract', 'company', 'currency', 'payments'])
             ->get()
             ->sortByDesc(fn(ContractSpecification $spec) => $spec->date_create ?? $spec->contract?->date)
             ->values();

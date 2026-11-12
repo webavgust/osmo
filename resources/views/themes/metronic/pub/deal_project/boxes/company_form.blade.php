@@ -119,7 +119,8 @@
                                     <div class="text-muted fs-8">
                                         @if($spec->contract) договор {{ $spec->contract->number ?: 'б/н' }} @endif
                                         @if($spec->date) · {{ \Carbon\Carbon::parse($spec->date)->format('d.m.Y') }} @endif
-                                        @if($spec->amount) · {{ tools()->cost_normalize(round($spec->amount)) }} {{ $currency }} @endif
+                                        {{-- patch v49: пустая сумма = плановые платежи --}}
+                                        @if($spec->amount_total) · {{ tools()->cost_normalize(round($spec->amount_total)) }} {{ $currency }} @endif
                                     </div>
                                 </div>
                             </div>
