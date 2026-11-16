@@ -55,8 +55,23 @@
 
         <div id="mv-pane-table" @class(['d-none' => $view !== 'table'])>
 
-        {{-- Когорта года --}}
-        <h3 class="fw-bold text-gray-900 mb-4">Новые запросы {{ $year }}</h3>
+        {{-- Когорта года; справа — выгрузка вкладки с тем же годом и срезом (patch v51) --}}
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+            <h3 class="fw-bold text-gray-900 mb-0">Новые запросы {{ $year }}</h3>
+            <div class="dropdown">
+                <button type="button" class="btn btn-sm btn-light-primary" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fa-light fa-download me-1"></i> Выгрузить
+                </button>
+                <div class="dropdown-menu dropdown-menu-end">
+                    <a href="{{ route('bitrix.movement.export.table', ['format' => 'xlsx', 'year' => $year, 'at' => $at]) }}" class="dropdown-item">
+                        <i class="fa-light fa-file-excel text-success me-2"></i> Excel
+                    </a>
+                    <a href="{{ route('bitrix.movement.export.table', ['format' => 'pdf', 'year' => $year, 'at' => $at]) }}" class="dropdown-item">
+                        <i class="fa-light fa-file-pdf text-danger me-2"></i> PDF
+                    </a>
+                </div>
+            </div>
+        </div>
         <div class="row g-4 mb-8">
             @foreach($tiles as [$key, $label, $icon, $color])
                 <div class="col-6 col-xl-3">

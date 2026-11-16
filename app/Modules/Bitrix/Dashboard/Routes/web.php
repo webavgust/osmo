@@ -4,6 +4,10 @@ use \App\Modules\Bitrix\Dashboard\Controllers\DealMovementController;
 
 // отчёт «Движение сделок за год» — отдельный пункт меню, /bitrix/movement (patch v50)
 Route::get('/movement', [DealMovementController::class, 'index'])->name('bitrix.movement');
+// выгрузка вкладки «Таблица» в Excel / PDF: ?format=xlsx|pdf&year=&at= (patch v51)
+Route::get('/movement/export/table', [DealMovementController::class, 'exportTable'])->name('bitrix.movement.export.table');
+// выгрузка вкладки «Диаграмма»: POST с видимыми сделками, раскрытыми, периодом и условиями (patch v51)
+Route::post('/movement/export/gantt', [DealMovementController::class, 'exportGantt'])->name('bitrix.movement.export.gantt');
 
 Route::group(['prefix' => 'dashboard', 'middleware' => []], function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard.index');

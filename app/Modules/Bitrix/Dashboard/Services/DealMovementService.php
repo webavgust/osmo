@@ -41,23 +41,23 @@ class DealMovementService
     public const GANTT_COLOR_UNKNOWN = '#a1a5b7';
 
     /**
-     * Цвета стадий P по месту в воронке (Lead … Closing documents). Не градиент: соседние стадии
-     * контрастны по тону и светлоте (тёмный / светлый вперемешку, начиная с чёрного Lead), чтобы стыки читались на полосе.
-     * Красный, зелёный и янтарный не используются — они за отказом, успехом и паузой.
+     * Цвета стадий P по месту в воронке (Lead … Closing documents). Последовательная шкала «Viridis приглушённый»
+     * (вариант 4 тестовой страницы public/test/stage-colors.html, выбор владельца 16.11): после чёрного Lead —
+     * фиолетовый → синий → бирюза → зелень → лимон, насыщенность убрана. Чем дальше по воронке, тем светлее.
      */
     public const GANTT_FUNNEL_COLORS = [
         '#1a1a1a', // Lead — чёрный (решение владельца 16.11)
-        '#93c5fd', // Research — светло-голубой
-        '#7c3aed', // Presentation — фиолетовый
-        '#2dd4bf', // Pilot project — бирюзовый
-        '#1e3a8a', // Competition/tender — тёмно-синий
-        '#f9a8d4', // TCP — розовый
-        '#0f766e', // Contracting — тёмная бирюза
-        '#c4b5fd', // Invoice + Specification — лавандовый
-        '#92400e', // Execution (PRE-PAYMENT) — коричневый
-        '#38bdf8', // Execution (POST-PAYMENT) — небесный
-        '#be185d', // Acceptance tests — малиновый
-        '#818cf8', // Closing documents — светлый индиго
+        '#5b3a6e', // Research — тёмно-фиолетовый
+        '#58508a', // Presentation — фиолетово-синий
+        '#4f6893', // Pilot project — синий
+        '#487f96', // Competition/tender — сине-бирюзовый
+        '#449393', // TCP — бирюзовый
+        '#4aa58c', // Contracting — морская волна
+        '#5fb57f', // Invoice + Specification — зелёный
+        '#82c26f', // Execution (PRE-PAYMENT) — травяной
+        '#a9cc62', // Execution (POST-PAYMENT) — салатовый
+        '#cdd36a', // Acceptance tests — оливково-лимонный
+        '#e8db8a', // Closing documents — светлый лимон
     ];
 
     /** @var Collection|null сделки (без исключённых менеджеров), ключ — id */

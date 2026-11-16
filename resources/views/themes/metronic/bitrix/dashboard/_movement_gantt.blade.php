@@ -69,8 +69,8 @@
 
         /* отрезки стадий и метки итога */
         #mg-gantt .mg-seg { position: absolute; top: 50%; height: 14px; margin-top: -7px; border-radius: 2px; z-index: 1; }
-        /* наведение: отрезок становится полупрозрачным (70%) */
-        #mg-gantt .mg-seg:hover { opacity: .7; z-index: 3; }
+        /* наведение: отрезок становится полупрозрачным (70%); слой не поднимаем — подписи внутри (z-index 2) остаются сверху */
+        #mg-gantt .mg-seg:hover { opacity: .7; }
         #mg-gantt .mg-seg-chev { border-radius: 0; }
         /* подпись длительности отрезка (развёрнутый вид); фон прячет проходящие вертикали стрелок */
         #mg-gantt .mg-lbl { position: absolute; top: 50%; margin-top: -7px; height: 14px; line-height: 14px; font-size: 11px; text-align: center;
@@ -161,6 +161,23 @@
                 </button>
                 <button type="button" class="btn btn-sm btn-link text-gray-600 d-none p-0" id="mgf-reset-inline">Сбросить</button>
             </div>
+            {{-- выгрузка того, что сейчас на диаграмме (patch v51): JS собирает видимые сделки и шлёт POST-формой --}}
+            <div class="dropdown">
+                <button type="button" class="btn btn-sm btn-light-primary" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fa-light fa-download me-1"></i> Выгрузить
+                </button>
+                <div class="dropdown-menu dropdown-menu-end">
+                    <a href="javascript:void(0);" class="dropdown-item" data-mg-export="xlsx">
+                        <i class="fa-light fa-file-excel text-success me-2"></i> Excel
+                    </a>
+                    <a href="javascript:void(0);" class="dropdown-item" data-mg-export="pdf">
+                        <i class="fa-light fa-file-pdf text-danger me-2"></i> PDF
+                    </a>
+                </div>
+            </div>
+            <form method="post" action="{{ route('bitrix.movement.export.gantt') }}" id="mg-export-form" class="d-none">
+                @csrf
+            </form>
         </div>
         <div class="d-none flex-wrap gap-2 px-6 pb-3" id="mgf-chips"></div>
         <div class="mg-scroll" id="mg-scroll">
@@ -836,8 +853,62 @@
                 });
             });
 
-            // API для фильтра в попапе (_movement_gantt_filter): данные и установка условия отбора
+            /** Дата Y-m-d из UTC-миллисекунд */
+            function ymd(t) { return new Date(t).toISOString().slice(0, 10); }
+
+            /**
+             * Состояние диаграммы для выгрузки (patch v51): видимые сделки в порядке экрана, раскрытые,
+             * период шкалы (end — включительно) и подписи условий отбора для шапки файла
+             */
+            function exportState() {
+                const deals = DATA.deals.filter(visible).sort(SORTS[state.sort]);
+                const p = period();
+                const conditions = [state.onlyNew ? 'только новые запросы года' : 'все сделки года'];
+                if (state.group) {
+                    const b = document.querySelector('[data-mg-group="' + state.group + '"]');
+                    conditions.push('группа «' + (b ? b.textContent.replace(/\d+\s*$/, '').trim() : state.group) + '»');
+                }
+                if (state.filter) {
+                    const chips = Array.from(document.querySelectorAll('#mgf-chips .mgf-chip > span')).map(function (s) { return s.textContent.trim(); }).filter(Boolean);
+                    if (chips.length) conditions.push('фильтр: ' + chips.join(', '));
+                }
+                return {
+                    year: YEAR,
+                    at: AT,
+                    range: state.range,
+                    start: ymd(p.start),
+                    end: ymd(p.start + (p.days - 1) * DAY),
+                    sort: state.sort,
+                    ids: deals.map(function (d) { return d.id; }),
+                    open: deals.filter(function (d) { return state.open.has(d.id); }).map(function (d) { return d.id; }),
+                    conditions: conditions.join('; '),
+                };
+            }
+
+            // «Выгрузить»: POST-формой в ту же вкладку — файл просто скачивается
+            document.querySelectorAll('[data-mg-export]').forEach(function (a) {
+                a.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const form = document.getElementById('mg-export-form');
+                    const s = exportState();
+                    const fields = {format: a.getAttribute('data-mg-export'), year: s.year, at: s.at, range: s.range, start: s.start, end: s.end,
+                        sort: s.sort, ids: s.ids.join(','), open: s.open.join(','), conditions: s.conditions};
+                    form.querySelectorAll('input[data-mg-field]').forEach(function (i) { i.remove(); });
+                    Object.keys(fields).forEach(function (k) {
+                        const i = document.createElement('input');
+                        i.type = 'hidden';
+                        i.name = k;
+                        i.value = fields[k];
+                        i.setAttribute('data-mg-field', '');
+                        form.appendChild(i);
+                    });
+                    form.submit();
+                });
+            });
+
+            // API для фильтра в попапе (_movement_gantt_filter): данные и установка условия отбора; exportState — для выгрузки
             window.MovementGantt = {
+                exportState: exportState,
                 data: DATA,
                 stages: stages,
                 /** fn(deal) → bool или null — без фильтра; перерисовывает диаграмму; fit — затем «100%» (решение владельца 16.11) */
