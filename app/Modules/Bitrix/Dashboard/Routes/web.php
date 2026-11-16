@@ -1,8 +1,15 @@
 <?php
 use \App\Modules\Bitrix\Dashboard\Controllers\DashboardController;
+use \App\Modules\Bitrix\Dashboard\Controllers\DealMovementController;
+
+// отчёт «Движение сделок за год» — отдельный пункт меню, /bitrix/movement (patch v50)
+Route::get('/movement', [DealMovementController::class, 'index'])->name('bitrix.movement');
 
 Route::group(['prefix' => 'dashboard', 'middleware' => []], function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard.index');
+
+    // старый адрес отчёта «Движение сделок» — 301 на /bitrix/movement с сохранением query (patch v50)
+    Route::get('/movement', [\App\Modules\Bitrix\Dashboard\Controllers\DealMovementController::class, 'legacy'])->name('dashboard.movement');
 
     // boxes
     Route::group(['prefix' => 'box'], function() {
